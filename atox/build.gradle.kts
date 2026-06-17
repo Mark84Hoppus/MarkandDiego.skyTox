@@ -39,6 +39,14 @@ android {
             storePassword = "android"
         }
     }
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            isUniversalApk = false
+        }
+    }
     buildFeatures {
         buildConfig = true
         viewBinding = true
@@ -50,6 +58,26 @@ android {
         // Work around scala-compiler and scala-library (via tox4j) trying to place files in the
         // same place.
         resources.excludes.add("rootdoc.txt")
+    }
+}
+
+androidComponents {
+    onVariants(selector().withBuildType("release")) { variant ->
+        val abiVersionCodes = mapOf(
+            "armeabi-v7a" to 151,
+            "arm64-v8a" to 152,
+            "x86" to 153,
+            "x86_64" to 154,
+        )
+        variant.outputs.forEach { output ->
+            val abi = output.filters
+                .find { it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI }
+                ?.identifier
+            val versionCode = abiVersionCodes[abi]
+            if (versionCode != null) {
+                output.versionCode.set(versionCode)
+            }
+        }
     }
 }
 

@@ -7,5 +7,6 @@
 *.jpg binary
 *.png binary
 *.webp binary
+*.apk binary
 
 *.jar binary
