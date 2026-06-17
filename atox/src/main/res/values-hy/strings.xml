@@ -10,7 +10,7 @@
     <string name="tox_id">Tox ID</string>
     <string name="accept">Ընդունել</string>
     <string name="reject">Մերժել</string>
-    <string name="name_default">aTox օգտատեր</string>
+    <string name="name_default">skyTox օգտատեր</string>
     <string name="name">Անուն</string>
     <string name="messages_incoming">Ստացվող նամակներ</string>
     <string name="messages">Նամսկներ</string>
@@ -24,7 +24,7 @@
     <string name="connecting">Կապի հաստատում…</string>
     <string name="confirm">Հաստատել</string>
     <string name="add_contact_message_error_empty">Գրիր ինչ-որ բան ուղարկելու համար</string>
-    <string name="add_contact_message_default">Շփվենք aTox-ում, ոնց նորմալ մարդիկ:</string>
+    <string name="add_contact_message_default">Շփվենք skyTox-ում, ոնց նորմալ մարդիկ:</string>
     <string name="add_contact">Ավելացնել կոնտակտ</string>
     <string name="add">Ավելացնել</string>
     <string name="calls">Զանգեր</string>
@@ -47,7 +47,7 @@
     <string name="pref_heading_general">Հիմնական</string>
     <string name="pref_udp_enabled">UDP-ն միացված է</string>
     <string name="pref_heading_network">Կապ</string>
-    <string name="tox_service_running">aTox-ը միացված է…</string>
+    <string name="tox_service_running">skyTox-ը միացված է…</string>
     <string name="tox_id_error_already_exists">Այդ Tox ID կոնտակն արդեն գրանցված է</string>
     <string name="profile">Պրոֆիլ</string>
     <string name="profile_status">Փոխել ստատուսը</string>

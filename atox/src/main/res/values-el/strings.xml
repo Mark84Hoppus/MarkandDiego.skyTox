@@ -43,7 +43,7 @@
     <string name="pref_heading_general">Γενικά</string>
     <string name="pref_udp_enabled">Ενεργοποιημένο UDP</string>
     <string name="pref_heading_network">Δίκτυο</string>
-    <string name="tox_service_running">Το aTox εκτελείται…</string>
+    <string name="tox_service_running">Το skyTox εκτελείται…</string>
     <string name="tox_id_error_already_exists">Υπάρχει ήδη επαφή με αυτό το αναγνωριστικό</string>
     <string name="profile">Προφίλ</string>
     <string name="profile_status">Αλλάξτε την κατάστασή σας</string>
@@ -93,7 +93,7 @@
     <string name="navigation_drawer_open">Αρξη πλοήγησης</string>
     <string name="navigation_drawer_close">Κλείσιμο πλοήγησης</string>
     <string name="no_contacts_call_to_action">Τι περιμένετε\? Προσθέστε μια επαφή για να ξεκινήσετε!</string>
-    <string name="name_default">χρήστης aTox</string>
+    <string name="name_default">χρήστης skyTox</string>
     <string name="name">Όνομα</string>
     <string name="messages_incoming">Εισερχόμενα μηνύματα</string>
     <string name="messages">Μηνύματα</string>
@@ -106,11 +106,11 @@
     <string name="connecting">Σύνδεση…</string>
     <string name="confirm">Επιβεβαίωση</string>
     <string name="add_contact_message_error_empty">Το μήνυμα δεν μπορεί να είναι κενό</string>
-    <string name="add_contact_message_default">Μίλα μου στο aTox σαν λογικός άνθρωπος.</string>
+    <string name="add_contact_message_default">Μίλα μου στο skyTox σαν λογικός άνθρωπος.</string>
     <string name="add_contact">Προσθήκη επαφής</string>
     <string name="add">Προσθήκη</string>
     <string name="accept">Αποδοχή</string>
-    <string name="status_message_default">Zωντανά, μέσω του aTox</string>
+    <string name="status_message_default">Zωντανά, μέσω του skyTox</string>
     <string name="pref_heading_proxy">Διακομιστής μεσολάβησης</string>
     <string name="delete_message">Διαγραφή μηνύματος</string>
     <string name="saved">Αποθηκεύτηκε</string>
@@ -120,7 +120,7 @@
     <string name="tox_id_error_self_add">Δεν μπορείτε να προσθέσετε τον εαυτό σας</string>
     <string name="return_to_chat">Επιστροφή στη συνομιλία</string>
     <string name="pref_block_screenshots_description">Αυτό **μόνο** μπλοκάρει τα στιγμιότυπα οθόνης στη **συσκευή σας** και δεν παρέχει καμία προστασία από τις επαφές σας που τραβούν στιγμιότυπα οθόνης ή αποθηκεύουν με άλλο τρόπο τις συνομιλίες σας</string>
-    <string name="pref_block_screenshots">Αποκλεισμός στιγμιότυπων οθόνης του aTox</string>
+    <string name="pref_block_screenshots">Αποκλεισμός στιγμιότυπων οθόνης του skyTox</string>
     <string name="passwords_must_match">Οι κωδικοί πρόσβασης πρέπει να ταιριάζουν</string>
     <string name="password_updated">Ενημέρωση κωδικού πρόσβασης</string>
     <string name="pref_confirm_password">Επιβεβαίωση νέου κωδικού πρόσβασης</string>
@@ -146,9 +146,9 @@
     <string name="pref_theme_light">Ελαφρύ</string>
     <string name="pref_theme_follow_system">Ίδιο με του συστήματος</string>
     <string name="speakerphone_toggle">Εναλλαγή εξόδου ήχου</string>
-    <string name="channel_profile_locked_explanation">Ειδοποίηση όταν το προφίλ σας πρέπει να ξεκλειδωθεί για να ξεκινήσει το aTox</string>
-    <string name="atox_profile_locked">Προφίλ aTox κλειδωμένο</string>
-    <string name="tap_to_unlock_and_start_atox">Πατήστε για να ξεκλειδώσετε το προφίλ σας και να ξεκινήστε το aTox</string>
+    <string name="channel_profile_locked_explanation">Ειδοποίηση όταν το προφίλ σας πρέπει να ξεκλειδωθεί για να ξεκινήσει το skyTox</string>
+    <string name="atox_profile_locked">Προφίλ skyTox κλειδωμένο</string>
+    <string name="tap_to_unlock_and_start_atox">Πατήστε για να ξεκλειδώσετε το προφίλ σας και να ξεκινήστε το skyTox</string>
     <string name="error_simultaneous_calls">Η συμμετοχή σε πολλαπλές κλήσεις ταυτόχρονα δεν υποστηρίζεται</string>
     <string name="share">Κοινοποίηση</string>
     <string name="mark_as_read">Σημείωση ως διαβασμένο</string>

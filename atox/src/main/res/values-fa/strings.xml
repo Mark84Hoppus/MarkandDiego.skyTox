@@ -3,7 +3,7 @@
     <string name="pref_heading_general">عمومی</string>
     <string name="pref_udp_enabled">UDP فعال شده</string>
     <string name="pref_heading_network">شبکه</string>
-    <string name="tox_service_running">aTox در حال اجراست…</string>
+    <string name="tox_service_running">skyTox در حال اجراست…</string>
     <string name="tox_id_error_already_exists">یک مخاطب با همین شناسه‌ی تاکس در حال حاضر وجود دارد</string>
     <string name="profile">پروفایل</string>
     <string name="profile_status">عوض کردن وضعیت</string>
@@ -50,7 +50,7 @@
     <string name="navigation_drawer_close">بستن کشوی کناری</string>
     <string name="navigation_drawer_open">باز کردن کشوی کناری</string>
     <string name="no_contacts_call_to_action">منتظر چی هستی؟ برای شروع یک مخاطب اضافه کن!</string>
-    <string name="name_default">کاربر aTox</string>
+    <string name="name_default">کاربر skyTox</string>
     <string name="name">نام</string>
     <string name="messages_incoming">پیام‌های دریافتی</string>
     <string name="messages">پیام‌ها</string>
@@ -64,7 +64,7 @@
     <string name="connecting">درحال اتصال…</string>
     <string name="confirm">تایید</string>
     <string name="add_contact_message_error_empty">چیزی بنویسید تا اول فرستاده شود</string>
-    <string name="add_contact_message_default">در aTox همچون یک انسان متمدن با من سخن بگو.</string>
+    <string name="add_contact_message_default">در skyTox همچون یک انسان متمدن با من سخن بگو.</string>
     <string name="add_contact">اضافه کردن مخاطب</string>
     <string name="add">اضافه کردن</string>
     <string name="accept">پذیرفتن</string>
@@ -125,7 +125,7 @@
     <string name="incoming_call_from">تماس ورودی از %1$s</string>
     <string name="incoming_call">تماس ورودی</string>
     <string name="pref_nospam_description">عوض کردن عبارت NoSpam شناسه‌ی تاکس شما را تغییر می‌دهد، به معنا که درخواست‌های دوستی باید به شناسه‌ی جدید فرستاده‌شوند</string>
-    <string name="status_message_default">من از کلاینت اندروید aTox استفاده میکنم</string>
+    <string name="status_message_default">من از کلاینت اندروید skyTox استفاده میکنم</string>
     <string name="pref_auto_away">تغییر وضعیت به «رفته» به صورت اتوماتیک</string>
     <string name="tox_save_export_failure">صادرکردن فایل tox با مشکل مواجه شد: %1$s</string>
     <string name="or_import_existing_save">یا از طریق فایل tox موجود وارد کنید</string>
@@ -150,13 +150,13 @@
     <string name="share">به اشتراک گذاری</string>
     <string name="mark_as_read">علامت‌زدن به عنوان خوانده‌شده</string>
     <string name="pref_disabled_tox_error">غیرفعال‌شده به دلیل خطا در بالا آمدن Tox</string>
-    <string name="tap_to_unlock_and_start_atox">برای بازکردن نمایه خود و آغاز aTox ضربه بزنید</string>
-    <string name="atox_profile_locked">پروفایل aTox قفل شد</string>
+    <string name="tap_to_unlock_and_start_atox">برای بازکردن نمایه خود و آغاز skyTox ضربه بزنید</string>
+    <string name="atox_profile_locked">پروفایل skyTox قفل شد</string>
     <string name="file_not_found">فایلی پیدا نشد</string>
     <string name="pref_confirm_calling">تایید تماس</string>
     <string name="pref_confirm_quitting">تایید خروج از برنامه</string>
     <string name="call_confirm">آیا مطمئن هستید که می خواهید تماس بگیرید؟</string>
-    <string name="channel_profile_locked_explanation">زمانی ارسال می شود که نمایه شما باید قفل شود تا aTox اجرا شود</string>
+    <string name="channel_profile_locked_explanation">زمانی ارسال می شود که نمایه شما باید قفل شود تا skyTox اجرا شود</string>
     <string name="export_history">سابقه خروجی</string>
     <string name="export_history_failure">تاریخچه پیام صادر نشد: %1$s</string>
     <string name="export_history_success">تاریخچه پیام صادر شد</string>

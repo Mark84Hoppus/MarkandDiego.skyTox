@@ -3,9 +3,9 @@
     <string name="accept">Accept</string>
     <string name="add">Add</string>
     <string name="add_contact">Add contact</string>
-    <string name="add_contact_message_default">Talk to me on aTox like a reasonable human being.</string>
+    <string name="add_contact_message_default">Talk to me on skyTox like a reasonable human being.</string>
     <string name="add_contact_message_error_empty">Write something to send first</string>
-    <string name="app_name" translatable="false">aTox</string>
+    <string name="app_name" translatable="false">skyTox</string>
     <string name="confirm">Confirm</string>
     <string name="connecting">Connecting…</string>
     <string name="contact_typing">Typing…</string>
@@ -18,7 +18,7 @@
     <string name="messages">Messages</string>
     <string name="messages_incoming">Incoming messages</string>
     <string name="name">Name</string>
-    <string name="name_default">aTox user</string>
+    <string name="name_default">skyTox user</string>
     <string name="no_contacts_call_to_action">What are you waiting for? Add a contact to get started!</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
@@ -29,7 +29,7 @@
     <string name="settings">Settings</string>
     <string name="status_indicator">Status indicator</string>
     <string name="status_message">Status message</string>
-    <string name="status_message_default">Brought to you live, by aTox</string>
+    <string name="status_message_default">Brought to you live, by skyTox</string>
     <string name="tox_id">Tox ID</string>
     <string name="tox_id_error_length">Tox ID must be 76 characters (%1$d/76)</string>
     <string name="tox_id_error_checksum">Invalid checksum</string>
@@ -93,7 +93,7 @@
         <item>@string/pref_bootstrap_node_user_provided</item>
     </string-array>
     <string name="pref_bootstrap_nodes_description">User-provided JSON files must have the same format as on https://nodes.tox.chat/json</string>
-    <string name="version_display" translatable="false">aTox v%1$s — %2$d</string>
+    <string name="version_display" translatable="false">skyTox v%1$s — %2$d</string>
     <string name="send_as_action">Send as action</string>
     <string name="or_import_existing_save">or import an existing Tox save</string>
     <string name="profile_information">Profile information</string>
@@ -103,13 +103,20 @@
     <string name="profile_status">Change your status</string>
     <string name="profile">Profile</string>
     <string name="tox_id_error_already_exists">A contact with that Tox ID already exists</string>
-    <string name="tox_service_running">aTox is running…</string>
+    <string name="tox_service_running">skyTox is running…</string>
     <string name="pref_heading_network">Network</string>
     <string name="pref_udp_enabled">UDP enabled</string>
     <string name="pref_heading_general">General</string>
     <string name="pref_run_at_startup">Run at boot</string>
     <string name="pref_confirm_quitting">Confirm app quit</string>
     <string name="pref_confirm_calling">Confirm call</string>
+    <string name="pref_language">Language</string>
+    <string name="pref_language_russian">Русский</string>
+    <string name="pref_language_english">English</string>
+    <string-array name="pref_language_options">
+        <item>@string/pref_language_russian</item>
+        <item>@string/pref_language_english</item>
+    </string-array>
     <string name="friend_request">Friend request</string>
     <string name="status_available">Available</string>
     <string name="status_away">Away</string>
@@ -124,10 +131,14 @@
     <string name="status_dialog_edit_user_status">Edit your status</string>
     <string name="mimetype_handler_not_found">There are no apps installed to handle the \"%1$s\" media type</string>
     <string name="attach_file">Attach file</string>
+    <string name="voice_message">Voice message</string>
+    <string name="voice_record_failed">Could not record voice message</string>
+    <string name="play_audio">Play audio</string>
     <string name="delete">Delete</string>
     <string name="notification_file_transfer">Incoming file transfer \"%1$s\"</string>
     <string name="cancelled">Cancelled</string>
     <string name="completed">Completed</string>
+    <string name="interrupted">Interrupted</string>
     <string name="save_as">Save as…</string>
     <string name="export_file_success">File exported</string>
     <string name="export_file_failure">Something went wrong exporting that. Pre-0.5.1 transfers were exported by default.</string>
@@ -177,19 +188,125 @@
     <string name="pref_confirm_password">Confirm new password</string>
     <string name="password_updated">Password updated</string>
     <string name="passwords_must_match">The passwords must match</string>
-    <string name="pref_block_screenshots">Block screenshots of aTox</string>
+    <string name="pref_block_screenshots">Block screenshots of skyTox</string>
     <string name="pref_block_screenshots_description">This **only** blocks screenshots on **your** device, and provides no protection against your contacts taking screenshots or otherwise saving your conversations</string>
     <string name="return_to_chat">Return to chat</string>
     <string name="speakerphone_toggle">Toggle speakerphone</string>
 
     <!-- Run at boot w/ encrypted profile notification -->
-    <string name="channel_profile_locked_explanation">Sent when your profile needs to be unlocked for aTox to run</string>
-    <string name="atox_profile_locked">aTox profile locked</string>
-    <string name="tap_to_unlock_and_start_atox">Tap to unlock your profile and start aTox</string>
+    <string name="channel_profile_locked_explanation">Sent when your profile needs to be unlocked for skyTox to run</string>
+    <string name="atox_profile_locked">skyTox profile locked</string>
+    <string name="tap_to_unlock_and_start_atox">Tap to unlock your profile and start skyTox</string>
     <string name="share">Share</string>
     <string name="mark_as_read">Mark as read</string>
     <string name="file_not_found">File not found</string>
     <string name="export_history">Export history</string>
+    <string name="import_history">Import history</string>
     <string name="export_history_success">Message history exported</string>
     <string name="export_history_failure">Message history export failed: %1$s</string>
+    <string name="export_text_chats">Export text chats</string>
+    <string name="import_text_chats">Import text chats</string>
+    <string name="continue_import">Continue</string>
+    <string name="import_text_chats_confirm">All current chat history will be replaced by the selected text-chat backup. Files, pictures, videos and voice messages are not imported. Continue?</string>
+    <string name="import_text_chat_confirm">This chat history will be replaced by the selected text-chat backup. Files, pictures, videos and voice messages are not imported. Continue?</string>
+    <string name="export_text_chats_success">Text chats exported</string>
+    <string name="export_text_chats_failure">Text chat export failed: %1$s</string>
+    <string name="import_text_chats_success">Text chats imported</string>
+    <string name="import_text_chat_success">Text chat imported</string>
+    <string name="import_text_chat_invalid_json">Import failed: invalid or damaged skyTox text-chat JSON</string>
+    <string name="import_text_chats_wrong_scope">Import failed: this is a single-chat backup, not an all-chats backup</string>
+    <string name="import_text_chat_wrong_scope">Import failed: this is an all-chats backup, not a single-chat backup</string>
+    <string name="import_text_chat_wrong_contact">Import failed: this backup belongs to another contact</string>
+    <string name="import_text_chat_missing_contact">Import failed: one or more contacts from the backup are missing</string>
+    <string name="import_export_instructions">Export/import guide</string>
+    <string name="import_export_instructions_body">Русская инструкция
+
+skyTox умеет экспортировать и импортировать только текстовую историю чатов. Картинки, видео, документы, голосовые сообщения и сами переданные файлы в резервную копию чатов не попадают.
+
+Где находятся папки:
+/storage/emulated/0/skyTox files/
+
+Внутри этой папки создаются две папки для резервных копий:
+/storage/emulated/0/skyTox files/skyTox all chat/
+/storage/emulated/0/skyTox files/skyTox user chat/
+
+Лучше сохранять общие резервные копии в skyTox all chat, а резервные копии одного конкретного чата в skyTox user chat. Так их проще найти позже и меньше шанс перепутать файлы.
+
+Общий экспорт текстовых чатов:
+1. Откройте боковое меню на главном экране.
+2. Нажмите «Экспорт текстовых чатов».
+3. Android откроет стандартный проводник сохранения файла.
+4. Выберите папку skyTox all chat и сохраните JSON-файл.
+
+Общий импорт текстовых чатов:
+1. Откройте боковое меню на главном экране.
+2. Нажмите «Импорт текстовых чатов».
+3. Выберите JSON-файл из папки skyTox all chat.
+4. Подтвердите предупреждение.
+
+Важно: при общем импорте текущая история сообщений во всех чатах заменяется данными из выбранного файла. Файлы на телефоне не импортируются, только текст.
+
+Экспорт одного чата:
+1. Откройте нужный чат.
+2. Нажмите меню с тремя точками.
+3. Нажмите «Экспортировать историю».
+4. Сохраните JSON-файл в папку skyTox user chat.
+
+Импорт одного чата:
+1. Откройте нужный чат.
+2. Нажмите меню с тремя точками.
+3. Нажмите «Импортировать историю».
+4. Выберите JSON-файл из папки skyTox user chat.
+5. Подтвердите предупреждение.
+
+Важно: при импорте одного чата заменяется история только текущего открытого чата.
+
+Защита от ошибки:
+skyTox проверяет структуру JSON перед импортом. В файле должен быть правильный формат, версия и тип резервной копии. Общую резервную копию нельзя импортировать в один чат, а резервную копию одного чата нельзя импортировать как все чаты. Если файл поврежден, вручную испорчен или не относится к skyTox, импорт не выполнится и старая история не будет удалена.
+
+
+English guide
+
+skyTox exports and imports text chat history only. Pictures, videos, documents, voice messages and transferred files are not included in chat backups.
+
+Folder location:
+/storage/emulated/0/skyTox files/
+
+Two backup folders are created inside it:
+/storage/emulated/0/skyTox files/skyTox all chat/
+/storage/emulated/0/skyTox files/skyTox user chat/
+
+It is best to keep full chat backups in skyTox all chat and single-chat backups in skyTox user chat. This makes them easier to find later and reduces the chance of mixing files up.
+
+Export all text chats:
+1. Open the side menu on the main screen.
+2. Tap Export text chats.
+3. Android opens the standard save-file picker.
+4. Choose the skyTox all chat folder and save the JSON file.
+
+Import all text chats:
+1. Open the side menu on the main screen.
+2. Tap Import text chats.
+3. Choose a JSON file from the skyTox all chat folder.
+4. Confirm the warning.
+
+Important: importing all chats replaces the current message history in all chats with the selected backup. Phone files are not imported, only text.
+
+Export one chat:
+1. Open the chat you need.
+2. Tap the three-dot menu.
+3. Tap Export history.
+4. Save the JSON file to the skyTox user chat folder.
+
+Import one chat:
+1. Open the target chat.
+2. Tap the three-dot menu.
+3. Tap Import history.
+4. Choose a JSON file from the skyTox user chat folder.
+5. Confirm the warning.
+
+Important: importing one chat replaces only the currently opened chat history.
+
+Error protection:
+skyTox validates the JSON structure before importing. The file must have the correct format, version and backup type. An all-chats backup cannot be imported into one chat, and a single-chat backup cannot be imported as all chats. If the file is damaged, manually edited incorrectly or does not belong to skyTox, the import is cancelled and the old history is not deleted.</string>
 </resources>

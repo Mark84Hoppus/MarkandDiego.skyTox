@@ -8,12 +8,14 @@ import android.util.Log
 import im.tox.tox4j.av.enums.ToxavCallControl
 import im.tox.tox4j.core.enums.ToxFileControl
 import im.tox.tox4j.core.exceptions.ToxFileControlException
+import im.tox.tox4j.core.exceptions.ToxFileGetException
+import im.tox.tox4j.core.exceptions.ToxFileSeekException
+import im.tox.tox4j.core.exceptions.ToxFileSendException
 import im.tox.tox4j.core.exceptions.ToxFileSendChunkException
 import im.tox.tox4j.core.exceptions.ToxFriendAddException
 import im.tox.tox4j.core.exceptions.ToxFriendCustomPacketException
 import im.tox.tox4j.impl.jni.ToxAvImpl
 import im.tox.tox4j.impl.jni.ToxCoreImpl
-import kotlin.random.Random
 import ltd.evilcorp.core.vo.FileKind
 import ltd.evilcorp.core.vo.MessageType
 import ltd.evilcorp.core.vo.PublicKey
@@ -139,16 +141,29 @@ class ToxWrapper(
         Log.e(TAG, "Error starting ft ${pk.fingerprint()} $fileNumber\n$e")
     }
 
+    fun seekFileTransfer(pk: PublicKey, fileNumber: Int, position: Long) = try {
+        tox.fileSeek(contactByKey(pk), fileNumber, position)
+    } catch (e: ToxFileSeekException) {
+        Log.e(TAG, "Error seeking ft ${pk.fingerprint()} $fileNumber to $position\n$e")
+    }
+
     fun stopFileTransfer(pk: PublicKey, fileNumber: Int) = try {
         tox.fileControl(contactByKey(pk), fileNumber, ToxFileControl.CANCEL)
     } catch (e: ToxFileControlException) {
         Log.e(TAG, "Error stopping ft ${pk.fingerprint()} $fileNumber\n$e")
     }
 
-    fun sendFile(pk: PublicKey, fileKind: FileKind, fileSize: Long, fileName: String) = try {
-        tox.fileSend(contactByKey(pk), fileKind.toToxtype(), fileSize, Random.nextBytes(32), fileName.toByteArray())
-    } catch (e: ToxFileControlException) {
+    fun sendFile(pk: PublicKey, fileKind: FileKind, fileSize: Long, fileName: String, fileId: ByteArray) = try {
+        tox.fileSend(contactByKey(pk), fileKind.toToxtype(), fileSize, fileId, fileName.toByteArray())
+    } catch (e: ToxFileSendException) {
         Log.e(TAG, "Error sending ft $fileName ${pk.fingerprint()}\n$e")
+    }
+
+    fun getFileFileId(pk: PublicKey, fileNumber: Int): ByteArray = try {
+        tox.getFileFileId(contactByKey(pk), fileNumber)
+    } catch (e: ToxFileGetException) {
+        Log.e(TAG, "Error getting ft id ${pk.fingerprint()} $fileNumber\n$e")
+        ByteArray(0)
     }
 
     fun sendFileChunk(pk: PublicKey, fileNo: Int, pos: Long, data: ByteArray): Result<Unit> = try {

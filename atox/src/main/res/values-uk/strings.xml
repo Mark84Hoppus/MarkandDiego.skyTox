@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="draft_message">Чернетка: %1$s</string>
-    <string name="export_file_failure">Щось пішло не так при експортуванні файлу. До aTox 0.5.1 передачі файлів експортувалися за замовчуванням.</string>
+    <string name="export_file_failure">Щось пішло не так при експортуванні файлу. До skyTox 0.5.1 передачі файлів експортувалися за замовчуванням.</string>
     <string name="export_file_success">Файл експортовано</string>
     <string name="notification_file_transfer">Вхідний файл \"%1$s\"</string>
     <string name="attach_file">Прикріпити файл</string>
@@ -50,7 +50,7 @@
     <string name="clear_history_confirm">Ви впевнені, що хочете очистити історію чату з %1$s\?</string>
     <string name="tox_id_share">Поділитися ідентифікатором Tox</string>
     <string name="tox_id_error_hex">Дозволені тільки hex-символи</string>
-    <string name="status_message_default">Використовую Android клієнт aTox</string>
+    <string name="status_message_default">Використовую Android клієнт skyTox</string>
     <string name="status_message">Повідомлення у статусі</string>
     <string name="clear_history_cleared">Історія очищена</string>
     <string name="clear_history">Очистити історію</string>
@@ -71,7 +71,7 @@
     <string name="navigation_drawer_open">Відкрити панель навіґації</string>
     <string name="navigation_drawer_close">Закрити панель навіґації</string>
     <string name="no_contacts_call_to_action">Чого чекаєш\? Додай контакт щоб почати спілкування!</string>
-    <string name="name_default">Користувач aTox</string>
+    <string name="name_default">Користувач skyTox</string>
     <string name="name">Ім\'я користувача</string>
     <string name="messages_incoming">Вхідні повідомлення</string>
     <string name="messages">Повідомлення</string>
@@ -83,7 +83,7 @@
     <string name="copied">Cкопійовано</string>
     <string name="connecting">З\'єднання…</string>
     <string name="add_contact_message_error_empty">Напишіть що-небудь для відправки</string>
-    <string name="add_contact_message_default">Спількуйся зі мною в aTox, як розумна людина.</string>
+    <string name="add_contact_message_default">Спількуйся зі мною в skyTox, як розумна людина.</string>
     <string name="contact_typing">Друкує…</string>
     <string name="confirm">Пiдтвердити</string>
     <string name="add_contact">Додати контакт</string>
@@ -93,7 +93,7 @@
     <string name="friend_request">Запит у друзі</string>
     <string name="pref_run_at_startup">Запускати під час завантаження Android</string>
     <string name="pref_udp_enabled">UDP увімкнено</string>
-    <string name="tox_service_running">aTox працює…</string>
+    <string name="tox_service_running">skyTox працює…</string>
     <string name="tox_id_error_already_exists">Контакт із таким Tox ідентифікатором уже існує</string>
     <string name="profile_status">Змінити статус</string>
     <string name="profile_status_message">Змінити повідомлення у статусі</string>
@@ -121,7 +121,7 @@
     <string name="pref_new_password">Новий пароль</string>
     <string name="passwords_must_match">Паролі повинні збігатися</string>
     <string name="tox_id_error_self_add">Не можна додати самого себе</string>
-    <string name="pref_block_screenshots">Блокування скріншотів aTox</string>
+    <string name="pref_block_screenshots">Блокування скріншотів skyTox</string>
     <string name="save">Зберегти</string>
     <string name="pref_nospam">АнтиСпам</string>
     <string name="pref_nospam_description">Зміна АнтиСпаму змінить ваш ідентифікатор Tox, означаючи те, що запити в друзі повинні будуть посилатися на оновлений ідентифікатор Tox</string>
@@ -139,15 +139,15 @@
     <string name="contact_default_name">Невідомий</string>
     <string name="incoming_call_from">Вхідний дзвінок від %1$s</string>
     <string name="return_to_chat">Повернутися в чат</string>
-    <string name="channel_profile_locked_explanation">Відправляється, коли ваш профіль необхідно розблокувати для запуску aTox</string>
-    <string name="atox_profile_locked">Профіль aTox заблоковано</string>
-    <string name="tap_to_unlock_and_start_atox">Натисніть, щоб розблокувати ваш профіль і запустити aTox</string>
+    <string name="channel_profile_locked_explanation">Відправляється, коли ваш профіль необхідно розблокувати для запуску skyTox</string>
+    <string name="atox_profile_locked">Профіль skyTox заблоковано</string>
+    <string name="tap_to_unlock_and_start_atox">Натисніть, щоб розблокувати ваш профіль і запустити skyTox</string>
     <string name="delete_message">Видалити повідомлення</string>
     <string name="incorrect_password">Невірний пароль</string>
     <string name="incoming_call">Вхідний дзвінок</string>
     <string name="pref_confirm_password">Підтвердіть новий пароль</string>
     <string name="call_mic_permission_needed">Необхідний дозвіл на доступ до мікрофона для ввімкнення передачі звуку</string>
-    <string name="pref_block_screenshots_description">Ця функція заблокує створення скріншотів відкритого aTox **тільки** на **вашому** пристрої, але вона не захистить від створення скріншотів вашими контактами або будь-якого іншого способу збереження ними ваших бесід</string>
+    <string name="pref_block_screenshots_description">Ця функція заблокує створення скріншотів відкритого skyTox **тільки** на **вашому** пристрої, але вона не захистить від створення скріншотів вашими контактами або будь-якого іншого способу збереження ними ваших бесід</string>
     <string name="password_updated">Пароль оновлено</string>
     <string name="error_simultaneous_calls">В даний момент, участь в декількох дзвінках одночасно не підтримується</string>
     <string name="share">Поділіться</string>

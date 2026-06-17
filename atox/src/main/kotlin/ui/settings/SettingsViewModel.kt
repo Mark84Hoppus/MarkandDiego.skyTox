@@ -78,6 +78,14 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun getLanguage(): Int = if (settings.appLanguage == "ru") 0 else 1
+    fun setLanguage(position: Int) {
+        settings.appLanguage = when (position) {
+            0 -> "ru"
+            else -> "en"
+        }
+    }
+
     fun getFtAutoAccept(): FtAutoAccept = settings.ftAutoAccept
     fun setFtAutoAccept(autoAccept: FtAutoAccept) {
         settings.ftAutoAccept = autoAccept

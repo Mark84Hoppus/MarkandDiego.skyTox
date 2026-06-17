@@ -15,16 +15,16 @@ android {
     namespace = "ltd.evilcorp.atox"
     compileSdk = libs.versions.sdk.target.get().toInt()
     defaultConfig {
-        applicationId = "ltd.evilcorp.atox"
+        applicationId = "markanddiego.skytox"
         minSdk = libs.versions.sdk.min.get().toInt()
         targetSdk = libs.versions.sdk.target.get().toInt()
-        versionCode = 14
-        versionName = "0.8.0"
+        versionCode = 15
+        versionName = "0.8.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
         getByName("debug") {
-            applicationIdSuffix = ".debug"
+            applicationIdSuffix = ""
         }
         getByName("release") {
             isMinifyEnabled = true
@@ -72,6 +72,7 @@ dependencies {
     implementation(libs.androidx.navigation.ui)
 
     implementation(libs.androidx.preference)
+    implementation(libs.androidx.work.runtime.ktx)
 
     implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

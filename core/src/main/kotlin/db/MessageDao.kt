@@ -19,6 +19,9 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE conversation == :conversation")
     fun load(conversation: String): Flow<List<Message>>
 
+    @Query("SELECT * FROM messages")
+    fun loadAll(): Flow<List<Message>>
+
     @Query("SELECT * FROM messages WHERE conversation == :conversation AND timestamp == 0")
     fun loadPending(conversation: String): List<Message>
 
@@ -27,6 +30,9 @@ interface MessageDao {
 
     @Query("DELETE FROM messages WHERE conversation == :conversation")
     fun delete(conversation: String)
+
+    @Query("DELETE FROM messages")
+    fun deleteAll()
 
     @Suppress("ktlint:standard:max-line-length")
     @Query(

@@ -3,7 +3,7 @@
     <string name="accept">Acceptă</string>
     <string name="add">Adaugă</string>
     <string name="add_contact">Adaugă contact</string>
-    <string name="add_contact_message_default">Fii rațional, comunică cu mine în aTox.</string>
+    <string name="add_contact_message_default">Fii rațional, comunică cu mine în skyTox.</string>
     <string name="add_contact_message_error_empty">Mai întâi să scriem ceva</string>
     <string name="confirm">Confirmă</string>
     <string name="connecting">Conectare…</string>
@@ -17,7 +17,7 @@
     <string name="messages">Mesaje</string>
     <string name="messages_incoming">Mesaje primite</string>
     <string name="name">Nume utilizator</string>
-    <string name="name_default">Utilizator aTox</string>
+    <string name="name_default">Utilizator skyTox</string>
     <string name="no_contacts_call_to_action">Ce aștepți? Adaugă contact pentru a începe!</string>
     <string name="navigation_drawer_close">Închide panoul de navigare</string>
     <string name="navigation_drawer_open">Deschide panoul de navigare</string>
@@ -28,7 +28,7 @@
     <string name="settings">Setări</string>
     <string name="status_indicator">Indicator stare</string>
     <string name="status_message">Mesaj stare</string>
-    <string name="status_message_default">Utilizez clientul Android aTox</string>
+    <string name="status_message_default">Utilizez clientul Android skyTox</string>
     <string name="tox_id">Tox ID</string>
     <string name="tox_id_error_length">Tox ID trebuie să conțină 76 de simboluri (%1$d/76)</string>
     <string name="tox_id_error_checksum">Sumă de control incorectă</string>
@@ -70,7 +70,7 @@
     <string name="profile_status">Modifică stare</string>
     <string name="profile">Profil</string>
     <string name="tox_id_error_already_exists">Contactul cu acest ID Tox deja există</string>
-    <string name="tox_service_running">aTox rulează…</string>
+    <string name="tox_service_running">skyTox rulează…</string>
     <string name="pref_heading_network">Rețea</string>
     <string name="pref_udp_enabled">UDP activat</string>
     <string name="pref_heading_general">Generale</string>
@@ -89,7 +89,7 @@
     <string name="completed">Finalizat</string>
     <string name="save_as">Salvează ca…</string>
     <string name="export_file_success">Fișier exportat</string>
-    <string name="export_file_failure">Salvarea fișierului a eșuat. Până la aTox 0.5.1 fișierele erau salvate în mod implicit.</string>
+    <string name="export_file_failure">Salvarea fișierului a eșuat. Până la skyTox 0.5.1 fișierele erau salvate în mod implicit.</string>
     <string name="draft_message">Ciornă: %1$s</string>
     <string name="pref_heading_address">Adresă IP</string>
     <string name="pref_heading_port">Port</string>
@@ -133,7 +133,7 @@
     <string name="pref_confirm_password">Confirmă parola nouă</string>
     <string name="password_updated">Parolă actualizată</string>
     <string name="passwords_must_match">Parola trebuie să se potrivească</string>
-    <string name="pref_block_screenshots">Blochează capturi de ecran în aTox</string>
+    <string name="pref_block_screenshots">Blochează capturi de ecran în skyTox</string>
     <string name="pref_block_screenshots_description">Aceasta blochează **doar** capturile de ecran de pe dispozitivul **tău**, contactele tale pot și vor face capturi de ecran cu conversația voastră</string>
     <string name="return_to_chat">Înapoi la chat</string>
     <string name="speakerphone_toggle">Comută difuzorul</string>

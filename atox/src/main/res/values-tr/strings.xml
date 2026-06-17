@@ -11,7 +11,7 @@
     <string name="profile_photo_description">Profil görseli</string>
     <string name="navigation_drawer_close">Gezinti Çekmecesini kapat</string>
     <string name="return_to_chat">Konuşmaya geri dön</string>
-    <string name="pref_block_screenshots">aTox ekran görüntüsü almayı engelle</string>
+    <string name="pref_block_screenshots">skyTox ekran görüntüsü almayı engelle</string>
     <string name="passwords_must_match">Parolalar aynı olmak zorundadır</string>
     <string name="password_updated">Parola güncellendi</string>
     <string name="pref_confirm_password">Yeni parolayı onayla</string>
@@ -70,7 +70,7 @@
     <string name="pref_heading_general">Genel</string>
     <string name="pref_udp_enabled">UDP etkinleştirildi</string>
     <string name="pref_heading_network">Ağ</string>
-    <string name="tox_service_running">aTox çalışıyor…</string>
+    <string name="tox_service_running">skyTox çalışıyor…</string>
     <string name="tox_id_error_already_exists">Bu Tox Kimliğiyle bir kişi zaten var</string>
     <string name="profile">Profil</string>
     <string name="profile_status">Durumunuzu değiştirin</string>
@@ -118,7 +118,7 @@
     <string name="tox_id_error_checksum">Geçersiz sağlama toplamı</string>
     <string name="tox_id_error_length">Tox Kimliği 76 karakter olmak zorunda (%1$d/76)</string>
     <string name="tox_id">Tox Kimliği</string>
-    <string name="status_message_default">aTox tarafından sizin için canlı olarak sağlanmıştır</string>
+    <string name="status_message_default">skyTox tarafından sizin için canlı olarak sağlanmıştır</string>
     <string name="status_message">Durum iletisi</string>
     <string name="status_indicator">Durum belirteci</string>
     <string name="settings">Ayarlar</string>
@@ -127,7 +127,7 @@
     <string name="reject">Reddet</string>
     <string name="navigation_drawer_open">Gexinti Çekmecesini Aç</string>
     <string name="no_contacts_call_to_action">Ne bekliyorsunuz\? Başlamak için kişi ekleyin!</string>
-    <string name="name_default">aTox Kullanıcısı</string>
+    <string name="name_default">skyTox Kullanıcısı</string>
     <string name="name">Ad</string>
     <string name="messages_incoming">Gelen iletiler</string>
     <string name="messages">İletiler</string>
@@ -141,14 +141,14 @@
     <string name="connecting">Bağlanıyor…</string>
     <string name="confirm">Onayla</string>
     <string name="add_contact_message_error_empty">Göndermek için öncelikle bir şeyler yazılmalı</string>
-    <string name="add_contact_message_default">Benimle aTox\'ta mantıklı bir insan gibi konuş.</string>
+    <string name="add_contact_message_default">Benimle skyTox\'ta mantıklı bir insan gibi konuş.</string>
     <string name="add_contact">Kişi Ekle</string>
     <string name="add">Ekle</string>
     <string name="accept">Kabul et</string>
     <string name="speakerphone_toggle">Hoparlörü aç/kapat</string>
-    <string name="channel_profile_locked_explanation">aTox\'un çalışması için profilinizin kilidinin açılması gerektiğinde gönderilir</string>
-    <string name="atox_profile_locked">aTox profili kilitli</string>
-    <string name="tap_to_unlock_and_start_atox">Profilinizin kilidini açmak ve aTox\'u başlatmak için dokunun</string>
+    <string name="channel_profile_locked_explanation">skyTox\'un çalışması için profilinizin kilidinin açılması gerektiğinde gönderilir</string>
+    <string name="atox_profile_locked">skyTox profili kilitli</string>
+    <string name="tap_to_unlock_and_start_atox">Profilinizin kilidini açmak ve skyTox\'u başlatmak için dokunun</string>
     <string name="error_simultaneous_calls">Aynı anda birden fazla aramaya katılmak desteklenmiyor</string>
     <string name="share">Paylaş</string>
     <string name="mark_as_read">Okundu olarak işaretle</string>

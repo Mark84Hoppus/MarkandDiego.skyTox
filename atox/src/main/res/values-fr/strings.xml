@@ -37,7 +37,7 @@
     <string name="pref_heading_general">Général</string>
     <string name="pref_udp_enabled">UDP activé</string>
     <string name="pref_heading_network">Réseau</string>
-    <string name="tox_service_running">aTox est en exécution…</string>
+    <string name="tox_service_running">skyTox est en exécution…</string>
     <string name="tox_id_error_already_exists">Un contact avec cet identifiant Tox existe déjà</string>
     <string name="profile">Profil</string>
     <string name="profile_status">Changez de statut</string>
@@ -77,7 +77,7 @@
     <string name="tox_id_error_checksum">Somme de contrôle invalide</string>
     <string name="tox_id_error_length">L’ID Tox doit comporter 76 caractères (%1$d/76)</string>
     <string name="tox_id">ID Tox</string>
-    <string name="status_message_default">Ceci vous est présenté par aTox</string>
+    <string name="status_message_default">Ceci vous est présenté par skyTox</string>
     <string name="status_message">Message de statut</string>
     <string name="status_indicator">Indicateur de statut</string>
     <string name="settings">Paramètres</string>
@@ -88,7 +88,7 @@
     <string name="navigation_drawer_open">Ouvrir la barre de navigation</string>
     <string name="navigation_drawer_close">Fermer la barre de navigation</string>
     <string name="no_contacts_call_to_action">Qu’est-ce que vous attendez \? Ajoutez un contact pour commencer !</string>
-    <string name="name_default">Utilisateur aTox</string>
+    <string name="name_default">Utilisateur skyTox</string>
     <string name="name">Nom</string>
     <string name="messages_incoming">Messages entrants</string>
     <string name="messages">Messages</string>
@@ -102,7 +102,7 @@
     <string name="connecting">Connexion…</string>
     <string name="confirm">Confirmer</string>
     <string name="add_contact_message_error_empty">Écrivez d’abord quelque chose à envoyer</string>
-    <string name="add_contact_message_default">Parlez-moi sur aTox comme un être humain raisonnable.</string>
+    <string name="add_contact_message_default">Parlez-moi sur skyTox comme un être humain raisonnable.</string>
     <string name="add_contact">Ajouter le contact</string>
     <string name="add">Ajouter</string>
     <string name="accept">Accepter</string>
@@ -143,12 +143,12 @@
     <string name="incorrect_password">Mot de passe incorrect</string>
     <string name="password">Mot de passe</string>
     <string name="pref_block_screenshots_description">Ceci bloque les captures d’écran **seulement** sur **votre** appareil et n’offre aucune protection contre les captures d’écran ou autres enregistrements de vos conversations par vos contacts</string>
-    <string name="pref_block_screenshots">Bloquer les captures d’écran d’aTox</string>
+    <string name="pref_block_screenshots">Bloquer les captures d’écran d’skyTox</string>
     <string name="return_to_chat">Retourner à la conversation</string>
     <string name="speakerphone_toggle">Activer/désactiver le haut-parleur</string>
-    <string name="channel_profile_locked_explanation">Envoyé lorsque votre profil a besoin d’être déverrouillé pour qu’aTox puisse fonctionner</string>
-    <string name="atox_profile_locked">Profil aTox verrouillé</string>
-    <string name="tap_to_unlock_and_start_atox">Appuyez pour déverrouiller votre profil et démarrer aTox</string>
+    <string name="channel_profile_locked_explanation">Envoyé lorsque votre profil a besoin d’être déverrouillé pour qu’skyTox puisse fonctionner</string>
+    <string name="atox_profile_locked">Profil skyTox verrouillé</string>
+    <string name="tap_to_unlock_and_start_atox">Appuyez pour déverrouiller votre profil et démarrer skyTox</string>
     <string name="error_simultaneous_calls">Participer à plusieurs appels en même temps n’est pas possible</string>
     <string name="share">Partager</string>
     <string name="mark_as_read">Marquer comme lu</string>

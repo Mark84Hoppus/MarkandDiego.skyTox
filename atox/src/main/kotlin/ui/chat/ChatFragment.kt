@@ -5,12 +5,16 @@
 
 package ltd.evilcorp.atox.ui.chat
 
+import android.Manifest
 import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.view.ContextThemeWrapper
 import android.content.Intent
+import android.media.MediaPlayer
+import android.media.MediaRecorder
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -35,6 +39,7 @@ import androidx.core.view.updatePadding
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
+import androidx.appcompat.widget.PopupMenu
 import com.google.android.material.math.MathUtils.lerp
 import java.io.File
 import java.net.URLConnection
@@ -45,6 +50,7 @@ import java.util.Locale
 import ltd.evilcorp.atox.BuildConfig
 import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.databinding.FragmentChatBinding
+import ltd.evilcorp.atox.hasPermission
 import ltd.evilcorp.atox.requireStringArg
 import ltd.evilcorp.atox.truncated
 import ltd.evilcorp.atox.ui.BaseFragment
@@ -61,6 +67,9 @@ private const val TAG = "ChatFragment"
 const val CONTACT_PUBLIC_KEY = "publicKey"
 const val FOCUS_ON_MESSAGE_BOX = "focusOnMessageBox"
 private const val MAX_CONFIRM_DELETE_STRING_LENGTH = 20
+private const val VOICE_MESSAGE_BIT_RATE = 64_000
+private const val MIN_VOICE_MESSAGE_DURATION_MS = 500
+private const val PERMISSION_RECORD_AUDIO = Manifest.permission.RECORD_AUDIO
 
 class OpenMultiplePersistableDocuments : ActivityResultContracts.OpenMultipleDocuments() {
     override fun createIntent(context: Context, input: Array<String>): Intent = super.createIntent(context, input)
@@ -74,11 +83,37 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private var contactName = ""
     private var selectedFt: Int = Int.MIN_VALUE
     private var fts: List<FileTransfer> = listOf()
+    private var voiceRecorder: MediaRecorder? = null
+    private var voiceRecordingFile: File? = null
+    private var voiceRecordingStartedAt = 0L
+    private var audioPlayer: MediaPlayer? = null
+    private var playingAudioId: Int = Int.MIN_VALUE
+
+    private val requestRecordAudioLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (!granted) {
+            Toast.makeText(requireContext(), getString(R.string.call_mic_permission_needed), Toast.LENGTH_LONG).show()
+        }
+    }
 
     private val exportBackupLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { dest ->
             if (dest == null) return@registerForActivityResult
             viewModel.backupHistory(contactPubKey, dest)
+        }
+
+    private val importBackupLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { source ->
+            if (source == null) return@registerForActivityResult
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.import_history)
+                .setMessage(R.string.import_text_chat_confirm)
+                .setPositiveButton(R.string.continue_import) { _, _ ->
+                    viewModel.importHistory(contactPubKey, source)
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
         }
 
     private val exportFtLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("*/*")) { dest ->
@@ -157,13 +192,17 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             when (item.itemId) {
                 R.id.backup_history -> {
                     exportBackupLauncher.launch(
-                        "backup-atox-messages_${contactPubKey}_${
+                        "skytox-user-chat_${contactPubKey}_${
                             SimpleDateFormat(
                                 """yyyy-MM-dd'T'HH-mm-ss""",
                                 Locale.getDefault(),
                             ).format(Date())
                         }.json",
                     )
+                    true
+                }
+                R.id.import_history -> {
+                    importBackupLauncher.launch(arrayOf("application/json"))
                     true
                 }
                 R.id.clear_history -> {
@@ -275,7 +314,6 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
 
         val adapter = ChatAdapter(layoutInflater, resources)
         messages.adapter = adapter
-        registerForContextMenu(messages)
         viewModel.messages.observe(viewLifecycleOwner) {
             adapter.messages = it
             adapter.notifyDataSetChanged()
@@ -291,17 +329,20 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             when (view.id) {
                 R.id.accept -> viewModel.acceptFt(adapter.messages[position].correlationId)
                 R.id.reject, R.id.cancel -> viewModel.rejectFt(adapter.messages[position].correlationId)
+                R.id.audioPlay -> toggleAudioPlayback(adapter.messages[position].correlationId)
                 R.id.fileTransfer -> {
                     val id = adapter.messages[position].correlationId
                     val ft = adapter.fileTransfers.find { it.id == id } ?: return@setOnItemClickListener
                     if (ft.outgoing) return@setOnItemClickListener
                     if (!ft.isComplete()) return@setOnItemClickListener
                     if (!ft.destination.startsWith("file://")) return@setOnItemClickListener
+                    val file = File(ft.destination.toUri().path!!)
+                    if (!file.exists()) return@setOnItemClickListener
                     val contentType = URLConnection.guessContentTypeFromName(ft.fileName)
                     val uri = FileProvider.getUriForFile(
                         requireContext(),
                         "${BuildConfig.APPLICATION_ID}.fileprovider",
-                        File(ft.destination.toUri().path!!),
+                        file,
                     )
                     val shareIntent = Intent(Intent.ACTION_VIEW).apply {
                         putExtra(Intent.EXTRA_TITLE, ft.fileName)
@@ -321,6 +362,11 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                 }
             }
         }
+        messages.setOnItemLongClickListener { _, view, position, _ ->
+            view.dispatchTouchEvent(MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0f, 0f, 0))
+            showMessageContextMenu(view, adapter.messages[position])
+            true
+        }
 
         registerForContextMenu(send)
         send.setOnClickListener { send(MessageType.Normal) }
@@ -328,6 +374,25 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         attach.setOnClickListener {
             WindowInsetsControllerCompat(requireActivity().window, view).hide(WindowInsetsCompat.Type.ime())
             attachFilesLauncher.launch(arrayOf("*/*"))
+        }
+
+        voiceMessage.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    WindowInsetsControllerCompat(requireActivity().window, view).hide(WindowInsetsCompat.Type.ime())
+                    startVoiceRecording()
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    stopVoiceRecording(send = true)
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    stopVoiceRecording(send = false)
+                    true
+                }
+                else -> false
+            }
         }
 
         outgoingMessage.doAfterTextChanged {
@@ -343,6 +408,8 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     }
 
     override fun onPause() {
+        stopVoiceRecording(send = false)
+        stopAudioPlayback()
         viewModel.setDraft(binding.outgoingMessage.text.toString())
         viewModel.setActiveChat(PublicKey(""))
         super.onPause()
@@ -352,6 +419,55 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         viewModel.setActiveChat(PublicKey(contactPubKey))
         viewModel.setTyping(outgoingMessage.text.isNotEmpty())
         super.onResume()
+    }
+
+    private fun showMessageContextMenu(anchor: View, message: Message) {
+        val popupContext = ContextThemeWrapper(requireContext(), R.style.ChatContextPopup)
+        val popup = PopupMenu(popupContext, anchor)
+        val inflater = popup.menuInflater
+        when (message.type) {
+            MessageType.Action, MessageType.Normal -> inflater.inflate(R.menu.chat_message_context_menu, popup.menu)
+            MessageType.FileTransfer -> {
+                inflater.inflate(R.menu.ft_message_context_menu, popup.menu)
+                val ft = fts.find { it.id == message.correlationId } ?: return
+                if (!ft.isComplete() || ft.outgoing || !ft.destination.startsWith("file://")) {
+                    popup.menu.findItem(R.id.export).isVisible = false
+                }
+            }
+        }
+
+        popup.setOnMenuItemClickListener { handleMessageContextItem(it, message) }
+        popup.show()
+    }
+
+    private fun handleMessageContextItem(item: MenuItem, message: Message): Boolean = when (item.itemId) {
+        R.id.copy -> {
+            val clipboard = requireActivity().getSystemService<ClipboardManager>()!!
+            clipboard.setPrimaryClip(ClipData.newPlainText(getText(R.string.message), message.message))
+            Toast.makeText(requireContext(), getText(R.string.copied), Toast.LENGTH_SHORT).show()
+            true
+        }
+        R.id.delete -> {
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.delete_message)
+                .setMessage(
+                    getString(
+                        R.string.delete_message_confirm,
+                        message.message.truncated(MAX_CONFIRM_DELETE_STRING_LENGTH),
+                    ),
+                )
+                .setPositiveButton(R.string.delete) { _, _ ->
+                    viewModel.delete(message)
+                }
+                .setNegativeButton(android.R.string.cancel, null).show()
+            true
+        }
+        R.id.export -> {
+            selectedFt = message.correlationId
+            exportFtLauncher.launch(message.message)
+            true
+        }
+        else -> false
     }
 
     override fun onCreateContextMenu(menu: ContextMenu, v: View, menuInfo: ContextMenu.ContextMenuInfo?) = binding.run {
@@ -430,14 +546,128 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         outgoingMessage.text.clear()
     }
 
+    private fun startVoiceRecording() {
+        if (voiceRecorder != null) return
+        if (!viewModel.contactOnline) return
+        if (!requireContext().hasPermission(PERMISSION_RECORD_AUDIO)) {
+            requestRecordAudioLauncher.launch(PERMISSION_RECORD_AUDIO)
+            return
+        }
+
+        val file = viewModel.voiceMessageFile()
+
+        try {
+            @Suppress("DEPRECATION")
+            voiceRecorder = MediaRecorder().apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setAudioEncodingBitRate(VOICE_MESSAGE_BIT_RATE)
+                setAudioSamplingRate(44_100)
+                setOutputFile(file.absolutePath)
+                prepare()
+                start()
+            }
+            voiceRecordingFile = file
+            voiceRecordingStartedAt = System.currentTimeMillis()
+            updateActions()
+        } catch (e: Exception) {
+            Log.e(TAG, "Unable to start voice recording\n$e")
+            voiceRecorder?.release()
+            voiceRecorder = null
+            voiceRecordingFile = null
+            file.delete()
+            Toast.makeText(requireContext(), R.string.voice_record_failed, Toast.LENGTH_LONG).show()
+            updateActions()
+        }
+    }
+
+    private fun stopVoiceRecording(send: Boolean) {
+        val recorder = voiceRecorder ?: return
+        voiceRecorder = null
+
+        val file = voiceRecordingFile
+        voiceRecordingFile = null
+        val duration = System.currentTimeMillis() - voiceRecordingStartedAt
+        voiceRecordingStartedAt = 0L
+
+        val stopped = runCatching { recorder.stop() }
+            .onFailure { Log.e(TAG, "Unable to stop voice recording\n$it") }
+            .isSuccess
+        recorder.release()
+
+        if (send && stopped && duration >= MIN_VOICE_MESSAGE_DURATION_MS && file != null && file.length() > 0L &&
+            viewModel.contactOnline
+        ) {
+            viewModel.createFt(file.toUri())
+        } else {
+            file?.delete()
+        }
+
+        updateActions()
+    }
+
+    private fun toggleAudioPlayback(id: Int) {
+        if (playingAudioId == id) {
+            stopAudioPlayback()
+            return
+        }
+
+        stopAudioPlayback()
+        val ft = fts.find { it.id == id } ?: return
+        if (!ft.isComplete()) return
+
+        audioPlayer = MediaPlayer().apply {
+            try {
+                setDataSource(requireContext(), ft.destination.toUri())
+                setOnCompletionListener { stopAudioPlayback() }
+                prepare()
+                start()
+                playingAudioId = id
+                (binding.messages.adapter as? ChatAdapter)?.playingAudioId = playingAudioId
+                (binding.messages.adapter as? ChatAdapter)?.notifyDataSetChanged()
+            } catch (e: Exception) {
+                Log.e(TAG, "Unable to play audio message\n$e")
+                release()
+                audioPlayer = null
+                playingAudioId = Int.MIN_VALUE
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.mimetype_handler_not_found, "audio/*"),
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+    }
+
+    private fun stopAudioPlayback() {
+        audioPlayer?.release()
+        audioPlayer = null
+        playingAudioId = Int.MIN_VALUE
+        (binding.messages.adapter as? ChatAdapter)?.playingAudioId = playingAudioId
+        (binding.messages.adapter as? ChatAdapter)?.notifyDataSetChanged()
+    }
+
     private fun updateActions() = binding.run {
         send.visibility = if (outgoingMessage.text.isEmpty()) View.GONE else View.VISIBLE
         attach.visibility = if (send.isVisible) View.GONE else View.VISIBLE
+        voiceMessage.visibility = if (send.isVisible) View.GONE else View.VISIBLE
         attach.isEnabled = viewModel.contactOnline
+        voiceMessage.isEnabled = viewModel.contactOnline
         attach.setColorFilter(
             ContextCompat.getColor(
                 requireContext(),
-                if (attach.isEnabled) R.color.colorPrimary else android.R.color.darker_gray,
+                if (attach.isEnabled) android.R.color.white else android.R.color.darker_gray,
+            ),
+        )
+        voiceMessage.setColorFilter(
+            ContextCompat.getColor(
+                requireContext(),
+                when {
+                    voiceRecorder != null -> android.R.color.holo_red_light
+                    voiceMessage.isEnabled -> android.R.color.white
+                    else -> android.R.color.darker_gray
+                },
             ),
         )
     }

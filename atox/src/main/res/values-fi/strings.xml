@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="add_contact_message_default">Puhu minulle aToxissa kuin järkevä ihminen.</string>
+    <string name="add_contact_message_default">Puhu minulle skyToxissa kuin järkevä ihminen.</string>
     <string name="accept">Hyväksy</string>
     <string name="add">Lisää</string>
     <string name="add_contact">Lisää yhteyshenkilö</string>
@@ -36,7 +36,7 @@
     <string name="messages_incoming">Saapuvat viestit</string>
     <string name="contact_typing">kirjoittaa…</string>
     <string name="copied">Kopioitu</string>
-    <string name="name_default">aTox-käyttäjä</string>
+    <string name="name_default">skyTox-käyttäjä</string>
     <string name="no_contacts_call_to_action">Mitä sinä odotat\? Lisää yhteyshenkilö aloittaaksesi!</string>
     <string name="navigation_drawer_close">Sulje navigoinnin vetolaatikko</string>
     <string name="profile_photo_description">Profiilikuva</string>
@@ -99,7 +99,7 @@
     <string name="pref_current_password">Nykyinen salasana</string>
     <string name="pref_new_password">Uusi salasana</string>
     <string name="pref_confirm_password">Vahvista uusi salasana</string>
-    <string name="pref_block_screenshots">Estä kuvakaappaukset aToxista</string>
+    <string name="pref_block_screenshots">Estä kuvakaappaukset skyToxista</string>
     <string name="password_updated">Salasana päivitetty</string>
     <string name="microphone_control">Mikrofonin ohjaus</string>
     <string name="contact_list_delete_contact_confirm">Haluatko todella poistaa ”%1$s” yhteystiedoista\?</string>
@@ -111,7 +111,7 @@
     <string name="seconds">Sekuntia</string>
     <string name="pref_bootstrap_node_builtin">Sisäänrakennettu</string>
     <string name="call_confirm">Oletko varma että haluat soittaa\?</string>
-    <string name="status_message_default">aToxin tuoma sinulle, reaaliaikaisena</string>
+    <string name="status_message_default">skyToxin tuoma sinulle, reaaliaikaisena</string>
     <string name="tox_id">Tox-tunnus</string>
     <string name="tox_id_error_length">Tox-tunnuksen tulee olla 76 merkkiä pitkä (%1$d/76)</string>
     <string name="tox_id_error_checksum">Epäkelllinen tarkistussumma</string>
@@ -122,7 +122,7 @@
     <string name="pref_bootstrap_node_user_provided">Käyttäjän tarjoama</string>
     <string name="pref_bootstrap_nodes_description">Käyttäjän tarjoamien JSON-tiedostojen on oltava samassa muodossa kuin täällä https://nodes.tox.chat/json</string>
     <string name="tox_id_error_already_exists">Yhteyshenkilö tällä Tox-tunnuksella on jo olemassa</string>
-    <string name="tox_service_running">aTox on käynnissä…</string>
+    <string name="tox_service_running">skyTox on käynnissä…</string>
     <string name="pref_udp_enabled">UDP on otettu käyttöön</string>
     <string name="pref_heading_general">Yleinen</string>
     <string name="from">Kohteesta</string>
@@ -139,8 +139,8 @@
     <string name="in_call_with">Puhelussa %1$s:n kanssa</string>
     <string name="pref_nospam">NoSpam</string>
     <string name="speakerphone_toggle">Kytke puhelimen kaiutin päälle/pois</string>
-    <string name="channel_profile_locked_explanation">Lähetetään, kun profiilisi lukitus on avattava, jotta aTox voi toimia</string>
-    <string name="atox_profile_locked">aTox profiili lukittu</string>
+    <string name="channel_profile_locked_explanation">Lähetetään, kun profiilisi lukitus on avattava, jotta skyTox voi toimia</string>
+    <string name="atox_profile_locked">skyTox profiili lukittu</string>
     <string name="or_import_existing_save">tai tuo olemassa oleva Tox-tallennus</string>
     <string name="pref_run_at_startup">Suorita käynnistyksen yhteydessä</string>
     <string name="pref_confirm_quitting">Vahvista poistuminen sovelluksesta</string>
@@ -151,7 +151,7 @@
     <string name="error_no_nodes_loaded">Bootstrap-solmuja ei voi ladata, vaihda sisäänrakennetuihin solmuihin tai tuo solmut uudelleen</string>
     <string name="pref_disabled_tox_error">Otettu pois käytöstä Tox-käynnistysvirheen takia</string>
     <string name="contact_default_name">Tuntematon</string>
-    <string name="tap_to_unlock_and_start_atox">Napauta avataksesi profiilisi lukituksen ja käynnistääksesi aTox</string>
+    <string name="tap_to_unlock_and_start_atox">Napauta avataksesi profiilisi lukituksen ja käynnistääksesi skyTox</string>
     <string name="bad_positive_number">On oltava positiivinen luku</string>
     <string name="send_as_action">Lähetä toimintana</string>
     <string name="pref_confirm_calling">Vahvista puhelu</string>

@@ -97,6 +97,7 @@ class EventListenerCallbacks @Inject constructor(
         friendConnectionStatusHandler = { publicKey, status ->
             contactRepository.setConnectionStatus(publicKey, status)
             if (status != ConnectionStatus.None) {
+                fileTransferManager.resumeOutgoingForContact(publicKey)
                 scope.launch {
                     val pending = messageRepository.getPending(publicKey)
                     if (pending.isNotEmpty()) {
@@ -104,7 +105,7 @@ class EventListenerCallbacks @Inject constructor(
                     }
                 }
             } else {
-                fileTransferManager.resetForContact(publicKey)
+                fileTransferManager.interruptForContact(publicKey)
             }
         }
 

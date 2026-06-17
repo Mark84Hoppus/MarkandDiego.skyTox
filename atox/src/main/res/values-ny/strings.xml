@@ -9,7 +9,7 @@
     <string name="delete_contact">Fufutani dzina</string>
     <string name="messages_incoming">Mawuthenga abwera</string>
     <string name="name">Dzina</string>
-    <string name="name_default">Ongwilisa aTox</string>
+    <string name="name_default">Ongwilisa skyTox</string>
     <string name="navigation_drawer_close">Tsekani pongwilila ntchito</string>
     <string name="navigation_drawer_open">Tsegulani pongwilila ntchito</string>
     <string name="profile_photo_description">Poyikapo chithuzi chanu</string>
@@ -60,7 +60,7 @@
     <string name="profile_status_message">Zithani uthenga wapa sitetasi yanu</string>
     <string name="profile_status">Sithani sitetasi yanu</string>
     <string name="tox_id_error_already_exists">Dzina lilipo kale mu Tox ID</string>
-    <string name="tox_service_running">aTox akungwila ntchito…</string>
+    <string name="tox_service_running">skyTox akungwila ntchito…</string>
     <string name="pref_udp_enabled">UDP wasegulidwa</string>
     <string name="pref_run_at_startup">Iyambe kungwila ntchito yikangosegulidwa</string>
     <string name="pref_confirm_quitting">Vomelezani potuluka mu pulogulamu</string>
@@ -68,14 +68,14 @@
     <string name="accept">Vomelani</string>
     <string name="create">Kupanga</string>
     <string name="copied">Yokopendwa</string>
-    <string name="add_contact_message_default">Tiyakhuleni pa aTox mwawu munthu.</string>
+    <string name="add_contact_message_default">Tiyakhuleni pa skyTox mwawu munthu.</string>
     <string name="copy_atox">Kope</string>
     <string name="create_a_tox_profile">Pangani polofayelo ya Tox</string>
     <string name="tox_id_error_length">Tox ID yamafunika yikhale ndi malemba 76 (%1$d/76)</string>
     <string name="message">Uthenga</string>
     <string name="messages">Mawuthenga</string>
     <string name="no_contacts_call_to_action">Mukudikilila chani\? Wonjezelani dzina kuti muyambe!</string>
-    <string name="status_message_default">Akubweletselani, ndi aTox</string>
+    <string name="status_message_default">Akubweletselani, ndi skyTox</string>
     <string name="tox_id">Tox ID</string>
     <string name="tox_id_error_hex">Timavomelaza ma hex okhaokha</string>
     <string name="tox_id_error_checksum">Mawu osavomelezeka</string>

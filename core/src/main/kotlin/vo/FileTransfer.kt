@@ -17,6 +17,7 @@ enum class FileKind {
 const val FT_STARTED = 0L
 const val FT_NOT_STARTED = -1L
 const val FT_REJECTED = -2L
+const val FT_INTERRUPTED_BASE = -3L
 
 @Entity(tableName = "file_transfers")
 data class FileTransfer(
@@ -43,12 +44,21 @@ data class FileTransfer(
 
     @ColumnInfo(name = "destination")
     var destination: String = "",
+
+    @ColumnInfo(name = "file_id")
+    var fileId: String = "",
+
+    @ColumnInfo(name = "thumbnail")
+    var thumbnail: String = "",
 ) {
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     var id: Int = 0
 }
 
-fun FileTransfer.isComplete() = progress >= fileSize
-fun FileTransfer.isStarted() = progress >= FT_STARTED
+fun FileTransfer.isInterrupted() = progress <= FT_INTERRUPTED_BASE
+fun FileTransfer.transferredBytes() = if (isInterrupted()) FT_INTERRUPTED_BASE - progress else progress
+fun FileTransfer.interruptedProgress() = FT_INTERRUPTED_BASE - progress.coerceAtLeast(FT_STARTED)
+fun FileTransfer.isComplete() = !isInterrupted() && progress >= fileSize
+fun FileTransfer.isStarted() = progress >= FT_STARTED || isInterrupted()
 fun FileTransfer.isRejected() = progress == FT_REJECTED

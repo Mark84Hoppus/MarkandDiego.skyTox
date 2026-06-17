@@ -168,13 +168,20 @@ class Tox @Inject constructor(
         tox.startFileTransfer(pk, fileNumber)
     }
 
+    fun seekFileTransfer(pk: PublicKey, fileNumber: Int, position: Long) {
+        Log.i(TAG, "Seeking file transfer $fileNumber from ${pk.fingerprint()} to $position")
+        tox.seekFileTransfer(pk, fileNumber, position)
+    }
+
     fun stopFileTransfer(pk: PublicKey, fileNumber: Int) {
         Log.i(TAG, "Stopping file transfer $fileNumber from ${pk.fingerprint()}")
         tox.stopFileTransfer(pk, fileNumber)
     }
 
-    fun sendFile(pk: PublicKey, fileKind: FileKind, fileSize: Long, fileName: String) =
-        tox.sendFile(pk, fileKind, fileSize, fileName)
+    fun sendFile(pk: PublicKey, fileKind: FileKind, fileSize: Long, fileName: String, fileId: ByteArray) =
+        tox.sendFile(pk, fileKind, fileSize, fileName, fileId)
+
+    fun getFileFileId(pk: PublicKey, fileNumber: Int): ByteArray = tox.getFileFileId(pk, fileNumber)
 
     fun sendFileChunk(pk: PublicKey, fileNo: Int, pos: Long, data: ByteArray): Result<Unit> =
         tox.sendFileChunk(pk, fileNo, pos, data)

@@ -14,12 +14,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.ListView
 import android.widget.ProgressBar
 import android.widget.RelativeLayout
 import android.widget.TextView
+import androidx.core.net.toUri
 import com.squareup.picasso.Picasso
+import java.io.File
 import java.net.URLConnection
 import java.text.DateFormat
 import java.util.Locale
@@ -30,18 +33,24 @@ import ltd.evilcorp.core.vo.Message
 import ltd.evilcorp.core.vo.MessageType
 import ltd.evilcorp.core.vo.Sender
 import ltd.evilcorp.core.vo.isComplete
+import ltd.evilcorp.core.vo.isInterrupted
 import ltd.evilcorp.core.vo.isRejected
 import ltd.evilcorp.core.vo.isStarted
+import ltd.evilcorp.core.vo.transferredBytes
 
 private const val TAG = "ChatAdapter"
-private const val IMAGE_TO_SCREEN_RATIO = 0.75
+private const val IMAGE_TO_SCREEN_RATIO = 0.5
 
-private fun FileTransfer.isImage() = try {
-    URLConnection.guessContentTypeFromName(fileName).startsWith("image/")
+private fun FileTransfer.isAudio() = try {
+    URLConnection.guessContentTypeFromName(fileName).startsWith("audio/")
 } catch (e: Exception) {
     Log.e(TAG, e.toString())
-    false
+    fileName.endsWith(".m4a", ignoreCase = true)
 }
+
+private fun FileTransfer.hasThumbnail() = thumbnail.isNotEmpty()
+private fun FileTransfer.thumbnailFileExists() =
+    thumbnail.startsWith("file://") && File(thumbnail.toUri().path ?: "").exists()
 
 private fun inflateView(type: ChatItemType, inflater: LayoutInflater): View = inflater.inflate(
     when (type) {
@@ -85,11 +94,13 @@ private class FileTransferViewHolder(row: View) {
     val cancel: Button = row.findViewById(R.id.cancel)
     val completedLayout: View = row.findViewById(R.id.completedLayout)
     val imagePreview: ImageView = row.findViewById(R.id.imagePreview)
+    val audioPlay: ImageButton = row.findViewById(R.id.audioPlay)
 }
 
 class ChatAdapter(private val inflater: LayoutInflater, private val resources: Resources) : BaseAdapter() {
     var messages: List<Message> = listOf()
     var fileTransfers: List<FileTransfer> = listOf()
+    var playingAudioId: Int = Int.MIN_VALUE
 
     override fun getCount(): Int = messages.size
     override fun getItem(position: Int): Any = messages[position]
@@ -185,25 +196,41 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                 vh.accept.setOnTouchListener(touchListener)
                 vh.reject.setOnTouchListener(touchListener)
                 vh.cancel.setOnTouchListener(touchListener)
+                vh.audioPlay.setOnTouchListener(touchListener)
 
-                if (fileTransfer.isImage() && (fileTransfer.isComplete() || fileTransfer.outgoing)) {
+                if (fileTransfer.hasThumbnail() || fileTransfer.isComplete() && !fileTransfer.isAudio()) {
                     vh.completedLayout.visibility = View.VISIBLE
-                    val targetWidth = Resources.getSystem().displayMetrics.widthPixels * IMAGE_TO_SCREEN_RATIO
-                    Picasso.get()
-                        .load(fileTransfer.destination)
-                        .resize(targetWidth.roundToInt(), 0)
-                        .onlyScaleDown().into(vh.imagePreview)
+                    val targetWidth =
+                        (Resources.getSystem().displayMetrics.widthPixels * IMAGE_TO_SCREEN_RATIO).roundToInt()
+                    vh.imagePreview.layoutParams = vh.imagePreview.layoutParams.apply {
+                        width = targetWidth
+                        height = ViewGroup.LayoutParams.WRAP_CONTENT
+                    }
+                    if (fileTransfer.thumbnailFileExists()) {
+                        Picasso.get()
+                            .load(fileTransfer.thumbnail)
+                            .resize(targetWidth, 0)
+                            .into(vh.imagePreview)
+                    } else {
+                        vh.imagePreview.setImageResource(R.drawable.ic_missing_thumb)
+                    }
                 } else {
                     vh.completedLayout.visibility = View.GONE
                 }
 
+                vh.audioPlay.visibility =
+                    if (fileTransfer.isAudio() && fileTransfer.isComplete()) View.VISIBLE else View.GONE
+                vh.audioPlay.setImageResource(
+                    if (fileTransfer.id == playingAudioId) R.drawable.ic_stop else R.drawable.ic_play,
+                )
+
                 vh.state.visibility = View.GONE
-                if (fileTransfer.isRejected() || fileTransfer.isComplete()) {
+                if (fileTransfer.isRejected() || fileTransfer.isComplete() || fileTransfer.isInterrupted()) {
                     vh.acceptLayout.visibility = View.GONE
                     vh.cancelLayout.visibility = View.GONE
-                    vh.progress.visibility = View.GONE
+                    vh.progress.visibility = if (fileTransfer.isInterrupted()) View.VISIBLE else View.GONE
                     vh.state.visibility =
-                        if (fileTransfer.isImage() && fileTransfer.isComplete()) View.GONE else View.VISIBLE
+                        if (fileTransfer.hasThumbnail() && fileTransfer.isComplete()) View.GONE else View.VISIBLE
                 } else if (!fileTransfer.isStarted()) {
                     if (fileTransfer.outgoing) {
                         vh.acceptLayout.visibility = View.GONE
@@ -223,9 +250,12 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                 vh.fileName.text = fileTransfer.fileName
                 vh.fileSize.text = Formatter.formatFileSize(inflater.context, fileTransfer.fileSize)
                 vh.progress.max = fileTransfer.fileSize.toInt()
-                vh.progress.progress = fileTransfer.progress.toInt()
-                // TODO(robinlinden): paused, but that requires a database update and a release is overdue.
-                val stateId = if (fileTransfer.isRejected()) R.string.cancelled else R.string.completed
+                vh.progress.progress = fileTransfer.transferredBytes().toInt()
+                val stateId = when {
+                    fileTransfer.isRejected() -> R.string.cancelled
+                    fileTransfer.isInterrupted() -> R.string.interrupted
+                    else -> R.string.completed
+                }
                 vh.state.text = resources.getString(stateId).lowercase(Locale.getDefault())
                 vh.timestamp.text = timeFormatter.format(message.timestamp)
 

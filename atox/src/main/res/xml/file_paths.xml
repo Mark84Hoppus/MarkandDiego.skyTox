@@ -3,4 +3,5 @@
     <files-path name="file_transfers" path="ft/"/>
 
     <cache-path name="shared_images" path="shared_images/"/>
+    <external-path name="skytox_files" path="skyTox files/"/>
 </paths>

@@ -6,7 +6,7 @@
     <string name="pref_heading_general">Általános</string>
     <string name="pref_udp_enabled">UDP engedélyezve</string>
     <string name="pref_heading_network">Hálózat</string>
-    <string name="tox_service_running">Az aTox fut…</string>
+    <string name="tox_service_running">Az skyTox fut…</string>
     <string name="profile">Profil</string>
     <string name="profile_status">Állapot módosítása</string>
     <string name="profile_status_message">Állapotüzenet módosítása</string>
@@ -46,7 +46,7 @@
     <string name="tox_id_error_checksum">Érvénytelen ellenőrzőösszeg</string>
     <string name="tox_id_error_length">A Tox-azonosító 76 karakter hosszú kell legyen (%1$d/76)</string>
     <string name="tox_id">Tox-azonosító</string>
-    <string name="status_message_default">Elérhető vagyok az aTox -nak köszönhetően</string>
+    <string name="status_message_default">Elérhető vagyok az skyTox -nak köszönhetően</string>
     <string name="status_message">Állapotüzenet</string>
     <string name="status_indicator">Állapotjelző</string>
     <string name="settings">Beállítások</string>
@@ -57,7 +57,7 @@
     <string name="navigation_drawer_open">Navigációs fiók megnyitása</string>
     <string name="navigation_drawer_close">Navigációs fiók bezárása</string>
     <string name="no_contacts_call_to_action">Mire vár? Adjon hozzá egy partnert a kezdéshez!</string>
-    <string name="name_default">aTox-felhasználó</string>
+    <string name="name_default">skyTox-felhasználó</string>
     <string name="name">Név</string>
     <string name="messages_incoming">Bejövő üzenetek</string>
     <string name="messages">Üzenetek</string>
@@ -71,12 +71,12 @@
     <string name="connecting">Kapcsolódás…</string>
     <string name="confirm">Megerősítés</string>
     <string name="add_contact_message_error_empty">Írjon valamit első üzenetként</string>
-    <string name="add_contact_message_default">Beszéljen velem az aToxon, mint egy ésszerű emberrel.</string>
+    <string name="add_contact_message_default">Beszéljen velem az skyToxon, mint egy ésszerű emberrel.</string>
     <string name="add_contact">Partner hozzáadása</string>
     <string name="add">Hozzáadás</string>
     <string name="accept">Elfogadás</string>
     <string name="pref_block_screenshots_description">Ez **csak** a **saját** eszközén tiltja a képernyőképek készítését, és nem nyújt védelmet azzal szemben, hogy a partnerei képernyőképet készítsenek, vagy más módon elmentsék a beszélgetéseket</string>
-    <string name="pref_block_screenshots">Képernyőképek készítésének tiltása az aTox-ban</string>
+    <string name="pref_block_screenshots">Képernyőképek készítésének tiltása az skyTox-ban</string>
     <string name="passwords_must_match">A jelszavaknak meg kell egyezniük</string>
     <string name="password_updated">Jelszó frissítve</string>
     <string name="pref_confirm_password">Új jelszó megerősítése</string>
@@ -151,9 +151,9 @@
     <string name="pref_confirm_calling">Hívás megerősítése</string>
     <string name="error_simultaneous_calls">Egyszerre több hívásban való részvétel nem támogatott</string>
     <string name="pref_disabled_tox_error">Letiltva a Tox indításakor fellépő hiba miatt</string>
-    <string name="channel_profile_locked_explanation">Akkor jelenik meg, amikor a profil feloldása szükséges az aTox futtatásához</string>
-    <string name="atox_profile_locked">aTox-profil zárolva</string>
-    <string name="tap_to_unlock_and_start_atox">Koppintson a profil feloldásához és az aTox elindításához</string>
+    <string name="channel_profile_locked_explanation">Akkor jelenik meg, amikor a profil feloldása szükséges az skyTox futtatásához</string>
+    <string name="atox_profile_locked">skyTox-profil zárolva</string>
+    <string name="tap_to_unlock_and_start_atox">Koppintson a profil feloldásához és az skyTox elindításához</string>
     <string name="share">Megosztás</string>
     <string name="mark_as_read">Megjelölés olvasottként</string>
     <string name="file_not_found">Fájl nem található</string>

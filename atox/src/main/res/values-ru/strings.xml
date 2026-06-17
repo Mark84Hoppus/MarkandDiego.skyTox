@@ -3,7 +3,7 @@
     <string name="accept">Принять</string>
     <string name="add">Добавить</string>
     <string name="add_contact">Добавить контакт</string>
-    <string name="add_contact_message_default">Общайся со мной в aTox, как разумный человек.</string>
+    <string name="add_contact_message_default">Общайся со мной в skyTox, как разумный человек.</string>
     <string name="add_contact_message_error_empty">Напишите что-нибудь для отправки</string>
     <string name="confirm">Подтвердить</string>
     <string name="connecting">Подключение…</string>
@@ -17,7 +17,7 @@
     <string name="messages">Сообщения</string>
     <string name="messages_incoming">Входящие сообщения</string>
     <string name="name">Имя пользователя</string>
-    <string name="name_default">Пользователь aTox</string>
+    <string name="name_default">Пользователь skyTox</string>
     <string name="no_contacts_call_to_action">Чего ты ждёшь? Добавь контакт чтобы начать!</string>
     <string name="navigation_drawer_close">Закрыть панель навигации</string>
     <string name="navigation_drawer_open">Открыть панель навигации</string>
@@ -28,7 +28,7 @@
     <string name="settings">Настройки</string>
     <string name="status_indicator">Индикатор статуса</string>
     <string name="status_message">Сообщение в статусе</string>
-    <string name="status_message_default">Использую Android клиент aTox</string>
+    <string name="status_message_default">Использую Android клиент skyTox</string>
     <string name="tox_id">Tox ID</string>
     <string name="tox_id_error_length">Tox ID должен иметь 76 символов (%1$d/76)</string>
     <string name="tox_id_error_checksum">Неверная контрольная сумма</string>
@@ -70,7 +70,7 @@
     <string name="profile_status">Изменить ваш статус</string>
     <string name="profile">Профиль</string>
     <string name="tox_id_error_already_exists">Контакт с данным Tox ID уже существует</string>
-    <string name="tox_service_running">aTox запущен…</string>
+    <string name="tox_service_running">skyTox запущен…</string>
     <string name="pref_heading_network">Сеть</string>
     <string name="pref_udp_enabled">UDP включён</string>
     <string name="pref_heading_general">Основные</string>
@@ -90,7 +90,7 @@
     <string name="completed">Завершено</string>
     <string name="save_as">Сохранить как…</string>
     <string name="export_file_success">Файл экспортирован</string>
-    <string name="export_file_failure">Что-то пошло не так при экспортировании файла. До aTox 0.5.1 передачи файлов экспортировались по умолчанию.</string>
+    <string name="export_file_failure">Что-то пошло не так при экспортировании файла. До skyTox 0.5.1 передачи файлов экспортировались по умолчанию.</string>
     <string name="draft_message">Черновик: %1$s</string>
     <string name="pref_heading_address">IP адрес</string>
     <string name="pref_heading_port">Порт</string>
@@ -145,13 +145,13 @@
     <string name="unlock_profile">Разблокировать профиль</string>
     <string name="incorrect_password">Неверный пароль</string>
     <string name="password">Пароль</string>
-    <string name="pref_block_screenshots_description">Эта функция заблокирует создание скриншотов открытого aTox **только** на **вашем** устройстве, но она не защитит от создания скриншотов вашими контактами или какого-либо другого способа сохранения ими ваших бесед</string>
-    <string name="pref_block_screenshots">Блокировка скриншотов aTox</string>
+    <string name="pref_block_screenshots_description">Эта функция заблокирует создание скриншотов открытого skyTox **только** на **вашем** устройстве, но она не защитит от создания скриншотов вашими контактами или какого-либо другого способа сохранения ими ваших бесед</string>
+    <string name="pref_block_screenshots">Блокировка скриншотов skyTox</string>
     <string name="return_to_chat">Вернуться в чат</string>
     <string name="speakerphone_toggle">Переключить динамик</string>
-    <string name="tap_to_unlock_and_start_atox">Нажмите, чтобы разблокировать ваш профиль и запустить aTox</string>
-    <string name="channel_profile_locked_explanation">Отправляется, когда ваш профиль необходимо разблокировать для запуска aTox</string>
-    <string name="atox_profile_locked">Профиль aTox заблокирован</string>
+    <string name="tap_to_unlock_and_start_atox">Нажмите, чтобы разблокировать ваш профиль и запустить skyTox</string>
+    <string name="channel_profile_locked_explanation">Отправляется, когда ваш профиль необходимо разблокировать для запуска skyTox</string>
+    <string name="atox_profile_locked">Профиль skyTox заблокирован</string>
     <string name="error_simultaneous_calls">В данный момент, участие в нескольких звонках одновременно не поддерживается</string>
     <string name="share">Поделиться</string>
     <string name="mark_as_read">Отметить как прочитанное</string>
@@ -163,4 +163,27 @@
     <string name="export_history_failure">Экспортирование истории сообщений не удалось: %1$s</string>
     <string name="call_confirm">Вы уверены, что хотите совершить звонок\?</string>
     <string name="pref_confirm_calling">Подтвердить звонок</string>
+    <string name="import_history">Импортировать историю</string>
+    <string name="export_text_chats">Экспорт текстовых чатов</string>
+    <string name="import_text_chats">Импорт текстовых чатов</string>
+    <string name="continue_import">Продолжить</string>
+    <string name="import_text_chats_confirm">Вся текущая история чатов будет заменена выбранной резервной копией текстовых чатов. Файлы, картинки, видео и голосовые сообщения не импортируются. Продолжить?</string>
+    <string name="import_text_chat_confirm">История этого чата будет заменена выбранной резервной копией текстового чата. Файлы, картинки, видео и голосовые сообщения не импортируются. Продолжить?</string>
+    <string name="export_text_chats_success">Текстовые чаты экспортированы</string>
+    <string name="export_text_chats_failure">Экспорт текстовых чатов не удался: %1$s</string>
+    <string name="import_text_chats_success">Текстовые чаты импортированы</string>
+    <string name="import_text_chat_success">Текстовый чат импортирован</string>
+    <string name="import_text_chat_invalid_json">Импорт не выполнен: неверный или поврежденный JSON текстовых чатов skyTox</string>
+    <string name="import_text_chats_wrong_scope">Импорт не выполнен: это резервная копия одного чата, а не всех чатов</string>
+    <string name="import_text_chat_wrong_scope">Импорт не выполнен: это резервная копия всех чатов, а не одного чата</string>
+    <string name="import_text_chat_wrong_contact">Импорт не выполнен: эта резервная копия относится к другому контакту</string>
+    <string name="import_text_chat_missing_contact">Импорт не выполнен: один или несколько контактов из резервной копии отсутствуют</string>
+    <string name="pref_language">Язык</string>
+    <string name="pref_language_russian">Русский</string>
+    <string name="pref_language_english">English</string>
+    <string-array name="pref_language_options">
+        <item>@string/pref_language_russian</item>
+        <item>@string/pref_language_english</item>
+    </string-array>
+    <string name="import_export_instructions">Инструкция экспорта/импорта</string>
 </resources>

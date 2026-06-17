@@ -9,6 +9,12 @@
     </style>
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar"/>
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light"/>
+    <style name="ChatContextPopup" parent="ThemeOverlay.AppCompat.Light">
+        <item name="android:textColorPrimary">#212121</item>
+        <item name="android:textColorSecondary">#212121</item>
+        <item name="android:colorBackground">#FFFFFF</item>
+        <item name="colorBackgroundFloating">#FFFFFF</item>
+    </style>
 
     <style name="OptionGroup">
         <item name="android:layout_width">match_parent</item>

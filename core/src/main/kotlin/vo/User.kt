@@ -15,10 +15,10 @@ data class User(
     val publicKey: String,
 
     @ColumnInfo(name = "name")
-    var name: String = "aTox user",
+    var name: String = "skyTox user",
 
     @ColumnInfo(name = "status_message")
-    var statusMessage: String = "Brought to you live, by aTox",
+    var statusMessage: String = "Brought to you live, by skyTox",
 
     @ColumnInfo(name = "status")
     var status: UserStatus = UserStatus.None,

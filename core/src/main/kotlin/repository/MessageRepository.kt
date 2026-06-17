@@ -23,11 +23,15 @@ class MessageRepository @Inject internal constructor(
 
     fun get(conversation: String): Flow<List<Message>> = messageDao.load(conversation)
 
+    fun getAll(): Flow<List<Message>> = messageDao.loadAll()
+
     fun getPending(conversation: String): List<Message> = messageDao.loadPending(conversation)
 
     fun setCorrelationId(id: Long, correlationId: Int) = messageDao.setCorrelationId(id, correlationId)
 
     fun delete(conversation: String) = messageDao.delete(conversation)
+
+    fun deleteAll() = messageDao.deleteAll()
 
     fun deleteMessage(id: Long) = messageDao.deleteMessage(id)
 

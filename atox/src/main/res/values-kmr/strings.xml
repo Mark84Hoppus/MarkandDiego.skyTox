@@ -13,7 +13,7 @@
     <string name="messages">Mesajan</string>
     <string name="messages_incoming">Mesajan hatinî</string>
     <string name="name">Nav</string>
-    <string name="name_default">Bikaranîvana aTox</string>
+    <string name="name_default">Bikaranîvana skyTox</string>
     <string name="no_contacts_call_to_action">Tu li benda çi yî\? Ji bo destpêkirinê pêwendiyekê lê zêde bike!</string>
     <string name="navigation_drawer_close">Berkêşka navîgasyonê bigire</string>
     <string name="navigation_drawer_open">Berkêşka navîgasyonê veke</string>
@@ -23,7 +23,7 @@
     <string name="sending">Dişîne…</string>
     <string name="settings">Mîheng</string>
     <string name="status_message">Mesaja rewșê</string>
-    <string name="status_message_default">Ji te re zindî anî, ji aToxê</string>
+    <string name="status_message_default">Ji te re zindî anî, ji skyToxê</string>
     <string name="add_contact_message_default">Bi min re biaxive weke ez insan im.</string>
     <string name="create">Çêke</string>
     <string name="add_contact">Têkelî lêzêde bike</string>

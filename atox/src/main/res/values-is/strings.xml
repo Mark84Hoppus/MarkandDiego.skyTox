@@ -5,7 +5,7 @@
     <string name="confirm">Staðfesta</string>
     <string name="add">Bæta við</string>
     <string name="calls">Símtöl</string>
-    <string name="add_contact_message_default">Talaðu við mig á aTox eins og skynsöm manneskja.</string>
+    <string name="add_contact_message_default">Talaðu við mig á skyTox eins og skynsöm manneskja.</string>
     <string name="add_contact_message_error_empty">Skrifaðu eitthvað til að senda fyrst</string>
     <string name="contact_typing">Er að skrifa…</string>
     <string name="create">Skapa</string>
@@ -18,7 +18,7 @@
     <string name="messages">Skilaboð</string>
     <string name="messages_incoming">Komandi skilaboð</string>
     <string name="name">Nafn</string>
-    <string name="name_default">aTox notandi</string>
+    <string name="name_default">skyTox notandi</string>
     <string name="no_contacts_call_to_action">Eftir hverju ertu að bíða\? Bættu við tengiliða til að byrja!</string>
     <string name="pref_ft_auto_accept_none">Engin</string>
     <string name="profile_photo_description">Notandamynd</string>
@@ -27,7 +27,7 @@
     <string name="export_tox_save">Flytja út Tox reikning</string>
     <string name="send">Senda</string>
     <string name="reject">Hafna</string>
-    <string name="status_message_default">Fært þér í beinni af aTox</string>
+    <string name="status_message_default">Fært þér í beinni af skyTox</string>
     <string name="sending">Sendir…</string>
     <string name="settings">Stillingar</string>
     <string name="status_message">Stöðuskilaboð</string>
@@ -85,7 +85,7 @@
     <string name="pref_run_at_startup">Byrja við ræsingu</string>
     <string name="profile">Notandasíða</string>
     <string name="tox_id_error_already_exists">Tengiliður með þetta Tox auðkenni er þegar til</string>
-    <string name="tox_service_running">aTox er í gangi…</string>
+    <string name="tox_service_running">skyTox er í gangi…</string>
     <string name="pref_heading_general">Almennt</string>
     <string name="status_available">Laus</string>
     <string name="status_busy">Upptekin</string>
@@ -136,9 +136,9 @@
     <string name="pref_confirm_password">Staðfestu nýtt lykilorð</string>
     <string name="password_updated">Lykilorð uppfært</string>
     <string name="passwords_must_match">Lykilorðin verða að passa saman</string>
-    <string name="pref_block_screenshots">Loka fyrir skjámyndum af aTox</string>
-    <string name="atox_profile_locked">aTox reikningur læstur</string>
+    <string name="pref_block_screenshots">Loka fyrir skjámyndum af skyTox</string>
+    <string name="atox_profile_locked">skyTox reikningur læstur</string>
     <string name="speakerphone_toggle">Víxla hátalara</string>
-    <string name="tap_to_unlock_and_start_atox">Pikkaðu til að opna reikninginn þinn og byrja aTox</string>
+    <string name="tap_to_unlock_and_start_atox">Pikkaðu til að opna reikninginn þinn og byrja skyTox</string>
     <string name="mark_as_read">Merkja sem lesið</string>
 </resources>

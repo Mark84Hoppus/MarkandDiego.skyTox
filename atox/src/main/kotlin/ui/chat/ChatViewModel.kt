@@ -42,6 +42,7 @@ import ltd.evilcorp.domain.feature.ChatManager
 import ltd.evilcorp.domain.feature.ContactManager
 import ltd.evilcorp.domain.feature.ExportManager
 import ltd.evilcorp.domain.feature.FileTransferManager
+import ltd.evilcorp.domain.feature.TextChatImportResult
 
 private const val TAG = "ChatViewModel"
 
@@ -137,6 +138,8 @@ class ChatViewModel @Inject constructor(
         fileTransferManager.create(publicKey, file)
     }
 
+    fun voiceMessageFile(): File = fileTransferManager.voiceMessageFile()
+
     fun delete(msg: Message) = scope.launch {
         if (msg.type == MessageType.FileTransfer) {
             fileTransferManager.delete(msg.correlationId)
@@ -191,6 +194,28 @@ class ChatViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun importHistory(publicKey: String, source: Uri) = scope.launch(Dispatchers.IO) {
+        val result = try {
+            val content = resolver.openInputStream(source)?.use { it.readBytes().decodeToString() }
+                ?: return@launch showImportResult(TextChatImportResult.InvalidJson)
+            exportManager.importSingleTextChat(publicKey, content)
+        } catch (_: Exception) {
+            TextChatImportResult.InvalidJson
+        }
+        showImportResult(result)
+    }
+
+    private suspend fun showImportResult(result: TextChatImportResult) = withContext(Dispatchers.Main) {
+        val message = when (result) {
+            TextChatImportResult.Ok -> R.string.import_text_chat_success
+            TextChatImportResult.InvalidJson -> R.string.import_text_chat_invalid_json
+            TextChatImportResult.WrongScope -> R.string.import_text_chat_wrong_scope
+            TextChatImportResult.WrongContact -> R.string.import_text_chat_wrong_contact
+            TextChatImportResult.MissingContact -> R.string.import_text_chat_missing_contact
+        }
+        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
     }
 
     fun setDraft(draft: String) = contactManager.setDraft(publicKey, draft)

@@ -18,7 +18,7 @@
     <string name="tox_id">நச்சு ஐடி</string>
     <string name="tox_id_error_length">நச்சு ஐடி 76 எழுத்துகளாக இருக்க வேண்டும் (%1$d/76)</string>
     <string name="tox_id_error_checksum">தவறான செக்சம்</string>
-    <string name="status_message_default">aTox மூலம் உங்களிடம் கொண்டு வரப்பட்டது</string>
+    <string name="status_message_default">skyTox மூலம் உங்களிடம் கொண்டு வரப்பட்டது</string>
     <string name="tox_id_error_hex">ஃச் மட்டுமே அனுமதிக்கப்படுகிறது</string>
     <string name="friend_requests">நண்பர் கோரிக்கைகள்</string>
     <string name="friend_request_from">%1$s இலிருந்து நண்பர் கோரிக்கை</string>
@@ -67,7 +67,7 @@
     <string name="profile_status">உங்கள் நிலையை மாற்றவும்</string>
     <string name="profile">சுயவிவரம்</string>
     <string name="tox_id_error_already_exists">அந்த நச்சு ஐடியுடன் ஒரு தொடர்பு ஏற்கனவே உள்ளது</string>
-    <string name="tox_service_running">aTox இயங்குகிறது…</string>
+    <string name="tox_service_running">skyTox இயங்குகிறது…</string>
     <string name="pref_heading_network">பிணையம்</string>
     <string name="pref_udp_enabled">யுடிபி இயக்கப்பட்டது</string>
     <string name="pref_heading_general">பொது</string>
@@ -116,13 +116,13 @@
     <string name="in_call_with">%1$s உடன் அழைப்பில்</string>
     <string name="tox_id_error_self_add">உங்களை நீங்களே சேர்க்க முடியாது</string>
     <string name="pref_nospam">நோச்பாம்</string>
-    <string name="pref_block_screenshots">aTox இன் திரை சாட்களைத் தடுக்கவும்</string>
+    <string name="pref_block_screenshots">skyTox இன் திரை சாட்களைத் தடுக்கவும்</string>
     <string name="pref_block_screenshots_description">இது ** மட்டுமே ** உங்கள் ** சாதனத்தில் திரை சாட்களைத் தடுக்கிறது, மேலும் திரை சாட்களை எடுப்பது அல்லது உங்கள் உரையாடல்களைச் சேமிப்பதில் உங்கள் தொடர்புகளுக்கு எதிராக எந்த பாதுகாப்பையும் வழங்காது</string>
     <string name="return_to_chat">அரட்டைக்குத் திரும்பு</string>
     <string name="speakerphone_toggle">ச்பீக்கர்ஃபோனை மாற்றவும்</string>
-    <string name="channel_profile_locked_explanation">aTox இயக்க உங்கள் சுயவிவரத்தைத் திறக்க வேண்டியிருக்கும் போது அனுப்பப்பட்டது</string>
-    <string name="atox_profile_locked">aTox சுயவிவரம் பூட்டப்பட்டுள்ளது</string>
-    <string name="tap_to_unlock_and_start_atox">உங்கள் சுயவிவரத்தைத் திறக்கத் தட்டவும், aTox ஐத் தொடங்கவும்</string>
+    <string name="channel_profile_locked_explanation">skyTox இயக்க உங்கள் சுயவிவரத்தைத் திறக்க வேண்டியிருக்கும் போது அனுப்பப்பட்டது</string>
+    <string name="atox_profile_locked">skyTox சுயவிவரம் பூட்டப்பட்டுள்ளது</string>
+    <string name="tap_to_unlock_and_start_atox">உங்கள் சுயவிவரத்தைத் திறக்கத் தட்டவும், skyTox ஐத் தொடங்கவும்</string>
     <string name="share">பங்கு</string>
     <string name="mark_as_read">படித்தபடி குறி</string>
     <string name="export_history_success">செய்தி வரலாறு ஏற்றுமதி செய்யப்பட்டது</string>
@@ -138,7 +138,7 @@
     <string name="create">உருவாக்கு</string>
     <string name="messages_incoming">உள்வரும் செய்திகள்</string>
     <string name="name">பெயர்</string>
-    <string name="name_default">aTox பயனர்</string>
+    <string name="name_default">skyTox பயனர்</string>
     <string name="navigation_drawer_close">வழிசெலுத்தல் அலமாரியை மூடு</string>
     <string name="save">சேமி</string>
     <string name="pref_nospam_description">உங்கள் நோச்பாமை மாற்றுவது உங்கள் நச்சு ஐடியை மாற்றுகிறது, அதாவது நண்பர்களின் கோரிக்கைகள் புதுப்பிக்கப்பட்டவருக்கு அனுப்பப்பட வேண்டும்</string>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="messages">Pesan</string>
-    <string name="name_default">Pengguna aTox</string>
+    <string name="name_default">Pengguna skyTox</string>
     <string name="navigation_drawer_close">Hapus bilah navigasi</string>
     <string name="no_contacts_call_to_action">Apa yang Anda tunggu\? Tambahkan kontak untuk memulai!</string>
     <string name="navigation_drawer_open">Buka bilah navigasi</string>
@@ -26,7 +26,7 @@
     <string name="settings">Pengaturan</string>
     <string name="status_indicator">Indikator status</string>
     <string name="status_message">Pesan status</string>
-    <string name="status_message_default">Saya menggunakan klien aTox di Android</string>
+    <string name="status_message_default">Saya menggunakan klien skyTox di Android</string>
     <string name="tox_id">ID Tox</string>
     <string name="tox_id_error_length">ID Tox harus 76 karakter (%1$d/76)</string>
     <string name="tox_id_share">Bagikan ID Tox</string>
@@ -67,7 +67,7 @@
     <string name="profile_status">Ubah status Anda</string>
     <string name="profile">Profil</string>
     <string name="tox_id_error_already_exists">Kontak dengan ID Tox tersebut sudah ada</string>
-    <string name="tox_service_running">aTox sedang berjalan…</string>
+    <string name="tox_service_running">skyTox sedang berjalan…</string>
     <string name="pref_heading_network">Jaringan</string>
     <string name="pref_heading_general">Umum</string>
     <string name="friend_request">Permintaan pertemanan</string>
@@ -101,12 +101,12 @@
     <string name="export_file_success">Berkas diekspor</string>
     <string name="export_file_failure">Ada sesuatu yang salah dalam pengeksporan. Transfer sebelum 0.5.1 diekspor secara baku.</string>
     <string name="bad_type">Tipe buruk</string>
-    <string name="pref_block_screenshots">Blokir tangkapan layar aTox</string>
+    <string name="pref_block_screenshots">Blokir tangkapan layar skyTox</string>
     <string name="pref_block_screenshots_description">Ini **hanya** akan memblokir tangkapan layar pada perangkat **Anda**, ini tidak melindungi dari kontak Anda mengambil tangkapan layar atau menyimpan percakapan Anda</string>
     <string name="return_to_chat">Kembali ke percakapan</string>
-    <string name="channel_profile_locked_explanation">Kirim ketika profil Anda harus dibuka kuncinya agar aTox berjalan</string>
-    <string name="atox_profile_locked">Profil aTox dikunci</string>
-    <string name="tap_to_unlock_and_start_atox">Ketuk untuk membuka kunci profil Anda dan memulai aTox</string>
+    <string name="channel_profile_locked_explanation">Kirim ketika profil Anda harus dibuka kuncinya agar skyTox berjalan</string>
+    <string name="atox_profile_locked">Profil skyTox dikunci</string>
+    <string name="tap_to_unlock_and_start_atox">Ketuk untuk membuka kunci profil Anda dan memulai skyTox</string>
     <string name="share">Bagikan</string>
     <string name="mark_as_read">Tandai sebagai telah dibaca</string>
     <string name="file_not_found">Berkas tidak ditemukan</string>
@@ -143,7 +143,7 @@
     <string name="pref_ft_auto_accept_none">Kosong</string>
     <string name="pref_proxy_type_none">Kosong</string>
     <string name="pref_bootstrap_node_builtin">Bawaan</string>
-    <string name="add_contact_message_default">Bicaralah denganku di aTox seperti manusia yang rasional.</string>
+    <string name="add_contact_message_default">Bicaralah denganku di skyTox seperti manusia yang rasional.</string>
     <string name="pref_bootstrap_node_user_provided">Disediakan oleh pengguna</string>
     <string name="or_import_existing_save">atau impor simpanan Tox yang sudah ada</string>
     <string name="pref_confirm_calling">Konfirmasi panggilan</string>

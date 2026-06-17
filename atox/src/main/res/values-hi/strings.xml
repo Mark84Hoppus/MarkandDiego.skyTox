@@ -75,8 +75,8 @@
     <string name="pref_current_password">वर्तमान पासवर्ड</string>
     <string name="pref_new_password">नया पासवर्ड</string>
     <string name="speakerphone_toggle">स्पीकरफ़ोन टॉगल करें</string>
-    <string name="channel_profile_locked_explanation">तब भेजा जाता है जब आपकी प्रोफ़ाइल को aTox चलाने के लिए अनलॉक करने की आवश्यकता होती है</string>
-    <string name="tap_to_unlock_and_start_atox">अपनी प्रोफ़ाइल अनलॉक करने के लिए टैप करें और aTox प्रारंभ करें</string>
+    <string name="channel_profile_locked_explanation">तब भेजा जाता है जब आपकी प्रोफ़ाइल को skyTox चलाने के लिए अनलॉक करने की आवश्यकता होती है</string>
+    <string name="tap_to_unlock_and_start_atox">अपनी प्रोफ़ाइल अनलॉक करने के लिए टैप करें और skyTox प्रारंभ करें</string>
     <string name="share">साझा करे</string>
     <string name="mark_as_read">पढ़ा गया चिह्नित करें</string>
     <string name="add">जोड़ें</string>
@@ -149,10 +149,10 @@
     <string name="pref_confirm_password">नए पासवर्ड की पुष्टि करें</string>
     <string name="password_updated">पासवर्ड अपडेट किया गया</string>
     <string name="passwords_must_match">पासवर्ड मेल खाना चाहिए</string>
-    <string name="pref_block_screenshots">aTox के स्क्रीनशॉट ब्लॉक करें</string>
+    <string name="pref_block_screenshots">skyTox के स्क्रीनशॉट ब्लॉक करें</string>
     <string name="pref_block_screenshots_description">यह **केवल** **आपके** डिवाइस पर स्क्रीनशॉट को ब्लॉक करता है, और आपके संपर्कों द्वारा स्क्रीनशॉट लेने या अन्यथा आपकी बातचीत को सहेजने से कोई सुरक्षा प्रदान नहीं करता है</string>
     <string name="export_history_success">संदेश इतिहास निर्यात किया गया</string>
-    <string name="atox_profile_locked">aTox प्रोफाइल लॉक</string>
+    <string name="atox_profile_locked">skyTox प्रोफाइल लॉक</string>
     <string name="file_not_found">फ़ाइल प्राप्त नहीं हुई</string>
     <string name="export_history">निर्यात इतिहास</string>
     <string name="export_history_failure">संदेश इतिहास निर्यात विफल: %1$s</string>

@@ -33,8 +33,10 @@ import ltd.evilcorp.core.vo.User
 import ltd.evilcorp.domain.feature.CallManager
 import ltd.evilcorp.domain.feature.ChatManager
 import ltd.evilcorp.domain.feature.ContactManager
+import ltd.evilcorp.domain.feature.ExportManager
 import ltd.evilcorp.domain.feature.FileTransferManager
 import ltd.evilcorp.domain.feature.FriendRequestManager
+import ltd.evilcorp.domain.feature.TextChatImportResult
 import ltd.evilcorp.domain.feature.UserManager
 import ltd.evilcorp.domain.tox.ProxyType
 import ltd.evilcorp.domain.tox.SaveOptions
@@ -49,6 +51,7 @@ class ContactListViewModel @Inject constructor(
     private val callManager: CallManager,
     private val chatManager: ChatManager,
     private val contactManager: ContactManager,
+    private val exportManager: ExportManager,
     private val fileTransferManager: FileTransferManager,
     private val friendRequestManager: FriendRequestManager,
     private val notificationHelper: NotificationHelper,
@@ -120,6 +123,49 @@ class ContactListViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun exportAllTextChats(uri: Uri) = scope.launch(Dispatchers.IO) {
+        try {
+            val content = exportManager.generateAllTextChatsJString()
+            resolver.openOutputStream(uri).use { os ->
+                os ?: throw FileNotFoundException()
+                content.byteInputStream().copyTo(os)
+            }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, R.string.export_text_chats_success, Toast.LENGTH_LONG).show()
+            }
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.export_text_chats_failure, e.message),
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+    }
+
+    fun importAllTextChats(uri: Uri) = scope.launch(Dispatchers.IO) {
+        val result = try {
+            val content = resolver.openInputStream(uri)?.use { it.readBytes().decodeToString() }
+                ?: return@launch showImportResult(TextChatImportResult.InvalidJson)
+            exportManager.importAllTextChats(content)
+        } catch (_: Exception) {
+            TextChatImportResult.InvalidJson
+        }
+        showImportResult(result)
+    }
+
+    private suspend fun showImportResult(result: TextChatImportResult) = withContext(Dispatchers.Main) {
+        val message = when (result) {
+            TextChatImportResult.Ok -> R.string.import_text_chats_success
+            TextChatImportResult.InvalidJson -> R.string.import_text_chat_invalid_json
+            TextChatImportResult.WrongScope -> R.string.import_text_chats_wrong_scope
+            TextChatImportResult.WrongContact -> R.string.import_text_chat_wrong_contact
+            TextChatImportResult.MissingContact -> R.string.import_text_chat_missing_contact
+        }
+        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
     }
 
     fun onShareText(what: String, to: Contact) = chatManager.sendMessage(PublicKey(to.publicKey), what)

@@ -3,7 +3,7 @@
     <string name="accept">Asetar</string>
     <string name="add">Zontar</string>
     <string name="add_contact">Zontar contato</string>
-    <string name="add_contact_message_default">Pàrlaghe su aTox cofà calchedun uzual.</string>
+    <string name="add_contact_message_default">Pàrlaghe su skyTox cofà calchedun uzual.</string>
     <string name="add_contact_message_error_empty">Srìveghe calche roba par mandar prima</string>
     <string name="confirm">Łaudar</string>
     <string name="connecting">Drio łigar…</string>
@@ -17,7 +17,7 @@
     <string name="messages">Mesaji</string>
     <string name="messages_incoming">Mesaji drio risever</string>
     <string name="name">Nome</string>
-    <string name="name_default">aTox doparador</string>
+    <string name="name_default">skyTox doparador</string>
     <string name="no_contacts_call_to_action">\'Sa sito ti drio spetar? Zónteghe un contato par scumisiar!</string>
     <string name="navigation_drawer_close">Sarar sù el calto de navegasion</string>
     <string name="navigation_drawer_open">Verzar el canto de navegasion</string>
@@ -28,7 +28,7 @@
     <string name="settings">Asestasion</string>
     <string name="status_indicator">Ła friza de\'l status</string>
     <string name="status_message">Status mesajo</string>
-    <string name="status_message_default">Mi dopero Android cliente aTox</string>
+    <string name="status_message_default">Mi dopero Android cliente skyTox</string>
     <string name="tox_id">Ła Tox ID</string>
     <string name="tox_id_error_length">Ła Tox ID ła toca gaver 76 caractere (%1$d/76)</string>
     <string name="tox_id_error_checksum">Checksum zbałià</string>
@@ -80,7 +80,7 @@
     <string name="profile_status">Canbiar el to status</string>
     <string name="profile">Fegura</string>
     <string name="tox_id_error_already_exists">Gh\'è belche un contato co \'sto Tox ID</string>
-    <string name="tox_service_running">aTox el ze drio łaorar…</string>
+    <string name="tox_service_running">skyTox el ze drio łaorar…</string>
     <string name="pref_heading_network">Ła rede</string>
     <string name="pref_udp_enabled">UDP zontà</string>
     <string name="pref_heading_general">Zeneral</string>
@@ -147,13 +147,13 @@
     <string name="pref_confirm_password">Łaudar ła niova password</string>
     <string name="password_updated">Ła password ze stà metà novo</string>
     <string name="passwords_must_match">Łe password toca èsar gałive</string>
-    <string name="pref_block_screenshots">Block screenshots de\'l aTox</string>
+    <string name="pref_block_screenshots">Block screenshots de\'l skyTox</string>
     <string name="pref_block_screenshots_description">\'Sto **soło** block screenshots nte\'l **to** strumento, e no\'l ga protesion in costo de i to contati che i fa screenshots o salva łe to ciacołe</string>
     <string name="return_to_chat">Tornar ła convarsasion</string>
     <string name="speakerphone_toggle">Inpisar/zmorsar speakerphone</string>
-    <string name="channel_profile_locked_explanation">Manda co che ła to fegura bezonja èsar inciavà par el aTox łaorar</string>
-    <string name="atox_profile_locked">Ła aTox fegura ze stà ciavà</string>
-    <string name="tap_to_unlock_and_start_atox">Tastar par inciavar ła to fegura e scumisar el aTox</string>
+    <string name="channel_profile_locked_explanation">Manda co che ła to fegura bezonja èsar inciavà par el skyTox łaorar</string>
+    <string name="atox_profile_locked">Ła skyTox fegura ze stà ciavà</string>
+    <string name="tap_to_unlock_and_start_atox">Tastar par inciavar ła to fegura e scumisar el skyTox</string>
     <string name="share">Sconpartir</string>
     <string name="mark_as_read">Senja cofà łezesto</string>
     <string name="file_not_found">Arcivo mìa catà fóra</string>

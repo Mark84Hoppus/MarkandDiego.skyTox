@@ -44,7 +44,7 @@
     <string name="pref_heading_general">Üldine</string>
     <string name="pref_udp_enabled">UDP on lubatud</string>
     <string name="pref_heading_network">Võrk</string>
-    <string name="tox_service_running">aTox töötab …</string>
+    <string name="tox_service_running">skyTox töötab …</string>
     <string name="tox_id_error_already_exists">Selle ID-ga kontakt on juba olemas</string>
     <string name="profile">Profiil</string>
     <string name="profile_status">Muuda oma staatust</string>
@@ -85,7 +85,7 @@
     <string name="tox_id_error_checksum">Vale kontrollsumma</string>
     <string name="tox_id_error_length">Tox ID peab olema 76 tähemärki (%1$d / 76)</string>
     <string name="tox_id">Tox ID</string>
-    <string name="status_message_default">Kasutan Androidi klienti aTox</string>
+    <string name="status_message_default">Kasutan Androidi klienti skyTox</string>
     <string name="status_message">Olekuteade</string>
     <string name="status_indicator">Olekuindikaator</string>
     <string name="settings">Seaded</string>
@@ -96,7 +96,7 @@
     <string name="navigation_drawer_open">Avage navigeerimissahtel</string>
     <string name="navigation_drawer_close">Sulgege navigeerimissahtel</string>
     <string name="no_contacts_call_to_action">Mida sa ootad\? Alustamiseks lisage kontakt!</string>
-    <string name="name_default">aToxi kasutaja</string>
+    <string name="name_default">skyToxi kasutaja</string>
     <string name="name">Nimi</string>
     <string name="messages_incoming">Sissetulevad sõnumid</string>
     <string name="messages">Sõnumid</string>
@@ -110,7 +110,7 @@
     <string name="connecting">Ühendamine …</string>
     <string name="confirm">Kinnitage</string>
     <string name="add_contact_message_error_empty">Kirjuta midagi enne saatmist</string>
-    <string name="add_contact_message_default">Räägi minuga aToxis nagu mõistlik inimene.</string>
+    <string name="add_contact_message_default">Räägi minuga skyToxis nagu mõistlik inimene.</string>
     <string name="add_contact">Lisage kontakt</string>
     <string name="pref_proxy_type_http">HTTP</string>
     <string name="pref_proxy_type_socks5">SOCKS5</string>

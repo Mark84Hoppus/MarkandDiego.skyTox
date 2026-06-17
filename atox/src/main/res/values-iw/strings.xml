@@ -9,7 +9,7 @@
     <string name="profile_information">מידע על הפרופיל</string>
     <string name="profile_settings">הגדרות פרופיל</string>
     <string name="profile">פרופיל</string>
-    <string name="tox_service_running">aTox פועל…</string>
+    <string name="tox_service_running">skyTox פועל…</string>
     <string name="pref_udp_enabled">UDP מופעל</string>
     <string name="saved">נשמר</string>
     <string name="ongoing_call">שיחה מתמשכת</string>
@@ -29,7 +29,7 @@
     <string name="return_to_chat">חזור לצ\'אט</string>
     <string name="speakerphone_toggle">החלף מצב רמקול</string>
     <string name="connecting">מתחבר…</string>
-    <string name="add_contact_message_default">שוחח איתי ב aTox כמו בן אדם סביר.</string>
+    <string name="add_contact_message_default">שוחח איתי ב skyTox כמו בן אדם סביר.</string>
     <string name="add_contact_message_error_empty">רשום משהו בשביל לשלוח</string>
     <string name="confirm">אישור</string>
     <string name="copied">הועתק</string>
@@ -40,7 +40,7 @@
     <string name="create_a_tox_profile">צור פרופיל Tox</string>
     <string name="message">הודעה</string>
     <string name="messages_incoming">הודעות נכנסות</string>
-    <string name="name_default">משתמש aTox</string>
+    <string name="name_default">משתמש skyTox</string>
     <string name="profile_photo_description">תמונת פרופיל</string>
     <string name="accept">אשר</string>
     <string name="pref_theme_follow_system">כמו המערכת</string>
@@ -90,7 +90,7 @@
     <string name="status_dialog_edit_user_status">ערוך את הסטטוס שלך</string>
     <string name="save_as">שמור בשם…</string>
     <string name="pref_confirm_password">אישור סיסמה חדשה</string>
-    <string name="pref_block_screenshots">חסום צילומי מסך של aTox</string>
+    <string name="pref_block_screenshots">חסום צילומי מסך של skyTox</string>
     <string name="status_away">לא נמצא</string>
     <string name="mimetype_handler_not_found">אין אפליקציות מותקנות כדי לפתוח את סוג המדיה \"%1$s\"</string>
     <string name="notification_file_transfer">העברת קובץ נכנסת \"%1$s\"</string>
@@ -128,7 +128,7 @@
     <string name="sending">שולח…</string>
     <string name="status_indicator">מחוון סטטוס</string>
     <string name="status_message">הודעת סטטוס</string>
-    <string name="status_message_default">מחובר על ידי aTox</string>
+    <string name="status_message_default">מחובר על ידי skyTox</string>
     <string name="clear_history">נקה היסטוריה</string>
     <string name="tox_id">מזהה Tox</string>
     <string name="tox_id_share">שתף מזהה Tox</string>
@@ -146,9 +146,9 @@
     <string name="call_mic_permission_needed">נדרשת הרשאת מיקרופון בשביל לאפשר שליחת אודיו</string>
     <string name="passwords_must_match">הסיסמות מוכרחות להיות תואמות</string>
     <string name="contact_list_delete_contact_confirm">האם אתה בטוח שברצונך למחוק את \"%1$s\" מאנשי הקשר\?</string>
-    <string name="channel_profile_locked_explanation">נשלח כאשר הפרופיל שלך צריך ביטול נעילה בשביל ש aTox יפעל</string>
-    <string name="atox_profile_locked">פרופיל aTox נעול</string>
-    <string name="tap_to_unlock_and_start_atox">לחץ כדי לבטל את נעילת הפרופיל שלך ולהפעיל את aTox</string>
+    <string name="channel_profile_locked_explanation">נשלח כאשר הפרופיל שלך צריך ביטול נעילה בשביל ש skyTox יפעל</string>
+    <string name="atox_profile_locked">פרופיל skyTox נעול</string>
+    <string name="tap_to_unlock_and_start_atox">לחץ כדי לבטל את נעילת הפרופיל שלך ולהפעיל את skyTox</string>
     <string name="error_simultaneous_calls">השתתפות בשיחות מרובות באותו הזמן אינה נתמכת</string>
     <string name="share">שתף</string>
     <string name="mark_as_read">סמן כנקרא</string>

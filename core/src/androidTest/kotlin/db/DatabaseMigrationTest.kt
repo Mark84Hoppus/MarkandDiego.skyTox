@@ -253,6 +253,102 @@ class DatabaseMigrationTest {
     }
 
     @Test
+    fun migrate_5_to_6() {
+        helper.createDatabase(TEST_DB, 5).use { db ->
+            with(ft) {
+                db.execSQL(
+                    """INSERT INTO file_transfers VALUES (
+                        $id,
+                        '$publicKey',
+                        $fileNumber,
+                        $fileKind,
+                        $fileSize,
+                        '$fileName',
+                        ${outgoing.toInt()},
+                        $progress,
+                        '$destination')
+                    """.trimIndent(),
+                )
+            }
+
+            db.query("SELECT * FROM file_transfers").let { cursor ->
+                assertEquals(9, cursor.columnCount)
+                with(ft) {
+                    cursor.moveToFirst()
+                    assertEquals(id, cursor.getInt(0))
+                    assertEquals(publicKey, cursor.getString(1))
+                    assertEquals(fileNumber, cursor.getInt(2))
+                    assertEquals(fileKind, cursor.getInt(3))
+                    assertEquals(fileSize, cursor.getLong(4))
+                    assertEquals(fileName, cursor.getString(5))
+                    assertEquals(outgoing.toInt(), cursor.getInt(6))
+                    assertEquals(progress, cursor.getLong(7))
+                    assertEquals(destination, cursor.getString(8))
+                }
+            }
+        }
+
+        helper.runMigrationsAndValidate(TEST_DB, 6, true, MIGRATION_5_6).use { db ->
+            val cursor = db.query("SELECT * FROM file_transfers").apply { moveToFirst() }
+            assertEquals(10, cursor.columnCount)
+            with(ft) {
+                assertEquals(id, cursor.getInt(0))
+                assertEquals(publicKey, cursor.getString(1))
+                assertEquals(fileNumber, cursor.getInt(2))
+                assertEquals(fileKind, cursor.getInt(3))
+                assertEquals(fileSize, cursor.getLong(4))
+                assertEquals(fileName, cursor.getString(5))
+                assertEquals(outgoing.toInt(), cursor.getInt(6))
+                assertEquals(progress, cursor.getLong(7))
+                assertEquals(destination, cursor.getString(8))
+                assertEquals("", cursor.getString(9))
+            }
+        }
+    }
+
+    @Test
+    fun migrate_6_to_7() {
+        helper.createDatabase(TEST_DB, 6).use { db ->
+            with(ft) {
+                db.execSQL(
+                    """INSERT INTO file_transfers (
+                        public_key,
+                        file_number,
+                        file_kind,
+                        file_size,
+                        file_name,
+                        outgoing,
+                        progress,
+                        destination,
+                        file_id,
+                        id) VALUES (
+                        '$publicKey',
+                        $fileNumber,
+                        $fileKind,
+                        $fileSize,
+                        '$fileName',
+                        ${outgoing.toInt()},
+                        $progress,
+                        '$destination',
+                        '$fileId',
+                        $id)
+                    """.trimIndent(),
+                )
+            }
+
+            db.query("SELECT * FROM file_transfers").let { cursor ->
+                assertEquals(10, cursor.columnCount)
+            }
+        }
+
+        helper.runMigrationsAndValidate(TEST_DB, 7, true, MIGRATION_6_7).use { db ->
+            val cursor = db.query("SELECT * FROM file_transfers").apply { moveToFirst() }
+            assertEquals(11, cursor.columnCount)
+            assertEquals("", cursor.getString(cursor.getColumnIndexOrThrow("thumbnail")))
+        }
+    }
+
+    @Test
     fun run_all_migrations() {
         helper.createDatabase(TEST_DB, 1).use { db ->
             with(contact) {
@@ -336,7 +432,7 @@ class DatabaseMigrationTest {
             }
         }
 
-        helper.runMigrationsAndValidate(TEST_DB, 5, true, *ALL_MIGRATIONS).use { db ->
+        helper.runMigrationsAndValidate(TEST_DB, 7, true, *ALL_MIGRATIONS).use { db ->
             db.query("SELECT * FROM contacts").let { cursor ->
                 assertEquals(cursor.columnCount, 10)
                 with(contact) {

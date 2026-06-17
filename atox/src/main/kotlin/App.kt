@@ -9,6 +9,7 @@ import android.app.Application
 import androidx.annotation.VisibleForTesting
 import ltd.evilcorp.atox.di.AppComponent
 import ltd.evilcorp.atox.di.DaggerAppComponent
+import ltd.evilcorp.domain.feature.SkyToxPublicFolders
 
 class App : Application() {
     val component: AppComponent by lazy {
@@ -17,4 +18,10 @@ class App : Application() {
 
     @VisibleForTesting
     var componentOverride: AppComponent? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        SkyToxPublicFolders.ensureDirectories()
+        ToxKeepAliveScheduler.schedule(this)
+    }
 }

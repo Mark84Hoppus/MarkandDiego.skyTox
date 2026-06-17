@@ -36,7 +36,7 @@
     <string name="pref_heading_general">Geral</string>
     <string name="pref_udp_enabled">UDP activado</string>
     <string name="pref_heading_network">Rede</string>
-    <string name="tox_service_running">aTox já está em execução…</string>
+    <string name="tox_service_running">skyTox já está em execução…</string>
     <string name="tox_id_error_already_exists">Já existe um contato com esse identificador Tox</string>
     <string name="profile">Perfil</string>
     <string name="profile_status">Alterar o seu estado</string>
@@ -76,7 +76,7 @@
     <string name="tox_id_error_checksum">Soma de verificação (checksum) inválida</string>
     <string name="tox_id_error_length">O identificador Tox tem de ter 76 caracteres (%1$d/76)</string>
     <string name="tox_id">Identificador Tox</string>
-    <string name="status_message_default">Produzido pela equipa do aTox</string>
+    <string name="status_message_default">Produzido pela equipa do skyTox</string>
     <string name="status_message">Mensagem de estado</string>
     <string name="status_indicator">Indicador de estado</string>
     <string name="settings">Configurações</string>
@@ -87,7 +87,7 @@
     <string name="navigation_drawer_open">Abrir a gaveta de navegação</string>
     <string name="navigation_drawer_close">Fechar a gaveta de navegação</string>
     <string name="no_contacts_call_to_action">De que estás à espera\? Adiciona um contacto para começares!</string>
-    <string name="name_default">Utilizador do aTox</string>
+    <string name="name_default">Utilizador do skyTox</string>
     <string name="name">Nome</string>
     <string name="messages_incoming">Mensagens recebidas</string>
     <string name="messages">Mensagens</string>
@@ -101,7 +101,7 @@
     <string name="connecting">A ligar…</string>
     <string name="confirm">Confirmar</string>
     <string name="add_contact_message_error_empty">Escreva algo para enviar primeiro</string>
-    <string name="add_contact_message_default">Conversa comigo no aTox como uma pessoa normal.</string>
+    <string name="add_contact_message_default">Conversa comigo no skyTox como uma pessoa normal.</string>
     <string name="add_contact">Adicionar contacto</string>
     <string name="add">Adicionar</string>
     <string name="accept">Aceitar</string>
@@ -118,7 +118,7 @@
     <string name="pref_theme_follow_system">Usar do sistema</string>
     <string name="return_to_chat">Voltar ao chat</string>
     <string name="pref_block_screenshots_description">Isso bloqueia **apenas** as capturas de ecrã no **seu** aparelho e não oferece proteção caso os seus contatos capturem o ecrã ou gravem as suas conversas</string>
-    <string name="pref_block_screenshots">Bloquear capturas de ecrã do aTox</string>
+    <string name="pref_block_screenshots">Bloquear capturas de ecrã do skyTox</string>
     <string name="passwords_must_match">As palavras-passe devem coincidir</string>
     <string name="password_updated">Palavra-passe alterada</string>
     <string name="pref_confirm_password">Confirmar nova palavra-passe</string>
@@ -146,9 +146,9 @@
     <string name="pref_proxy_type_http">HTTP</string>
     <string name="pref_proxy_type_none">Nenhum</string>
     <string name="speakerphone_toggle">Alternar alta voz</string>
-    <string name="atox_profile_locked">Perfil de aTox bloqueado</string>
-    <string name="channel_profile_locked_explanation">Enviado quando o seu perfil precisa de ser desbloqueado para que o aTox funcione</string>
-    <string name="tap_to_unlock_and_start_atox">Toque para desbloquear o seu perfil e iniciar o aTox</string>
+    <string name="atox_profile_locked">Perfil de skyTox bloqueado</string>
+    <string name="channel_profile_locked_explanation">Enviado quando o seu perfil precisa de ser desbloqueado para que o skyTox funcione</string>
+    <string name="tap_to_unlock_and_start_atox">Toque para desbloquear o seu perfil e iniciar o skyTox</string>
     <string name="error_simultaneous_calls">A participação em várias chamadas ao mesmo tempo não é suportada</string>
     <string name="mark_as_read">Marcar como lido</string>
     <string name="share">Compartilhar</string>

@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.edit
+import androidx.core.os.LocaleListCompat
 import androidx.preference.PreferenceManager
 import javax.inject.Inject
 import ltd.evilcorp.atox.BootReceiver
@@ -36,14 +37,21 @@ class Settings @Inject constructor(private val ctx: Context) {
             AppCompatDelegate.setDefaultNightMode(theme)
         }
 
+    var appLanguage: String
+        get() = preferences.getString("app_language", null) ?: "en"
+        set(language) {
+            preferences.edit { putString("app_language", language) }
+            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(language))
+        }
+
     var udpEnabled: Boolean
-        get() = preferences.getBoolean("udp_enabled", false)
+        get() = preferences.getBoolean("udp_enabled", true)
         set(enabled) = preferences.edit { putBoolean("udp_enabled", enabled) }
 
     var runAtStartup: Boolean
         get() = ctx.packageManager.getComponentEnabledSetting(
             ComponentName(ctx, BootReceiver::class.java),
-        ) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+        ) != PackageManager.COMPONENT_ENABLED_STATE_DISABLED
         set(runAtStartup) {
             val state = if (runAtStartup) {
                 PackageManager.COMPONENT_ENABLED_STATE_ENABLED
@@ -79,7 +87,7 @@ class Settings @Inject constructor(private val ctx: Context) {
         set(port) = preferences.edit { putInt("proxy_port", port) }
 
     var ftAutoAccept: FtAutoAccept
-        get() = FtAutoAccept.entries[preferences.getInt("ft_auto_accept", 0)]
+        get() = FtAutoAccept.entries[preferences.getInt("ft_auto_accept", FtAutoAccept.All.ordinal)]
         set(autoAccept) = preferences.edit { putInt("ft_auto_accept", autoAccept.ordinal) }
 
     var bootstrapNodeSource: BootstrapNodeSource

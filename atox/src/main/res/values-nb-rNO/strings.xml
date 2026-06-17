@@ -14,7 +14,7 @@
     <string name="friend_request_from">Venneforespørsel fra %1$s</string>
     <string name="tox_id_error_hex">Kun heksadesimale verdier tillates</string>
     <string name="tox_id_error_length">Tox-ID må være 76 tegn (%1$d/76)</string>
-    <string name="status_message_default">Bragt deg til hende på vegne av aTox</string>
+    <string name="status_message_default">Bragt deg til hende på vegne av skyTox</string>
     <string name="no_contacts_call_to_action">Hva venter du på\? Legg til en kontakt for å begynne!</string>
     <string name="receive_share_share_to">Del til…</string>
     <string name="bad_positive_number">Må være et positivt tall</string>
@@ -45,7 +45,7 @@
     <string name="pref_heading_general">Generelt</string>
     <string name="pref_udp_enabled">UDP påskrudd</string>
     <string name="pref_heading_network">Nettverk</string>
-    <string name="tox_service_running">aTox kjører …</string>
+    <string name="tox_service_running">skyTox kjører …</string>
     <string name="tox_id_error_already_exists">En kontakt med den Tox-ID-en finnes allerede</string>
     <string name="profile">Profil</string>
     <string name="profile_status">Endre egen status</string>
@@ -83,7 +83,7 @@
     <string name="profile_photo_description">Profilbilde</string>
     <string name="navigation_drawer_open">Åpne navigasjonssnuff</string>
     <string name="navigation_drawer_close">Lukk navigasjonsskuff</string>
-    <string name="name_default">aTox-bruker</string>
+    <string name="name_default">skyTox-bruker</string>
     <string name="name">Navn</string>
     <string name="messages_incoming">Innkommende meldinger</string>
     <string name="messages">Meldinger</string>
@@ -96,7 +96,7 @@
     <string name="connecting">Kobler til …</string>
     <string name="confirm">Bekreft</string>
     <string name="add_contact_message_error_empty">Skriv noe å sende først</string>
-    <string name="add_contact_message_default">Snakk med meg på aTox som et ansvarlig menneske.</string>
+    <string name="add_contact_message_default">Snakk med meg på skyTox som et ansvarlig menneske.</string>
     <string name="add_contact">Legg til kontakt</string>
     <string name="add">Legg til</string>
     <string name="accept">Godta</string>
@@ -135,7 +135,7 @@
     <string name="pref_theme_follow_system">Følg systeminnstilling</string>
     <string name="pref_block_screenshots_description">Dette blokkerer **kun** skjermavbildninger på **din** enhet, og gir ingen beskyttelse mot at dine kontakter tar skjermavbildninger eller på annet vis lagrer samtalene dine</string>
     <string name="return_to_chat">Returner til sludring</string>
-    <string name="pref_block_screenshots">Blokker skjermavbildninger av aTox</string>
+    <string name="pref_block_screenshots">Blokker skjermavbildninger av skyTox</string>
     <string name="passwords_must_match">Passordene må stemme overens</string>
     <string name="password_updated">Passord oppdatert</string>
     <string name="pref_confirm_password">Bekreft nytt passord</string>
@@ -145,11 +145,11 @@
     <string name="unlock_profile">Lås opp profil</string>
     <string name="incorrect_password">Feil passord</string>
     <string name="password">Passord</string>
-    <string name="tap_to_unlock_and_start_atox">Trykk for å låse opp profilen din og state aTox</string>
+    <string name="tap_to_unlock_and_start_atox">Trykk for å låse opp profilen din og state skyTox</string>
     <string name="speakerphone_toggle">Veksle høyttaler</string>
-    <string name="atox_profile_locked">aTox-profil låst</string>
+    <string name="atox_profile_locked">skyTox-profil låst</string>
     <string name="error_simultaneous_calls">Du kan ikke være i flere samtaler</string>
-    <string name="channel_profile_locked_explanation">Sendes når din profil må låses opp for at aTox skal kjøre</string>
+    <string name="channel_profile_locked_explanation">Sendes når din profil må låses opp for at skyTox skal kjøre</string>
     <string name="share">Del</string>
     <string name="mark_as_read">Marker som lest</string>
     <string name="pref_disabled_tox_error">Avskrudd som følge av problem med oppstart av Tox</string>

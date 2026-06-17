@@ -196,6 +196,30 @@
                             app:layout_constraintEnd_toEndOf="parent"
                             app:layout_constraintTop_toTopOf="parent"/>
                     </androidx.constraintlayout.widget.ConstraintLayout>
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/dividerColor"/>
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        style="@style/OptionRow"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+                        <TextView
+                            style="@style/OptionItemText"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:text="@string/pref_language"
+                            app:layout_constraintEnd_toStartOf="@id/setting_language"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"/>
+                        <Spinner
+                            android:id="@+id/setting_language"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"/>
+                    </androidx.constraintlayout.widget.ConstraintLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -596,7 +620,7 @@
                     android:gravity="center"
                     android:padding="8dp"
                     android:textColor="@android:color/darker_gray"
-                    tools:text="aTox v0.1.0 - 2"/>
+                    tools:text="skyTox v0.1.0 - 2"/>
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

@@ -32,6 +32,9 @@ import androidx.core.view.updatePadding
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.navigation.NavigationView
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.databinding.ContactListViewItemBinding
 import ltd.evilcorp.atox.databinding.FragmentContactListBinding
@@ -80,6 +83,25 @@ class ContactListFragment :
         registerForActivityResult(ActivityResultContracts.CreateDocument("*/*")) { dest ->
             if (dest == null) return@registerForActivityResult
             viewModel.saveToxBackupTo(dest)
+        }
+
+    private val exportAllTextChatsLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { dest ->
+            if (dest == null) return@registerForActivityResult
+            viewModel.exportAllTextChats(dest)
+        }
+
+    private val importAllTextChatsLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { source ->
+            if (source == null) return@registerForActivityResult
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.import_text_chats)
+                .setMessage(R.string.import_text_chats_confirm)
+                .setPositiveButton(R.string.continue_import) { _, _ ->
+                    viewModel.importAllTextChats(source)
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
         }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -290,6 +312,10 @@ class ContactListFragment :
             R.id.add_contact -> findNavController().navigate(R.id.action_contactListFragment_to_addContactFragment)
             R.id.settings -> findNavController().navigate(R.id.action_contactListFragment_to_settingsFragment)
             R.id.export_tox_save -> exportToxSaveLauncher.launch(backupFileNameHint)
+            R.id.export_text_chats -> exportAllTextChatsLauncher.launch(allTextChatsFileNameHint())
+            R.id.import_text_chats -> importAllTextChatsLauncher.launch(arrayOf("application/json"))
+            R.id.import_export_instructions ->
+                findNavController().navigate(R.id.action_contactListFragment_to_importExportInstructionsFragment)
             R.id.quit_tox -> {
                 if (!viewModel.quittingNeedsConfirmation()) {
                     viewModel.quitTox()
@@ -310,6 +336,11 @@ class ContactListFragment :
         binding.drawerLayout.closeDrawer(GravityCompat.START)
         return false
     }
+
+    private fun allTextChatsFileNameHint(): String =
+        "skytox-all-text-chats_${
+            SimpleDateFormat("""yyyy-MM-dd'T'HH-mm-ss""", Locale.getDefault()).format(Date())
+        }.json"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

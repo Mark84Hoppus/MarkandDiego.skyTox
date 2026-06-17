@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="message">پیغام</string>
-    <string name="add_contact_message_default">مجھ سے aTox پر ایک مہذب انسان کی طرح بات کریں۔</string>
+    <string name="add_contact_message_default">مجھ سے skyTox پر ایک مہذب انسان کی طرح بات کریں۔</string>
     <string name="create">بنائیں</string>
     <string name="contact_typing">ٹائپ کیا جا رہا ہے…</string>
     <string name="create_a_tox_profile">ایک ٹوکس پروفائل بنائیں</string>
@@ -26,9 +26,9 @@
     <string name="status_indicator">اسٹیٹس کا اشارہ</string>
     <string name="reject">نا منظور</string>
     <string name="accept">منظور</string>
-    <string name="name_default">aTox صارف</string>
+    <string name="name_default">skyTox صارف</string>
     <string name="add">شامل کریں</string>
-    <string name="status_message_default">براہِ راست آپ کی خدمت میں، aTox کے ذریعے</string>
+    <string name="status_message_default">براہِ راست آپ کی خدمت میں، skyTox کے ذریعے</string>
     <string name="tox_id">Tox ID</string>
     <string name="tox_id_error_length">Tox ID لازمی طور پر 76 حروف پر مشتمل ہونا چاہیے (%1$d/76)</string>
     <string name="tox_id_error_checksum">غلط چیک سم</string>

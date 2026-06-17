@@ -7,6 +7,19 @@ bazel-*
 build
 captures
 local.properties
+release-signing/
+release-artifacts/
+*.apk
+*.aab
+*.apks
+*.idsig
+*.jks
+*.p12
+*.pem
+pepk.jar
+skyTox.original.png
+unload-ubuntu-wsl.bat
+github-upload-*.zip
 
 # gradle-from-source build
 _build

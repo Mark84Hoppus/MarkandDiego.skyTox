@@ -53,9 +53,9 @@ import ltd.evilcorp.core.vo.UserStatus
 
 private const val TAG = "NotificationHelper"
 
-private const val MESSAGE = "aTox messages"
-private const val FRIEND_REQUEST = "aTox friend requests"
-private const val CALL = "aTox calls"
+private const val MESSAGE = "skyTox messages"
+private const val FRIEND_REQUEST = "skyTox friend requests"
+private const val CALL = "skyTox calls"
 
 @Singleton
 class NotificationHelper @Inject constructor(private val context: Context) {

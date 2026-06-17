@@ -66,6 +66,13 @@
                 app:exitAnim="@anim/fade_out"
                 app:popEnterAnim="@anim/fade_in"
                 app:popExitAnim="@anim/slide_out_right"/>
+        <action
+                android:id="@+id/action_contactListFragment_to_importExportInstructionsFragment"
+                app:destination="@id/importExportInstructionsFragment"
+                app:enterAnim="@anim/slide_in_right"
+                app:exitAnim="@anim/fade_out"
+                app:popEnterAnim="@anim/fade_in"
+                app:popExitAnim="@anim/slide_out_right"/>
     </fragment>
 
     <fragment android:id="@+id/friendRequestFragment"
@@ -114,4 +121,9 @@
             android:name="ltd.evilcorp.atox.ui.userprofile.UserProfileFragment"
             android:label="fragment_user_profile"
             tools:layout="@layout/fragment_user_profile"/>
+    <fragment
+            android:id="@+id/importExportInstructionsFragment"
+            android:name="ltd.evilcorp.atox.ui.instructions.ImportExportInstructionsFragment"
+            android:label="import_export_instructions"
+            tools:layout="@layout/fragment_import_export_instructions"/>
 </navigation>

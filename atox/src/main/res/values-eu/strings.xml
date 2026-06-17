@@ -12,7 +12,7 @@
     <string name="tox_id_error_checksum">Baieztapen-batura okerra</string>
     <string name="tox_id_error_length">Tox nortasun kodeak 76 karaktere izan behar ditu (%1$d/76)</string>
     <string name="tox_id">Tox nortasun kodea</string>
-    <string name="status_message_default">Zuretzat zuzenean, aToxi esker</string>
+    <string name="status_message_default">Zuretzat zuzenean, skyToxi esker</string>
     <string name="status_message">Egoera mezua</string>
     <string name="status_indicator">Egoera adierazlea</string>
     <string name="settings">Hobespenak</string>
@@ -23,7 +23,7 @@
     <string name="navigation_drawer_open">Nabigazio tiradera ireki</string>
     <string name="navigation_drawer_close">Nabigazio tiradera itxi</string>
     <string name="no_contacts_call_to_action">Zeren zain zabiltza\? Gehitu kontaktu bat martxan jartzeko!</string>
-    <string name="name_default">aTox erabiltzailea</string>
+    <string name="name_default">skyTox erabiltzailea</string>
     <string name="name">Izena</string>
     <string name="messages_incoming">Mezuak bidean</string>
     <string name="messages">Mezuak</string>
@@ -37,14 +37,14 @@
     <string name="connecting">Konektatzen…</string>
     <string name="confirm">Baieztatu</string>
     <string name="add_contact_message_error_empty">Idatzi zerbait bidali aurretik</string>
-    <string name="add_contact_message_default">Hitz egin nirekin aTox bidez pertsona zentzudun batek gisa.</string>
+    <string name="add_contact_message_default">Hitz egin nirekin skyTox bidez pertsona zentzudun batek gisa.</string>
     <string name="add_contact">Kontaktua gehitu</string>
     <string name="add">Gehitu</string>
     <string name="accept">Onartu</string>
     <string name="speakerphone_toggle">Bozgoragailua aldakatu</string>
     <string name="return_to_chat">Elkarrizketara itzuli</string>
     <string name="pref_block_screenshots_description">Honek bistaragailu-argazkiak **zure** gailuan **bakarrik** hertsitzen ditu, ez du zure kontaktuen bistaragailu-argazkiak hartzeko edo beste edozein modutan elkarrizketak gordetzeko ahalmenean ezelako eraginik</string>
-    <string name="pref_block_screenshots">aTox-en bistaragailu-argazkiak hertsitu</string>
+    <string name="pref_block_screenshots">skyTox-en bistaragailu-argazkiak hertsitu</string>
     <string name="passwords_must_match">Pasahitzek berdinak izan behar dute</string>
     <string name="password_updated">Pasahitza berrituta</string>
     <string name="pref_confirm_password">Pasahitz berria hobetsi</string>
@@ -107,7 +107,7 @@
     <string name="pref_heading_general">Orokorra</string>
     <string name="pref_udp_enabled">UDP aktibatuta</string>
     <string name="pref_heading_network">Sarea</string>
-    <string name="tox_service_running">aTox exekutatzen ari da…</string>
+    <string name="tox_service_running">skyTox exekutatzen ari da…</string>
     <string name="tox_id_error_already_exists">Tox identifikazio kode hori duen kontaktu bat dago jadanik</string>
     <string name="profile">Profila</string>
     <string name="profile_status">Zure egoera aldatu</string>

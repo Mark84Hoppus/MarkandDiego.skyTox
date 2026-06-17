@@ -26,7 +26,7 @@
     <string name="profile_status_message">Промени статусну поруку</string>
     <string name="profile">Профил</string>
     <string name="tox_id_error_already_exists">Контакт са тим Tox ID-јем већ постоји</string>
-    <string name="tox_service_running">aTox је покренут…</string>
+    <string name="tox_service_running">skyTox је покренут…</string>
     <string name="pref_heading_network">Мрежа</string>
     <string name="pref_udp_enabled">UDP је активан</string>
     <string name="pref_heading_general">Опште</string>
@@ -52,7 +52,7 @@
     <string name="ongoing_call">Позив у току</string>
     <string name="in_call_with">Разговор са %1$s</string>
     <string name="save">Сачувај</string>
-    <string name="add_contact_message_default">Причај са мном на aTox-у као разумно људско биће.</string>
+    <string name="add_contact_message_default">Причај са мном на skyTox-у као разумно људско биће.</string>
     <string name="add_contact_message_error_empty">Прво напишите нешто за слање</string>
     <string name="confirm">Потврди</string>
     <string name="connecting">Повезивање…</string>
@@ -66,7 +66,7 @@
     <string name="messages">Поруке</string>
     <string name="messages_incoming">Долазеће поруке</string>
     <string name="name">Име</string>
-    <string name="name_default">Корисник aTox-а</string>
+    <string name="name_default">Корисник skyTox-а</string>
     <string name="no_contacts_call_to_action">Шта чекате\? Додајте контакт да почнете!</string>
     <string name="navigation_drawer_close">Затвори навигациони панел</string>
     <string name="navigation_drawer_open">Отвори навигациони панел</string>
@@ -75,7 +75,7 @@
     <string name="send">Пошаљи</string>
     <string name="settings">Подешавања</string>
     <string name="status_indicator">Индикатор статуса</string>
-    <string name="status_message_default">Обезбеђује уживо aTox</string>
+    <string name="status_message_default">Обезбеђује уживо skyTox</string>
     <string name="sending">Слање…</string>
     <string name="status_message">Статусна порука</string>
     <string name="tox_id">Tox ID</string>
@@ -145,16 +145,16 @@
     <string name="pref_heading_change_password">Промени лозинку</string>
     <string name="pref_new_password">Нова лозинка</string>
     <string name="passwords_must_match">Лозинке се морају поклапати</string>
-    <string name="pref_block_screenshots">Блокирај снимке екрана aTox-а</string>
+    <string name="pref_block_screenshots">Блокирај снимке екрана skyTox-а</string>
     <string name="pref_current_password">Текућа лозинка</string>
     <string name="password_updated">Лозинка је ажурирана</string>
     <string name="pref_block_screenshots_description">Ово **само** блокира снимке екрана на **вашем** уређају, и не обезбеђује заштиту од тога да ваши контакти снимају екран или чувају разговоре на други начин</string>
     <string name="return_to_chat">Повратак у чет</string>
     <string name="speakerphone_toggle">Смени спикерфон</string>
-    <string name="channel_profile_locked_explanation">Шаље се када ваш профил мора бити откључан да би се покренуо aTox</string>
-    <string name="atox_profile_locked">aTox профил је закључан</string>
+    <string name="channel_profile_locked_explanation">Шаље се када ваш профил мора бити откључан да би се покренуо skyTox</string>
+    <string name="atox_profile_locked">skyTox профил је закључан</string>
     <string name="export_history">Извези историју</string>
-    <string name="tap_to_unlock_and_start_atox">Куцните да откључате профил и покренете aTox</string>
+    <string name="tap_to_unlock_and_start_atox">Куцните да откључате профил и покренете skyTox</string>
     <string name="share">Дели</string>
     <string name="mark_as_read">Означи као прочитано</string>
     <string name="export_history_success">Историја порука је извезена</string>

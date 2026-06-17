@@ -19,7 +19,7 @@
     <string name="export_history_failure">無法匯出聊天紀錄： %1$s</string>
     <string name="accept">接受</string>
     <string name="add">新增</string>
-    <string name="add_contact_message_default">請像個正常人一樣和我用 aTox 對話。</string>
+    <string name="add_contact_message_default">請像個正常人一樣和我用 skyTox 對話。</string>
     <string name="add_contact_message_error_empty">請先輸入訊息</string>
     <string name="connecting">連線中…</string>
     <string name="contact_typing">正在輸入…</string>
@@ -32,7 +32,7 @@
     <string name="messages">訊息</string>
     <string name="messages_incoming">接收到的訊息</string>
     <string name="name">名稱</string>
-    <string name="name_default">aTox 使用者</string>
+    <string name="name_default">skyTox 使用者</string>
     <string name="no_contacts_call_to_action">您還在等什麼？新增聯絡人開始對話吧！</string>
     <string name="navigation_drawer_close">關閉導航選單</string>
     <string name="navigation_drawer_open">開啟導航選單</string>
@@ -43,7 +43,7 @@
     <string name="settings">設定</string>
     <string name="status_indicator">狀態顯示</string>
     <string name="status_message">狀態訊息</string>
-    <string name="status_message_default">由 aTox 為你即時傳送</string>
+    <string name="status_message_default">由 skyTox 為你即時傳送</string>
     <string name="tox_id">Tox ID</string>
     <string name="tox_id_error_length">Tox ID 必須為 76 個字元 (%1$d/76)</string>
     <string name="tox_id_error_checksum">無效的校驗和</string>
@@ -94,7 +94,7 @@
     <string name="profile_status">更改狀態</string>
     <string name="profile">個人檔案</string>
     <string name="tox_id_error_already_exists">此 Tox ID 已存在</string>
-    <string name="tox_service_running">aTox 正在運作…</string>
+    <string name="tox_service_running">skyTox 正在運作…</string>
     <string name="pref_heading_network">網路</string>
     <string name="pref_udp_enabled">啟用 UDP</string>
     <string name="pref_heading_general">一般</string>
@@ -157,7 +157,7 @@
     <string name="return_to_chat">返回聊天</string>
     <string name="speakerphone_toggle">切換擴音</string>
     <string name="channel_profile_locked_explanation">當應用程式無法運作時顯示</string>
-    <string name="atox_profile_locked">aTox 個人檔案已鎖定</string>
-    <string name="tap_to_unlock_and_start_atox">點擊解鎖並啟動 aTox</string>
+    <string name="atox_profile_locked">skyTox 個人檔案已鎖定</string>
+    <string name="tap_to_unlock_and_start_atox">點擊解鎖並啟動 skyTox</string>
     <string name="share">分享</string>
 </resources>

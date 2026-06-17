@@ -20,7 +20,7 @@
     <string name="bad_port">مفذ خاطئ</string>
     <string name="bad_host">الاستضافة خاطئة</string>
     <string name="send_as_action">أرسل كإجراء</string>
-    <string name="add_contact_message_default">تكلم معي علي aTox.</string>
+    <string name="add_contact_message_default">تكلم معي علي skyTox.</string>
     <string name="passwords_must_match">كلمة السر لا بد ان تتطابق</string>
     <string name="password_updated">تم تغيير كلمة السر</string>
     <string name="pref_confirm_password">تأكيد كلمة السر</string>
@@ -80,7 +80,7 @@
     <string name="pref_heading_general">عام</string>
     <string name="pref_udp_enabled">UDP مفعل</string>
     <string name="pref_heading_network">الشبكة</string>
-    <string name="tox_service_running">aTox يعمل…</string>
+    <string name="tox_service_running">skyTox يعمل…</string>
     <string name="tox_id_error_already_exists">توجد جهة اتصال بنفس معرّف Tox</string>
     <string name="profile">الحساب</string>
     <string name="profile_status">غيّر الحالة</string>
@@ -128,7 +128,7 @@
     <string name="tox_id_error_hex">يسمح بنظام العد الست عشري فقط</string>
     <string name="tox_id_error_checksum">المجموع الاختباري غير صالح</string>
     <string name="tox_id">معرّف Tox</string>
-    <string name="status_message_default">انا متصل الان بواسطة aTox</string>
+    <string name="status_message_default">انا متصل الان بواسطة skyTox</string>
     <string name="status_message">رسالة الحالة</string>
     <string name="status_indicator">أيقونة الحالة</string>
     <string name="settings">الإعدادات</string>
@@ -137,13 +137,13 @@
     <string name="reject">رفض</string>
     <string name="profile_photo_description">صورة الحساب</string>
     <string name="no_contacts_call_to_action">لماذا تنتظر ؟ أضف بعض الاصدقاء !</string>
-    <string name="name_default">مستخدم aTox</string>
+    <string name="name_default">مستخدم skyTox</string>
     <string name="messages_incoming">الرسائل الواردة</string>
     <string name="messages">الرسائل</string>
     <string name="delete_contact">احذف جهة الاتصال</string>
     <string name="create_a_tox_profile">أنشئ حساب Tox</string>
     <string name="speakerphone_toggle">فعل\\عطل مكبر الصوت</string>
     <string name="return_to_chat">عُد للمحادثة</string>
-    <string name="pref_block_screenshots">منع لقطات الشاشة ل aTox</string>
+    <string name="pref_block_screenshots">منع لقطات الشاشة ل skyTox</string>
     <string name="pref_block_screenshots_description">هذا يمنع لقطات الشاشة على جهازك، لكنه لا يمنع جهات الاتصال من أخذ لقطات لمحادثتكم على أجهزتهم</string>
 </resources>

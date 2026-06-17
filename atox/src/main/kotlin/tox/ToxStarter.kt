@@ -63,6 +63,15 @@ class ToxStarter @Inject constructor(
         stopService(Intent(this, ToxService::class.java))
     }
 
+    fun ensureToxServiceRunning(): ToxSaveStatus {
+        if (tox.started) {
+            startService()
+            return ToxSaveStatus.Ok
+        }
+
+        return tryLoadTox(null)
+    }
+
     fun tryLoadTox(password: String?): ToxSaveStatus {
         val save = tryLoadSave() ?: return ToxSaveStatus.SaveNotFound
         val status = startTox(save, password)

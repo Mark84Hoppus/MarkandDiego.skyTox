@@ -95,6 +95,10 @@ class ToxService : LifecycleService() {
             .setColor(ResourcesCompat.getColor(resources, R.color.colorPrimary, null))
             .setContentIntent(pendingIntent)
             .setContentTitle(getString(R.string.tox_service_running))
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setShowWhen(false)
 
         if (status != null) {
             // Either we haven't received a status from Tox yet, or we don't
@@ -115,6 +119,7 @@ class ToxService : LifecycleService() {
             if (toxStarter.tryLoadTox(null) != ToxSaveStatus.Ok) {
                 Log.e(TAG, "Tox service started without a Tox save")
                 stopSelf()
+                return
             }
         }
 

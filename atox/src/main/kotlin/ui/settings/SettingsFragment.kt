@@ -154,6 +154,17 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
         settingConfirmCalling.isChecked = vm.getConfirmCalling()
         settingConfirmCalling.setOnCheckedChangeListener { _, isChecked -> vm.setConfirmCalling(isChecked) }
 
+        settingLanguage.adapter = ArrayAdapter.createFromResource(
+            requireContext(),
+            R.array.pref_language_options,
+            android.R.layout.simple_spinner_item,
+        ).apply { setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+
+        settingLanguage.setSelection(vm.getLanguage())
+        settingLanguage.onItemSelectedListener {
+            vm.setLanguage(it)
+        }
+
         if (vm.getProxyType() != ProxyType.None) {
             vm.setUdpEnabled(false)
         }

@@ -6,14 +6,12 @@
 package ltd.evilcorp.atox.ui.addcontact
 
 import android.app.Activity.RESULT_OK
-import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.net.toUri
 import androidx.core.os.bundleOf
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -41,6 +39,11 @@ class AddContactFragment : BaseFragment<FragmentAddContactBinding>(FragmentAddCo
     private var contacts: List<Contact> = listOf()
 
     private fun isAddAllowed(): Boolean = toxIdValid && messageValid
+    private fun qrScanIntent() = Intent("com.google.zxing.client.android.SCAN").apply {
+        putExtra("SCAN_FORMATS", "QR_CODE")
+        putExtra("SCAN_ORIENTATION_LOCKED", false)
+        putExtra("BEEP_ENABLED", false)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -120,20 +123,11 @@ class AddContactFragment : BaseFragment<FragmentAddContactBinding>(FragmentAddCo
             )
         }
 
-        if (requireContext().packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
+        val qrIntent = qrScanIntent()
+        val hasQrScanner = qrIntent.resolveActivity(requireContext().packageManager) != null
+        if (requireContext().packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY) && hasQrScanner) {
             readQr.setOnClickListener {
-                try {
-                    scanQrLauncher.launch(
-                        Intent("com.google.zxing.client.android.SCAN").apply {
-                            putExtra("SCAN_FORMATS", "QR_CODE")
-                            putExtra("SCAN_ORIENTATION_LOCKED", false)
-                            putExtra("BEEP_ENABLED", false)
-                        },
-                    )
-                } catch (_: ActivityNotFoundException) {
-                    val uri = "https://f-droid.org/en/packages/com.google.zxing.client.android/".toUri()
-                    startActivity(Intent(Intent.ACTION_VIEW, uri))
-                }
+                scanQrLauncher.launch(qrScanIntent())
             }
         } else {
             readQr.visibility = View.GONE

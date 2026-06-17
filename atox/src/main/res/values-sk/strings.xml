@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="add_contact_message_default">Rozprávajme sa spolu cez aTox ako rozumní ľudia.</string>
+    <string name="add_contact_message_default">Rozprávajme sa spolu cez skyTox ako rozumní ľudia.</string>
     <string name="add_contact">Pridať kontakt</string>
     <string name="add">Pridať</string>
     <string name="accept">Súhlas</string>
@@ -8,7 +8,7 @@
     <string name="navigation_drawer_close">Zatvor hlavný navigačný panel</string>
     <string name="send_as_action">Odošli ako oznam o tom, čo robím</string>
     <string name="pref_block_screenshots_description">Toto **iba** zakáže urobiť snímky obrazovky z **tvojho** telefónu, pričom neumožňuje ťa ochrániť pred tým, aby tvoj kontakt si urobil snímku obrazovky alebo akokoľvek inak si uložil vašu konverzáciu</string>
-    <string name="pref_block_screenshots">Zakáž robiť snímky obrazovky z aTox-u</string>
+    <string name="pref_block_screenshots">Zakáž robiť snímky obrazovky z skyTox-u</string>
     <string name="passwords_must_match">Heslá musia byť rovnaké</string>
     <string name="password_updated">Heslo bolo aktualizované</string>
     <string name="pref_confirm_password">Potvrď nové heslo</string>
@@ -71,7 +71,7 @@
     <string name="pref_heading_general">Všeobecné</string>
     <string name="pref_udp_enabled">UDP je povolené</string>
     <string name="pref_heading_network">Sieť</string>
-    <string name="tox_service_running">aTox je spustený…</string>
+    <string name="tox_service_running">skyTox je spustený…</string>
     <string name="tox_id_error_already_exists">Kontakt s takým Tox-ovým ID už existuje</string>
     <string name="profile">Profil</string>
     <string name="profile_status">Zmeň svoj status</string>
@@ -121,7 +121,7 @@
     <string name="tox_id_error_checksum">Nesprávna kontrolóna suma</string>
     <string name="tox_id_error_length">Tox-ové ID musí mať 76 znakov (%1$d/76)</string>
     <string name="tox_id">Tox-ové ID</string>
-    <string name="status_message_default">Prinášam Vám to naživo, cez aTox</string>
+    <string name="status_message_default">Prinášam Vám to naživo, cez skyTox</string>
     <string name="status_message">Statusová správa</string>
     <string name="status_indicator">Indikátor statusu</string>
     <string name="settings">Nastavenia</string>
@@ -130,7 +130,7 @@
     <string name="reject">Odmietnuť</string>
     <string name="profile_photo_description">Profilová fotka</string>
     <string name="no_contacts_call_to_action">Na čo čakáš\? Pridaj si kontakt aby si mohol začať!</string>
-    <string name="name_default">aTox-ový užívateľ</string>
+    <string name="name_default">skyTox-ový užívateľ</string>
     <string name="name">Meno</string>
     <string name="messages_incoming">Prichádzajúce správy</string>
     <string name="messages">Správy</string>
@@ -148,10 +148,10 @@
     <string name="error_simultaneous_calls">Účastniť sa viacerých hovorov naraz nie je umožnené</string>
     <string name="return_to_chat">Späť na rozhovor</string>
     <string name="speakerphone_toggle">Prepni reproduktor</string>
-    <string name="atox_profile_locked">aTox-ový profil je zamknutý</string>
-    <string name="tap_to_unlock_and_start_atox">Ťukni pre odomknutie svojho profilu a zapnutia aTox-u</string>
+    <string name="atox_profile_locked">skyTox-ový profil je zamknutý</string>
+    <string name="tap_to_unlock_and_start_atox">Ťukni pre odomknutie svojho profilu a zapnutia skyTox-u</string>
     <string name="mark_as_read">Označ ako prečítané</string>
-    <string name="channel_profile_locked_explanation">Zobraz v prípade že tvoj profil je treba najprv odomknúť aby sa aTox mohol spustiť</string>
+    <string name="channel_profile_locked_explanation">Zobraz v prípade že tvoj profil je treba najprv odomknúť aby sa skyTox mohol spustiť</string>
     <string name="pref_disabled_tox_error">Vypnuté kvôli chybe pri štarte Tox-u</string>
     <string name="pref_confirm_quitting">Potvrdzovať ukončenie aplikácie</string>
     <string name="file_not_found">Súbor nebol nájdený</string>

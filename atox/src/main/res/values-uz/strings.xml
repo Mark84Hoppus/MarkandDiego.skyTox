@@ -42,7 +42,7 @@
     <string name="info">Ma\'lumot</string>
     <string name="create_a_tox_profile">Tox profilini yaratish</string>
     <string name="messages_incoming">Qabul qilingan xabarlar</string>
-    <string name="name_default">aTox foydalanuvchisi</string>
+    <string name="name_default">skyTox foydalanuvchisi</string>
     <string name="settings">Sozlamalar</string>
     <string name="delete_contact">Kontaktni o\'chirish</string>
     <string name="atox_connected_with_udp">Ulandi (UDP)</string>

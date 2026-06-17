@@ -9,7 +9,7 @@
     <string name="tox_id_error_checksum">Nevažeći kontrolni zbroj</string>
     <string name="tox_id_error_length">Tox ID mora sadržati 76 znakova (%1$d/76)</string>
     <string name="tox_id">Tox ID</string>
-    <string name="status_message_default">Koristim Android klijent aTox</string>
+    <string name="status_message_default">Koristim Android klijent skyTox</string>
     <string name="status_message">Poruka stanja</string>
     <string name="status_indicator">Indikator stanja</string>
     <string name="settings">Postavke</string>
@@ -20,7 +20,7 @@
     <string name="navigation_drawer_open">Otvori ploču navigacije</string>
     <string name="navigation_drawer_close">Zatvori ploču navigacije</string>
     <string name="no_contacts_call_to_action">Što čekaš\? Počni dodavanjem kontakta!</string>
-    <string name="name_default">aTox korisnik</string>
+    <string name="name_default">skyTox korisnik</string>
     <string name="name">Ime</string>
     <string name="messages_incoming">Dolazne poruke</string>
     <string name="messages">Poruke</string>
@@ -34,7 +34,7 @@
     <string name="connecting">Povezivanje …</string>
     <string name="confirm">Potvrdi</string>
     <string name="add_contact_message_error_empty">Najprije nešto napiši</string>
-    <string name="add_contact_message_default">Pričaj sa mnom na aTox-u kao razumno ljudsko biće.</string>
+    <string name="add_contact_message_default">Pričaj sa mnom na skyTox-u kao razumno ljudsko biće.</string>
     <string name="add_contact">Dodaj kontakt</string>
     <string name="add">Dodaj</string>
     <string name="accept">Prihvati</string>
@@ -98,7 +98,7 @@
     <string name="pref_heading_general">Opće</string>
     <string name="pref_udp_enabled">UDP aktiviran</string>
     <string name="pref_heading_network">Mreža</string>
-    <string name="tox_service_running">aTox radi …</string>
+    <string name="tox_service_running">skyTox radi …</string>
     <string name="tox_id_error_already_exists">Kontakt s tom Tox ID oznakom već postoji</string>
     <string name="profile">Profil</string>
     <string name="profile_status">Promijeni svoje stanje</string>
@@ -143,12 +143,12 @@
     <string name="error_no_nodes_loaded">Nije moguće učitati bootstrap čvorove. Prebaci na ugrađene čvorove ili ponovo uvozi čvorove</string>
     <string name="export_file_failure">Dogodila se greška prilikom izvoza. Prije verzije 0.5.1, prijenosi su se standardno izvozili.</string>
     <string name="return_to_chat">Vrati se na chat</string>
-    <string name="pref_block_screenshots">Blokiraj snimanje ekrana aToxa</string>
+    <string name="pref_block_screenshots">Blokiraj snimanje ekrana skyToxa</string>
     <string name="pref_block_screenshots_description">Ovo blokira **samo** snimanje ekrana na **tvom** uređaju. Ne brani tvojim kontaktima snimanje ekrana ili spremanje vaših razgovora na neki drugi način</string>
     <string name="speakerphone_toggle">Uključi/isključi spikerfon</string>
-    <string name="atox_profile_locked">aTox profil zaključan</string>
-    <string name="tap_to_unlock_and_start_atox">Dodirni za otključavanje tvog profila i pokretanje aTox-a</string>
-    <string name="channel_profile_locked_explanation">Šalje se kad se tvoj profil mora otključati da bi se pokrenuo aTox</string>
+    <string name="atox_profile_locked">skyTox profil zaključan</string>
+    <string name="tap_to_unlock_and_start_atox">Dodirni za otključavanje tvog profila i pokretanje skyTox-a</string>
+    <string name="channel_profile_locked_explanation">Šalje se kad se tvoj profil mora otključati da bi se pokrenuo skyTox</string>
     <string name="error_simultaneous_calls">Sudjelovanje u više poziva istovremeno nije podržano</string>
     <string name="share">Dijeli</string>
     <string name="mark_as_read">Označi kao pročitano</string>
