@@ -68,6 +68,7 @@ class ChatViewModel @Inject constructor(
     private var sentTyping = false
 
     val contact: LiveData<Contact> by lazy { contactManager.get(publicKey).asLiveData() }
+    val contacts: LiveData<List<Contact>> by lazy { contactManager.getAll().asLiveData() }
     val messages: LiveData<List<Message>> by lazy {
         chatManager.messagesFor(publicKey).distinctUntilChanged().asLiveData()
     }
@@ -96,6 +97,7 @@ class ChatViewModel @Inject constructor(
     var contactOnline = false
 
     fun send(message: String, type: MessageType) = chatManager.sendMessage(publicKey, message, type)
+    fun forwardText(publicKey: String, message: String) = chatManager.sendMessage(PublicKey(publicKey), message, MessageType.Normal)
 
     fun clearHistory() = scope.launch {
         chatManager.clearHistory(publicKey)
@@ -145,6 +147,15 @@ class ChatViewModel @Inject constructor(
             fileTransferManager.delete(msg.correlationId)
         }
         chatManager.deleteMessage(msg.id)
+    }
+
+    fun delete(messages: List<Message>) = scope.launch {
+        messages.forEach { msg ->
+            if (msg.type == MessageType.FileTransfer) {
+                fileTransferManager.delete(msg.correlationId)
+            }
+            chatManager.deleteMessage(msg.id)
+        }
     }
 
     fun exportFt(id: Int, dest: Uri) = scope.launch {

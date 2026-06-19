@@ -21,6 +21,7 @@
 
     <item name="transparentBar" type="color">#40000000</item>
     <item name="transparent" type="color">#00000000</item>
+    <item name="chatBackgroundDim" type="color">#66000000</item>
 
     <array name="contactBackgrounds">
         <item>#f16364</item>

@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/copy" android:title="@string/copy_atox"/>
+    <item android:id="@+id/copy" android:title="@string/copy_all"/>
+    <item android:id="@+id/copy_part" android:title="@string/copy_part"/>
+    <item android:id="@+id/select_message" android:title="@string/select_message"/>
+    <item android:id="@+id/forward_message" android:title="@string/forward_message"/>
     <item android:id="@+id/delete" android:title="@string/delete"/>
 </menu>

@@ -10,6 +10,14 @@
     <string name="contact_typing">Печатает…</string>
     <string name="copied">Скопировано</string>
     <string name="copy_atox">Копировать</string>
+    <string name="copy_all">Копировать все</string>
+    <string name="copy_part">Копировать часть</string>
+    <string name="select_message">Выделить</string>
+    <string name="forward_message">Переслать</string>
+    <string name="select_text_to_copy">Выделите нужную часть текста, затем используйте системное действие Android «Копировать».</string>
+    <string name="forward_to">Переслать кому</string>
+    <string name="no_contacts_to_forward">Нет контактов для пересылки</string>
+    <string name="delete_selected_confirm">Удалить выбранные сообщения?</string>
     <string name="create">Создать</string>
     <string name="create_a_tox_profile">Создать профиль Tox</string>
     <string name="delete_contact">Удалить контакт</string>

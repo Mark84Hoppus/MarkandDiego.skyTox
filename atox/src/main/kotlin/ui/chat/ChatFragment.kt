@@ -23,6 +23,7 @@ import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.widget.AdapterView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -56,6 +57,7 @@ import ltd.evilcorp.atox.truncated
 import ltd.evilcorp.atox.ui.BaseFragment
 import ltd.evilcorp.atox.vmFactory
 import ltd.evilcorp.core.vo.ConnectionStatus
+import ltd.evilcorp.core.vo.Contact
 import ltd.evilcorp.core.vo.FileTransfer
 import ltd.evilcorp.core.vo.Message
 import ltd.evilcorp.core.vo.MessageType
@@ -83,6 +85,8 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private var contactName = ""
     private var selectedFt: Int = Int.MIN_VALUE
     private var fts: List<FileTransfer> = listOf()
+    private var contacts: List<Contact> = listOf()
+    private val selectedMessageIds = mutableSetOf<Long>()
     private var voiceRecorder: MediaRecorder? = null
     private var voiceRecordingFile: File? = null
     private var voiceRecordingStartedAt = 0L
@@ -324,8 +328,15 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             adapter.fileTransfers = it
             adapter.notifyDataSetChanged()
         }
+        viewModel.contacts.observe(viewLifecycleOwner) {
+            contacts = it
+        }
 
         messages.setOnItemClickListener { _, view, position, _ ->
+            if (selectedMessageIds.isNotEmpty()) {
+                toggleMessageSelection(adapter.messages[position], adapter)
+                return@setOnItemClickListener
+            }
             when (view.id) {
                 R.id.accept -> viewModel.acceptFt(adapter.messages[position].correlationId)
                 R.id.reject, R.id.cancel -> viewModel.rejectFt(adapter.messages[position].correlationId)
@@ -364,7 +375,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         }
         messages.setOnItemLongClickListener { _, view, position, _ ->
             view.dispatchTouchEvent(MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0f, 0f, 0))
-            showMessageContextMenu(view, adapter.messages[position])
+            showMessageContextMenu(view, adapter.messages[position], adapter)
             true
         }
 
@@ -421,30 +432,50 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         super.onResume()
     }
 
-    private fun showMessageContextMenu(anchor: View, message: Message) {
+    private fun showMessageContextMenu(anchor: View, message: Message, adapter: ChatAdapter) {
         val popupContext = ContextThemeWrapper(requireContext(), R.style.ChatContextPopup)
         val popup = PopupMenu(popupContext, anchor)
         val inflater = popup.menuInflater
-        when (message.type) {
-            MessageType.Action, MessageType.Normal -> inflater.inflate(R.menu.chat_message_context_menu, popup.menu)
-            MessageType.FileTransfer -> {
-                inflater.inflate(R.menu.ft_message_context_menu, popup.menu)
-                val ft = fts.find { it.id == message.correlationId } ?: return
-                if (!ft.isComplete() || ft.outgoing || !ft.destination.startsWith("file://")) {
-                    popup.menu.findItem(R.id.export).isVisible = false
+        if (selectedMessageIds.isNotEmpty()) {
+            inflater.inflate(R.menu.selected_message_context_menu, popup.menu)
+        } else {
+            when (message.type) {
+                MessageType.Action, MessageType.Normal -> inflater.inflate(R.menu.chat_message_context_menu, popup.menu)
+                MessageType.FileTransfer -> {
+                    inflater.inflate(R.menu.ft_message_context_menu, popup.menu)
+                    val ft = fts.find { it.id == message.correlationId } ?: return
+                    if (!ft.isComplete() || ft.outgoing || !ft.destination.startsWith("file://")) {
+                        popup.menu.findItem(R.id.export).isVisible = false
+                    }
                 }
             }
         }
 
-        popup.setOnMenuItemClickListener { handleMessageContextItem(it, message) }
+        popup.setOnMenuItemClickListener { handleMessageContextItem(it, message, adapter) }
         popup.show()
     }
 
-    private fun handleMessageContextItem(item: MenuItem, message: Message): Boolean = when (item.itemId) {
+    private fun handleMessageContextItem(item: MenuItem, message: Message, adapter: ChatAdapter): Boolean = when (item.itemId) {
         R.id.copy -> {
             val clipboard = requireActivity().getSystemService<ClipboardManager>()!!
             clipboard.setPrimaryClip(ClipData.newPlainText(getText(R.string.message), message.message))
             Toast.makeText(requireContext(), getText(R.string.copied), Toast.LENGTH_SHORT).show()
+            true
+        }
+        R.id.copy_part -> {
+            showCopyPartDialog(message.message)
+            true
+        }
+        R.id.select_message -> {
+            toggleMessageSelection(message, adapter)
+            true
+        }
+        R.id.forward_message -> {
+            showForwardDialog(message.message)
+            true
+        }
+        R.id.delete_selected -> {
+            confirmDeleteSelected(adapter)
             true
         }
         R.id.delete -> {
@@ -468,6 +499,61 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             true
         }
         else -> false
+    }
+
+    private fun toggleMessageSelection(message: Message, adapter: ChatAdapter) {
+        if (message.id in selectedMessageIds) {
+            selectedMessageIds.remove(message.id)
+        } else {
+            selectedMessageIds.add(message.id)
+        }
+        adapter.selectedMessageIds = selectedMessageIds.toSet()
+        adapter.notifyDataSetChanged()
+    }
+
+    private fun confirmDeleteSelected(adapter: ChatAdapter) {
+        val selected = adapter.messages.filter { it.id in selectedMessageIds }
+        if (selected.isEmpty()) return
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.delete_message)
+            .setMessage(R.string.delete_selected_confirm)
+            .setPositiveButton(R.string.delete) { _, _ ->
+                viewModel.delete(selected)
+                selectedMessageIds.clear()
+                adapter.selectedMessageIds = emptySet()
+                adapter.notifyDataSetChanged()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showCopyPartDialog(message: String) {
+        val textView = TextView(requireContext()).apply {
+            text = message
+            setTextIsSelectable(true)
+            setPadding(32, 16, 32, 0)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.copy_part)
+            .setMessage(R.string.select_text_to_copy)
+            .setView(textView)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    private fun showForwardDialog(message: String) {
+        val candidates = contacts.filter { it.publicKey != contactPubKey }
+        if (candidates.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.no_contacts_to_forward, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val names = candidates.map { it.name.ifEmpty { getString(R.string.contact_default_name) } }.toTypedArray()
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.forward_to)
+            .setItems(names) { _, which ->
+                viewModel.forwardText(candidates[which].publicKey, message)
+            }
+            .show()
     }
 
     override fun onCreateContextMenu(menu: ContextMenu, v: View, menuInfo: ContextMenu.ContextMenuInfo?) = binding.run {

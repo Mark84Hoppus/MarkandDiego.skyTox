@@ -5,6 +5,7 @@
 package ltd.evilcorp.atox.ui.chat
 
 import android.content.res.Resources
+import android.graphics.Color
 import android.text.format.Formatter
 import android.util.Log
 import android.view.Gravity
@@ -40,6 +41,8 @@ import ltd.evilcorp.core.vo.transferredBytes
 
 private const val TAG = "ChatAdapter"
 private const val IMAGE_TO_SCREEN_RATIO = 0.5
+private const val DOCUMENT_THUMB_SIZE_DP = 96
+private const val SELECTED_MESSAGE_COLOR = 0x55D81B60
 
 private fun FileTransfer.isAudio() = try {
     URLConnection.guessContentTypeFromName(fileName).startsWith("audio/")
@@ -51,6 +54,12 @@ private fun FileTransfer.isAudio() = try {
 private fun FileTransfer.hasThumbnail() = thumbnail.isNotEmpty()
 private fun FileTransfer.thumbnailFileExists() =
     thumbnail.startsWith("file://") && File(thumbnail.toUri().path ?: "").exists()
+private fun FileTransfer.isImageOrVideo() = try {
+    val contentType = URLConnection.guessContentTypeFromName(fileName).orEmpty()
+    contentType.startsWith("image/") || contentType.startsWith("video/")
+} catch (_: Exception) {
+    false
+}
 
 private fun inflateView(type: ChatItemType, inflater: LayoutInflater): View = inflater.inflate(
     when (type) {
@@ -101,6 +110,7 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
     var messages: List<Message> = listOf()
     var fileTransfers: List<FileTransfer> = listOf()
     var playingAudioId: Int = Int.MIN_VALUE
+    var selectedMessageIds: Set<Long> = emptySet()
 
     override fun getCount(): Int = messages.size
     override fun getItem(position: Int): Any = messages[position]
@@ -142,6 +152,7 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                 }
 
                 val unsent = message.timestamp == 0L
+                view.setBackgroundColor(if (message.id in selectedMessageIds) SELECTED_MESSAGE_COLOR else Color.TRANSPARENT)
                 vh.message.text = message.message
                 vh.timestamp.text = if (!unsent) {
                     timeFormatter.format(message.timestamp)
@@ -183,6 +194,7 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                     vh = FileTransferViewHolder(view)
                     view.tag = vh
                 }
+                view.setBackgroundColor(if (message.id in selectedMessageIds) SELECTED_MESSAGE_COLOR else Color.TRANSPARENT)
 
                 // TODO(robinlinden)
                 // Updating the file transfer progress refreshes this so often that onClick-listeners never trigger
@@ -200,8 +212,11 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
 
                 if (fileTransfer.hasThumbnail() || fileTransfer.isComplete() && !fileTransfer.isAudio()) {
                     vh.completedLayout.visibility = View.VISIBLE
-                    val targetWidth =
+                    val targetWidth = if (fileTransfer.isImageOrVideo()) {
                         (Resources.getSystem().displayMetrics.widthPixels * IMAGE_TO_SCREEN_RATIO).roundToInt()
+                    } else {
+                        (DOCUMENT_THUMB_SIZE_DP * resources.displayMetrics.density).roundToInt()
+                    }
                     vh.imagePreview.layoutParams = vh.imagePreview.layoutParams.apply {
                         width = targetWidth
                         height = ViewGroup.LayoutParams.WRAP_CONTENT

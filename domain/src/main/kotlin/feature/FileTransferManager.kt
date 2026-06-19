@@ -461,9 +461,8 @@ class FileTransferManager @Inject constructor(
             fileTransfers.remove(it)
         }
         fileTransferRepository.get(id).take(1).collect {
-            if (!it.outgoing && it.destination.startsWith("file://")) {
-                File(it.destination.toUri().path!!).delete()
-            }
+            deleteStoredFile(it.destination.toUri())
+            deleteStoredFile(it.thumbnail.toUri())
             fileTransferRepository.delete(id)
         }
     }
@@ -508,10 +507,26 @@ class FileTransferManager @Inject constructor(
         }
     }
 
+    private fun deleteStoredFile(uri: Uri) {
+        if (uri.scheme != ContentResolver.SCHEME_FILE) return
+        val file = File(uri.path ?: return)
+        runCatching {
+            val canonicalFile = file.canonicalFile
+            val isInSkyToxFiles = canonicalFile.path.startsWith(storage.rootDir.canonicalPath)
+            val isInOutgoingCache = canonicalFile.path.startsWith(outgoingCacheRoot.path)
+            if (isInSkyToxFiles || isInOutgoingCache) {
+                canonicalFile.delete()
+            }
+        }.onFailure {
+            Log.e(TAG, "Error deleting stored file $uri\n$it")
+        }
+    }
+
     private fun createThumbnail(ft: FileTransfer, source: Uri): Uri? {
-        val destination = storage.thumbnailFor(ft)
+        val fileClass = storage.fileClass(ft.fileName)
+        val destination = storage.thumbnailFor(fileClass)
         return try {
-            val bitmap = when (storage.fileClass(ft.fileName)) {
+            val bitmap = when (fileClass) {
                 FileClass.Image -> imageThumbnail(source)
                 FileClass.Video -> videoThumbnail(source)
                 FileClass.Recorder -> null
@@ -520,7 +535,12 @@ class FileTransferManager @Inject constructor(
 
             destination.parentFile?.mkdirs()
             FileOutputStream(destination).use {
-                bitmap.compress(Bitmap.CompressFormat.JPEG, THUMB_QUALITY, it)
+                val format = if (fileClass == FileClass.Document) {
+                    Bitmap.CompressFormat.PNG
+                } else {
+                    Bitmap.CompressFormat.JPEG
+                }
+                bitmap.compress(format, THUMB_QUALITY, it)
             }
             bitmap.recycle()
             Uri.fromFile(destination)
@@ -548,19 +568,44 @@ class FileTransferManager @Inject constructor(
         val bitmap = Bitmap.createBitmap(THUMB_SIZE, THUMB_SIZE, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        canvas.drawColor(Color.rgb(38, 50, 56))
 
-        paint.color = Color.rgb(96, 125, 139)
-        canvas.drawRect(32f, 24f, 128f, 136f, paint)
-        paint.color = Color.rgb(144, 164, 174)
-        canvas.drawRect(96f, 24f, 128f, 56f, paint)
+        canvas.drawColor(Color.TRANSPARENT)
 
+        paint.style = Paint.Style.FILL
+        paint.color = Color.WHITE
+        val page = android.graphics.RectF(42f, 16f, 118f, 120f)
+        canvas.drawRoundRect(page, 8f, 8f, paint)
+
+        paint.color = Color.rgb(13, 14, 17)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 5f
+        canvas.drawRoundRect(page, 8f, 8f, paint)
+
+        val fold = android.graphics.Path().apply {
+            moveTo(94f, 16f)
+            lineTo(118f, 40f)
+            lineTo(94f, 40f)
+            close()
+        }
+        paint.style = Paint.Style.FILL
+        paint.color = Color.rgb(225, 232, 236)
+        canvas.drawPath(fold, paint)
+        paint.style = Paint.Style.STROKE
+        paint.color = Color.rgb(13, 14, 17)
+        canvas.drawPath(fold, paint)
+
+        paint.strokeWidth = 4f
+        canvas.drawLine(58f, 62f, 102f, 62f, paint)
+        canvas.drawLine(58f, 78f, 102f, 78f, paint)
+        canvas.drawLine(58f, 94f, 94f, 94f, paint)
+
+        paint.style = Paint.Style.FILL
         paint.color = Color.WHITE
         paint.textAlign = Paint.Align.CENTER
-        paint.textSize = 24f
+        paint.textSize = 22f
         paint.isFakeBoldText = true
         val ext = fileName.substringAfterLast('.', "?").take(4).uppercase(Locale.US)
-        canvas.drawText(ext, THUMB_SIZE / 2f, 100f, paint)
+        canvas.drawText(ext, THUMB_SIZE / 2f, 148f, paint)
         return bitmap
     }
 
@@ -607,6 +652,7 @@ class FileTransferManager @Inject constructor(
     }
 
     private inner class AtoxStorage {
+        val rootDir get() = SkyToxPublicFolders.root
         private val imageDir get() = SkyToxPublicFolders.imageDir
         private val videoDir get() = SkyToxPublicFolders.videoDir
         private val recorderDir get() = SkyToxPublicFolders.recorderDir
@@ -628,9 +674,9 @@ class FileTransferManager @Inject constructor(
             return Uri.fromFile(uniqueFile(dir, ft.fileName))
         }
 
-        fun thumbnailFor(ft: FileTransfer): File {
+        fun thumbnailFor(fileClass: FileClass): File {
             ensureDirectories()
-            return randomThumbFile()
+            return randomThumbFile(if (fileClass == FileClass.Document) "png" else "jpg")
         }
 
         fun voiceMessageFile(): File {
@@ -664,10 +710,10 @@ class FileTransferManager @Inject constructor(
             return candidate
         }
 
-        private fun randomThumbFile(): File {
+        private fun randomThumbFile(extension: String): File {
             var candidate: File
             do {
-                candidate = File(thumbDir, "${randomName(16)}.jpg")
+                candidate = File(thumbDir, "${randomName(16)}.$extension")
             } while (candidate.exists())
             return candidate
         }

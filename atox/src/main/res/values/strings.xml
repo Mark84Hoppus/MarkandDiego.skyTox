@@ -11,6 +11,14 @@
     <string name="contact_typing">Typing…</string>
     <string name="copied">Copied</string>
     <string name="copy_atox">Copy</string>
+    <string name="copy_all">Copy all</string>
+    <string name="copy_part">Copy part</string>
+    <string name="select_message">Select</string>
+    <string name="forward_message">Forward</string>
+    <string name="select_text_to_copy">Select the part you need, then use the Android copy action.</string>
+    <string name="forward_to">Forward to</string>
+    <string name="no_contacts_to_forward">No contacts to forward to</string>
+    <string name="delete_selected_confirm">Delete selected messages?</string>
     <string name="create">Create</string>
     <string name="create_a_tox_profile">Create a Tox profile</string>
     <string name="delete_contact">Delete contact</string>
