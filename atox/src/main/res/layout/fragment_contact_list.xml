@@ -125,14 +125,5 @@
             android:fitsSystemWindows="true"
             app:headerLayout="@layout/nav_header_contact_list"
             app:menu="@menu/activity_contact_list_drawer"/>
-        <TextView
-                android:id="@+id/updateSkytox"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:background="?attr/selectableItemBackground"
-                android:gravity="center_vertical"
-                android:paddingHorizontal="16dp"
-                android:text="@string/update_skytox"
-                android:textAppearance="@style/TextAppearance.AppCompat.Body1"/>
     </LinearLayout>
 </androidx.drawerlayout.widget.DrawerLayout>

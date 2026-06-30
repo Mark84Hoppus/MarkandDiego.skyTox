@@ -227,6 +227,7 @@
     <string name="import_text_chat_wrong_contact">Import failed: this backup belongs to another contact</string>
     <string name="import_text_chat_missing_contact">Import failed: one or more contacts from the backup are missing</string>
     <string name="import_export_instructions">Export/import guide</string>
+    <string name="import_export_menu">Export/import</string>
     <string name="import_export_instructions_body">Русская инструкция
 
 skyTox умеет экспортировать и импортировать только текстовую историю чатов. Картинки, видео, документы, голосовые сообщения и сами переданные файлы в резервную копию чатов не попадают.

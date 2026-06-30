@@ -73,6 +73,13 @@
                 app:exitAnim="@anim/fade_out"
                 app:popEnterAnim="@anim/fade_in"
                 app:popExitAnim="@anim/slide_out_right"/>
+        <action
+                android:id="@+id/action_contactListFragment_to_importExportMenuFragment"
+                app:destination="@id/importExportMenuFragment"
+                app:enterAnim="@anim/slide_in_right"
+                app:exitAnim="@anim/fade_out"
+                app:popEnterAnim="@anim/fade_in"
+                app:popExitAnim="@anim/slide_out_right"/>
     </fragment>
 
     <fragment android:id="@+id/friendRequestFragment"
@@ -126,4 +133,17 @@
             android:name="ltd.evilcorp.atox.ui.instructions.ImportExportInstructionsFragment"
             android:label="import_export_instructions"
             tools:layout="@layout/fragment_import_export_instructions"/>
+    <fragment
+            android:id="@+id/importExportMenuFragment"
+            android:name="ltd.evilcorp.atox.ui.importexport.ImportExportMenuFragment"
+            android:label="import_export_menu"
+            tools:layout="@layout/fragment_import_export_menu">
+        <action
+                android:id="@+id/action_importExportMenuFragment_to_importExportInstructionsFragment"
+                app:destination="@id/importExportInstructionsFragment"
+                app:enterAnim="@anim/slide_in_right"
+                app:exitAnim="@anim/fade_out"
+                app:popEnterAnim="@anim/fade_in"
+                app:popExitAnim="@anim/slide_out_right"/>
+    </fragment>
 </navigation>

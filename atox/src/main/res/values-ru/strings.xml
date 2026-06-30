@@ -194,6 +194,7 @@
         <item>@string/pref_language_english</item>
     </string-array>
     <string name="import_export_instructions">Инструкция экспорта/импорта</string>
+    <string name="import_export_menu">Экспорт/импорт</string>
     <string name="profile_avatar_change">Изменить аватар профиля</string>
     <string name="profile_avatar_delete">Удалить аватар профиля</string>
     <string name="search_chats">Поиск по чатам</string>

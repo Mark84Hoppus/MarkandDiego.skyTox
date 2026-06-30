@@ -1,7 +1,7 @@
 {
-    "versionName":  "0.8.4",
-    "versionCode":  180,
-    "apkUrl":  "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/download/v0.8.4/skyTox-0.8.4-universal-release-signed.apk",
-    "sha256":  "b44ad717dd50a1d17ae19e41f79bc341f580888992831163df50b44a41a78b39",
-    "changelog":  "skyTox 0.8.4: Telegram-style bottom start menu, new search/menu icons and profile avatar entry point."
+    "versionName":  "0.8.5",
+    "versionCode":  190,
+    "apkUrl":  "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/download/v0.8.5/skyTox-0.8.5-universal-release-signed.apk",
+    "sha256":  "5d5fb3c0831c4091ca6fa28037f381dc57f3b01ad402bdd0ad512cb52e79d3d3",
+    "changelog":  "skyTox 0.8.5: export/import moved to its own bottom-menu screen, updater moved to Settings, and navigation polish."
 }
