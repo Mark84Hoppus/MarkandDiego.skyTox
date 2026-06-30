@@ -322,6 +322,8 @@ skyTox validates the JSON structure before importing. The file must have the cor
     <string name="search_chats">Search chats</string>
     <string name="search_chats_hint">Message text</string>
     <string name="search_chats_no_results">No results</string>
+    <string name="chats">Chats</string>
+    <string name="add_contact_short">Add</string>
     <string name="update_skytox">Update skyTox</string>
     <string name="update_checking">Checking for updates...</string>
     <string name="update_not_available">No update available</string>

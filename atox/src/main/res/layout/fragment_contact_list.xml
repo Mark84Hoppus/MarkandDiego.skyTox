@@ -31,13 +31,83 @@
                     app:layout_constraintTop_toTopOf="parent"/>
             <ListView android:id="@+id/contactList"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="0dp"
                     android:background="@null"
                     android:clipToPadding="false"
                     android:drawSelectorOnTop="true"
                     android:listSelector="@drawable/disable_ripple_effect"
+                    android:paddingBottom="88dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     tools:listitem="@layout/contact_list_view_item"/>
+
+            <LinearLayout
+                    android:id="@+id/skytoxStartMenu"
+                    android:layout_width="0dp"
+                    android:layout_height="72dp"
+                    android:layout_marginHorizontal="16dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/skytox_start_menu_background"
+                    android:elevation="8dp"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="8dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent">
+
+                <LinearLayout
+                        android:id="@+id/startMenuChats"
+                        style="@style/SkyToxStartMenuItem"
+                        android:background="@drawable/skytox_start_menu_selected_background">
+                    <ImageView
+                            style="@style/SkyToxStartMenuIcon"
+                            android:contentDescription="@string/chats"
+                            android:src="@drawable/ic_home_chats"/>
+                    <TextView
+                            style="@style/SkyToxStartMenuLabel"
+                            android:text="@string/chats"/>
+                </LinearLayout>
+
+                <LinearLayout
+                        android:id="@+id/startMenuAdd"
+                        style="@style/SkyToxStartMenuItem">
+                    <ImageView
+                            style="@style/SkyToxStartMenuIcon"
+                            android:contentDescription="@string/add_contact"
+                            android:src="@drawable/ic_home_add"/>
+                    <TextView
+                            style="@style/SkyToxStartMenuLabel"
+                            android:text="@string/add_contact_short"/>
+                </LinearLayout>
+
+                <LinearLayout
+                        android:id="@+id/startMenuSettings"
+                        style="@style/SkyToxStartMenuItem">
+                    <ImageView
+                            style="@style/SkyToxStartMenuIcon"
+                            android:contentDescription="@string/settings"
+                            android:src="@drawable/ic_home_settings"/>
+                    <TextView
+                            style="@style/SkyToxStartMenuLabel"
+                            android:text="@string/settings"/>
+                </LinearLayout>
+
+                <LinearLayout
+                        android:id="@+id/startMenuProfile"
+                        style="@style/SkyToxStartMenuItem">
+                    <com.google.android.material.imageview.ShapeableImageView
+                            android:id="@+id/startMenuProfileAvatar"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:contentDescription="@string/profile"
+                            android:scaleType="centerCrop"
+                            app:shapeAppearanceOverlay="@style/CircleImageView"/>
+                    <TextView
+                            style="@style/SkyToxStartMenuLabel"
+                            android:text="@string/profile"/>
+                </LinearLayout>
+            </LinearLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 

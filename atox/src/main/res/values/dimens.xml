@@ -10,4 +10,5 @@
     <dimen name="contact_avatar_placeholder_text">28dp</dimen>
 
     <dimen name="default_avatar_size">50dp</dimen>
+    <dimen name="skytox_start_menu_list_bottom_padding">96dp</dimen>
 </resources>

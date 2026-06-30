@@ -22,6 +22,9 @@
     <item name="transparentBar" type="color">#40000000</item>
     <item name="transparent" type="color">#00000000</item>
     <item name="chatBackgroundDim" type="color">#66000000</item>
+    <item name="startMenuBackground" type="color">#EEFFFFFF</item>
+    <item name="startMenuSelectedBackground" type="color">#223594A1</item>
+    <item name="startMenuText" type="color">#263238</item>
 
     <array name="contactBackgrounds">
         <item>#f16364</item>

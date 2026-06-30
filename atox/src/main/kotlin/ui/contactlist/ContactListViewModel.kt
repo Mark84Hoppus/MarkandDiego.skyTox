@@ -40,6 +40,7 @@ import ltd.evilcorp.domain.feature.FileTransferManager
 import ltd.evilcorp.domain.feature.FriendRequestManager
 import ltd.evilcorp.domain.feature.TextChatImportResult
 import ltd.evilcorp.domain.feature.UserManager
+import ltd.evilcorp.domain.feature.avatar.SkyToxAvatarManager
 import ltd.evilcorp.domain.feature.chatmarkers.SkyToxChatMarkers
 import ltd.evilcorp.domain.feature.search.SkyToxChatSearch
 import ltd.evilcorp.domain.tox.ProxyType
@@ -61,6 +62,7 @@ class ContactListViewModel @Inject constructor(
     private val messageRepository: MessageRepository,
     private val notificationHelper: NotificationHelper,
     private val chatSearch: SkyToxChatSearch,
+    private val avatarManager: SkyToxAvatarManager,
     private val tox: Tox,
     private val toxStarter: ToxStarter,
     private val settings: Settings,
@@ -179,4 +181,6 @@ class ContactListViewModel @Inject constructor(
     fun onShareText(what: String, to: Contact) = chatManager.sendMessage(PublicKey(to.publicKey), what)
 
     suspend fun searchChats(query: String) = chatSearch.search(query)
+
+    fun ownAvatarUri(): Uri? = avatarManager.ownAvatarUri()
 }

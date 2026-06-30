@@ -22,13 +22,13 @@ import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.core.os.bundleOf
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -76,6 +76,7 @@ class ContactListFragment :
     private val viewModel: ContactListViewModel by viewModels { vmFactory }
 
     private var navHeader: NavHeaderContactListBinding? = null
+    private var startMenuModule: SkyToxStartMenuModule? = null
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -128,7 +129,9 @@ class ContactListFragment :
             val insets = compat.getInsets(WindowInsetsCompat.Type.systemBars())
             toolbar.updatePadding(left = insets.left)
             navView.updatePadding(left = insets.left)
-            contactList.updatePadding(bottom = insets.bottom)
+            contactList.updatePadding(
+                bottom = insets.bottom + resources.getDimensionPixelSize(R.dimen.skytox_start_menu_list_bottom_padding),
+            )
             compat
         }
 
@@ -168,9 +171,27 @@ class ContactListFragment :
             } else {
                 getText(R.string.connecting)
             }
+            startMenuModule?.renderUser(user)
         }
 
         navView.setNavigationItemSelectedListener(this@ContactListFragment)
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
+        startMenuModule = SkyToxStartMenuModule(
+            binding = this,
+            openChats = {
+                if (drawerLayout.isDrawerOpen(GravityCompat.START)) drawerLayout.closeDrawer(GravityCompat.START)
+            },
+            openAddContact = {
+                findNavController().navigate(R.id.action_contactListFragment_to_addContactFragment)
+            },
+            openSettings = {
+                findNavController().navigate(R.id.action_contactListFragment_to_settingsFragment)
+            },
+            openProfile = {
+                findNavController().navigate(R.id.action_contactListFragment_to_userProfileFragment)
+            },
+            ownAvatarUri = viewModel::ownAvatarUri,
+        ).also { it.attach() }
         updateSkytox.setOnClickListener {
             updateSkyTox()
         }
@@ -217,16 +238,6 @@ class ContactListFragment :
             }
         }
 
-        val toggle = ActionBarDrawerToggle(
-            requireActivity(),
-            drawerLayout,
-            toolbar,
-            R.string.navigation_drawer_open,
-            R.string.navigation_drawer_close,
-        )
-        drawerLayout.addDrawerListener(toggle)
-        toggle.syncState()
-
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
             if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
                 drawerLayout.closeDrawer(GravityCompat.START)
@@ -262,8 +273,14 @@ class ContactListFragment :
     }
 
     override fun onDestroyView() {
+        startMenuModule = null
         navHeader = null
         super.onDestroyView()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        startMenuModule?.renderAvatar()
     }
 
     override fun onCreateContextMenu(menu: ContextMenu, v: View, menuInfo: ContextMenu.ContextMenuInfo?) {
