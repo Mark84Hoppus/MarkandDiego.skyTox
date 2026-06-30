@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+            android:id="@+id/search_chats"
+            android:contentDescription="@string/search_chats"
+            android:icon="@drawable/ic_find"
+            android:title="@string/search_chats"
+            app:showAsAction="always"/>
+</menu>

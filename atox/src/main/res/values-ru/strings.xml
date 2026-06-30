@@ -194,4 +194,15 @@
         <item>@string/pref_language_english</item>
     </string-array>
     <string name="import_export_instructions">Инструкция экспорта/импорта</string>
+    <string name="profile_avatar_change">Изменить аватар профиля</string>
+    <string name="profile_avatar_delete">Удалить аватар профиля</string>
+    <string name="search_chats">Поиск по чатам</string>
+    <string name="search_chats_hint">Текст сообщения</string>
+    <string name="search_chats_no_results">Ничего не найдено</string>
+    <string name="update_skytox">Обновить skyTox</string>
+    <string name="update_checking">Проверка обновлений...</string>
+    <string name="update_not_available">Обновлений нет</string>
+    <string name="update_allow_unknown_sources">Разрешите установку из этого источника, затем нажмите обновление еще раз</string>
+    <string name="update_downloading">Скачивание skyTox %1$s...</string>
+    <string name="update_failed">Обновление не удалось: %1$s</string>
 </resources>

@@ -37,6 +37,8 @@ import ltd.evilcorp.domain.av.AudioPlayer
 import ltd.evilcorp.domain.feature.CallManager
 import ltd.evilcorp.domain.feature.ChatManager
 import ltd.evilcorp.domain.feature.FileTransferManager
+import ltd.evilcorp.domain.feature.avatar.SkyToxAvatarManager
+import ltd.evilcorp.domain.feature.skymeta.SkyToxMessageTime
 import ltd.evilcorp.domain.tox.Tox
 import ltd.evilcorp.domain.tox.ToxAvEventListener
 import ltd.evilcorp.domain.tox.ToxEventListener
@@ -65,6 +67,7 @@ class EventListenerCallbacks @Inject constructor(
     private val callManager: CallManager,
     private val chatManager: ChatManager,
     private val fileTransferManager: FileTransferManager,
+    private val avatarManager: SkyToxAvatarManager,
     private val notificationHelper: NotificationHelper,
     private val tox: Tox,
     private val settings: Settings,
@@ -98,6 +101,7 @@ class EventListenerCallbacks @Inject constructor(
             contactRepository.setConnectionStatus(publicKey, status)
             if (status != ConnectionStatus.None) {
                 fileTransferManager.resumeOutgoingForContact(publicKey)
+                avatarManager.syncWith(publicKey)
                 scope.launch {
                     val pending = messageRepository.getPending(publicKey)
                     if (pending.isNotEmpty()) {
@@ -125,9 +129,20 @@ class EventListenerCallbacks @Inject constructor(
             notificationHelper.showFriendRequestNotification(request, silent = tox.getStatus() == UserStatus.Busy)
         }
 
-        friendMessageHandler = { publicKey, type, _, msg ->
+        friendLosslessPacketHandler = { publicKey, data ->
+            SkyToxMessageTime.rememberIncomingMetadata(publicKey, data)
+        }
+
+        friendMessageHandler = { publicKey, type, timeDelta, msg ->
             messageRepository.add(
-                Message(publicKey, msg, Sender.Received, type.toMessageType(), Int.MIN_VALUE, Date().time),
+                Message(
+                    publicKey,
+                    msg,
+                    Sender.Received,
+                    type.toMessageType(),
+                    Int.MIN_VALUE,
+                    SkyToxMessageTime.incomingTimestamp(publicKey, msg, Date().time, timeDelta),
+                ),
             )
 
             if (chatManager.activeChat != publicKey) {

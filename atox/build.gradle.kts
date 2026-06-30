@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlinKsp)
 }
 
+val skytoxUniversal = providers.gradleProperty("skytoxUniversal").map(String::toBoolean).getOrElse(false)
+
 kotlin {
     jvmToolchain(17)
     compilerOptions {
@@ -18,8 +20,8 @@ android {
         applicationId = "markanddiego.skytox"
         minSdk = libs.versions.sdk.min.get().toInt()
         targetSdk = libs.versions.sdk.target.get().toInt()
-        versionCode = 16
-        versionName = "0.8.2"
+        versionCode = 170
+        versionName = "0.8.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -41,7 +43,7 @@ android {
     }
     splits {
         abi {
-            isEnable = true
+            isEnable = !skytoxUniversal
             reset()
             include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
             isUniversalApk = false
@@ -64,10 +66,10 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
         val abiVersionCodes = mapOf(
-            "armeabi-v7a" to 161,
-            "arm64-v8a" to 162,
-            "x86" to 163,
-            "x86_64" to 164,
+            "armeabi-v7a" to 171,
+            "arm64-v8a" to 172,
+            "x86" to 173,
+            "x86_64" to 174,
         )
         variant.outputs.forEach { output ->
             val abi = output.filters

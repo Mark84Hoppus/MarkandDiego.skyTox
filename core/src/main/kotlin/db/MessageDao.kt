@@ -22,8 +22,11 @@ interface MessageDao {
     @Query("SELECT * FROM messages")
     fun loadAll(): Flow<List<Message>>
 
-    @Query("SELECT * FROM messages WHERE conversation == :conversation AND timestamp == 0")
-    fun loadPending(conversation: String): List<Message>
+    @Query(
+        "SELECT * FROM messages " +
+            "WHERE conversation == :conversation AND (correlation_id == :pendingCorrelationId OR timestamp == 0)",
+    )
+    fun loadPending(conversation: String, pendingCorrelationId: Int = Int.MIN_VALUE): List<Message>
 
     @Query("UPDATE messages SET correlation_id = :correlationId WHERE id == :id")
     fun setCorrelationId(id: Long, correlationId: Int)

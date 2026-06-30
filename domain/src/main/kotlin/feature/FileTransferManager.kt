@@ -355,6 +355,38 @@ class FileTransferManager @Inject constructor(
         outgoingFiles[Pair(ft.publicKey, ft.fileNumber)] = OutgoingFile(file, mutableListOf())
     }
 
+    fun sendAvatar(pk: PublicKey, file: Uri) {
+        val source = File(file.path ?: return)
+        if (!source.exists() || source.length() > MAX_AVATAR_SIZE) return
+
+        val ft = FileTransfer(
+            pk.string(),
+            tox.sendFile(pk, FileKind.Avatar, source.length(), tox.publicKey.string(), ByteArray(TOX_FILE_ID_BYTES)),
+            FileKind.Avatar.ordinal,
+            source.length(),
+            tox.publicKey.string(),
+            true,
+            FT_NOT_STARTED,
+            file.toString(),
+        )
+        fileTransfers.add(ft)
+        outgoingFiles[Pair(ft.publicKey, ft.fileNumber)] = OutgoingFile(file, mutableListOf())
+    }
+
+    fun clearAvatar(pk: PublicKey) {
+        fileTransfers.add(
+            FileTransfer(
+                pk.string(),
+                tox.sendFile(pk, FileKind.Avatar, 0, tox.publicKey.string(), ByteArray(TOX_FILE_ID_BYTES)),
+                FileKind.Avatar.ordinal,
+                0,
+                tox.publicKey.string(),
+                true,
+                0,
+            ),
+        )
+    }
+
     // TODO(robinlinden): An error when sending the last chunk in a transfer will stall it.
     fun sendChunk(pk: String, fileNo: Int, pos: Long, length: Int) {
         val ft = fileTransfers.find { it.publicKey == pk && it.fileNumber == fileNo }

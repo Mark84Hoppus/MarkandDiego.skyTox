@@ -22,6 +22,7 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.core.content.getSystemService
 import androidx.core.graphics.createBitmap
@@ -44,6 +45,7 @@ import ltd.evilcorp.atox.BuildConfig
 import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.databinding.FragmentUserProfileBinding
 import ltd.evilcorp.atox.ui.BaseFragment
+import ltd.evilcorp.atox.ui.AvatarFactory
 import ltd.evilcorp.atox.ui.Dp
 import ltd.evilcorp.atox.ui.Px
 import ltd.evilcorp.atox.ui.StatusDialog
@@ -63,6 +65,11 @@ private val qrCodeSharedImagePadding = Px(200)
 class UserProfileFragment : BaseFragment<FragmentUserProfileBinding>(FragmentUserProfileBinding::inflate) {
     private val vm: UserProfileViewModel by viewModels { vmFactory }
     private lateinit var currentStatus: UserStatus
+    private var currentUserName = ""
+
+    private val avatarPicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) vm.setAvatar(uri)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) = binding.run {
         ViewCompat.setOnApplyWindowInsetsListener(view) { _, compat ->
@@ -81,10 +88,16 @@ class UserProfileFragment : BaseFragment<FragmentUserProfileBinding>(FragmentUse
 
         vm.user.observe(viewLifecycleOwner) { user ->
             currentStatus = user.status
+            currentUserName = user.name
 
             userName.text = user.name
             userStatusMessage.text = user.statusMessage
             userStatus.setColorFilter(colorFromStatus(requireContext(), user.status))
+            renderAvatar()
+        }
+
+        vm.avatarUri.observe(viewLifecycleOwner) {
+            renderAvatar()
         }
 
         userToxId.text = vm.toxId.string()
@@ -120,6 +133,14 @@ class UserProfileFragment : BaseFragment<FragmentUserProfileBinding>(FragmentUse
                 .show()
         }
 
+        profileOptions.profileChangeAvatar.setOnClickListener {
+            avatarPicker.launch("image/*")
+        }
+
+        profileOptions.profileDeleteAvatar.setOnClickListener {
+            vm.deleteAvatar()
+        }
+
         profileOptions.profileChangeStatusText.setOnClickListener {
             val statusMessageEdit =
                 EditText(requireContext()).apply {
@@ -146,6 +167,15 @@ class UserProfileFragment : BaseFragment<FragmentUserProfileBinding>(FragmentUse
         //  when that happens.
         if (savedInstanceState != null) {
             needsHacks.updatePadding(bottom = (150 * resources.displayMetrics.density).toInt())
+        }
+    }
+
+    private fun renderAvatar() = binding.profileAvatar.run {
+        val uri = vm.avatarUri.value
+        if (uri != null) {
+            setImageURI(uri)
+        } else {
+            setImageBitmap(AvatarFactory.create(resources, currentUserName, vm.publicKey.string(), Px(width.takeIf { it > 0 } ?: 88)))
         }
     }
 

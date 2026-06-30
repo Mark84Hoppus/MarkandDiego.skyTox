@@ -36,6 +36,26 @@
                     android:layout_height="1dp"
                     android:background="@color/dividerColor"/>
             <TextView
+                    android:id="@+id/profile_change_avatar"
+                    style="@style/OptionItemText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/profile_avatar_change"/>
+            <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/dividerColor"/>
+            <TextView
+                    android:id="@+id/profile_delete_avatar"
+                    style="@style/OptionItemText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/profile_avatar_delete"/>
+            <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/dividerColor"/>
+            <TextView
                     android:id="@+id/profile_change_status_text"
                     style="@style/OptionItemText"
                     android:layout_width="match_parent"

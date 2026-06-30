@@ -4,42 +4,32 @@ P2P мессенджер, возможность отправки текстов
 
 P2P messenger, text and voice messaging, file sharing, and audio calls.
 
-## Что добавлено в версии 0.8.2
+## Что добавлено в версии 0.8.3
 
-- Текстовые и голосовые сообщения.
-- Отправка файлов, изображений и видео.
-- Аудиозвонки.
-- Сохранение принятых файлов в открытые папки `skyTox files`.
-- Разделение файлов по папкам: изображения, видео, документы, голосовые сообщения и миниатюры.
-- Миниатюры для изображений, видео и документов в чате.
-- Голосовые сообщения можно прослушивать прямо в чате.
-- Возобновление передачи файлов после обрыва соединения.
-- Экспорт и импорт текстовой истории чатов.
-- Инструкция по экспорту и импорту внутри приложения.
-- Переключение языка: русский / English.
-- Фоновая работа через foreground service.
-- Автозапуск после перезагрузки устройства.
-- Обновлённое оформление, иконки и фон чата.
-- Улучшенное меню сообщений: копирование, частичное копирование, выделение, пересылка и удаление.
-- При удалении файла из чата удаляется сам файл из папки skyTox и его миниатюра.
-- Отдельные подписанные APK для ARM, ARM64, x86 и x86_64.
+- Встроенная кнопка обновления skyTox в боковом меню.
+- Universal APK для удобного обновления без выбора архитектуры.
+- Подписанные APK для ARM, ARM64, x86 и x86_64.
+- Аватар профиля: выбор изображения, автообрезка до 128x128, удаление аватара.
+- Синхронизация аватаров между клиентами skyTox через Tox avatar transfer.
+- Стабильные qTox-подобные сгенерированные аватары, если пользователь не загрузил картинку.
+- Поиск по текстовой истории чатов.
+- Markdown-отображение сообщений в чате.
+- Модуль одинакового времени сообщений между клиентами skyTox.
+- Индикаторы в списке чатов: недоставленное и непрочитанное.
 
-## Version 0.8.2 changes
+APK лежат в папке `skyTox/`.
 
-- Text and voice messages.
-- File, image and video sharing.
-- Audio calls.
-- Received files are saved to public `skyTox files` folders.
-- Separate folders for images, videos, documents, voice messages and thumbnails.
-- Chat thumbnails for images, videos and documents.
-- Voice messages can be played directly in chat.
-- File transfer resume after connection interruption.
-- Text chat history export and import.
-- Built-in export/import guide.
-- Manual language switch: Russian / English.
-- Foreground service for background operation.
-- Startup after device reboot.
-- Updated design, icons and chat wallpaper.
-- Improved message menu: copy all, copy part, select, forward and delete.
-- Deleting a file from chat also deletes the stored file and its thumbnail.
-- Separate signed APK builds for ARM, ARM64, x86 and x86_64.
+## Version 0.8.3 changes
+
+- Built-in skyTox update button in the side menu.
+- Universal APK for easier updates without choosing a CPU architecture.
+- Signed APK builds for ARM, ARM64, x86 and x86_64.
+- Profile avatar support: choose an image, center-crop to 128x128, delete avatar.
+- Avatar sync between skyTox clients using Tox avatar transfer.
+- Stable qTox-like generated avatars when no custom image is selected.
+- Text chat history search.
+- Markdown rendering in chat messages.
+- skyTox-to-skyTox message time metadata module.
+- Chat-list indicators for undelivered and unread messages.
+
+APK files are in the `skyTox/` folder.

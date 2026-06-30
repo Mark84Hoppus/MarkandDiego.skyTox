@@ -19,6 +19,7 @@ import ltd.evilcorp.core.vo.Message
 import ltd.evilcorp.core.vo.MessageType
 import ltd.evilcorp.core.vo.PublicKey
 import ltd.evilcorp.core.vo.Sender
+import ltd.evilcorp.domain.feature.skymeta.SkyToxMessageTime
 import ltd.evilcorp.domain.tox.MAX_MESSAGE_LENGTH
 import ltd.evilcorp.domain.tox.Tox
 
@@ -60,12 +61,14 @@ class ChatManager @Inject constructor(
     fun messagesFor(publicKey: PublicKey) = messageRepository.get(publicKey.string())
 
     fun sendMessage(publicKey: PublicKey, message: String, type: MessageType = MessageType.Normal) = scope.launch {
+        val sentAt = SkyToxMessageTime.outgoingTimestamp()
         if (contactRepository.get(publicKey.string()).first().connectionStatus == ConnectionStatus.None) {
-            queueMessage(publicKey, message, type)
+            queueMessage(publicKey, message, type, sentAt)
             return@launch
         }
 
         val msgs = message.chunked(MAX_MESSAGE_LENGTH)
+        SkyToxMessageTime.sendOutgoingMetadata(tox, publicKey, message, sentAt)
         while (msgs.size > 1) {
             tox.sendMessage(publicKey, msgs.removeAt(0), type)
         }
@@ -77,16 +80,23 @@ class ChatManager @Inject constructor(
                 Sender.Sent,
                 type,
                 tox.sendMessage(publicKey, msgs.first(), type),
+                sentAt,
             ),
         )
     }
 
-    private fun queueMessage(publicKey: PublicKey, message: String, type: MessageType) =
-        messageRepository.add(Message(publicKey.string(), message, Sender.Sent, type, Int.MIN_VALUE))
+    private fun queueMessage(publicKey: PublicKey, message: String, type: MessageType, sentAt: Long) =
+        messageRepository.add(Message(publicKey.string(), message, Sender.Sent, type, Int.MIN_VALUE, sentAt))
 
     fun resend(messages: List<Message>) = scope.launch {
         for (message in messages) {
             val msgs = message.message.chunked(MAX_MESSAGE_LENGTH)
+            SkyToxMessageTime.sendOutgoingMetadata(
+                tox,
+                PublicKey(message.publicKey),
+                message.message,
+                message.timestamp,
+            )
 
             while (msgs.size > 1) {
                 tox.sendMessage(PublicKey(message.publicKey), msgs.removeAt(0), message.type)

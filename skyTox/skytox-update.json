@@ -1,0 +1,7 @@
+{
+    "versionName":  "0.8.3",
+    "versionCode":  170,
+    "apkUrl":  "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/download/v0.8.3/skyTox-0.8.3-universal-release-signed.apk",
+    "sha256":  "639fd565aa5ebb75c921d5315ffe3c59f3cb34ba6aa6b00c8f3ac5f6c6acb794",
+    "changelog":  "skyTox 0.8.3: in-app updater, profile avatars, chat search, Markdown rendering, message time metadata and chat state markers."
+}

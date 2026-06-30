@@ -30,11 +30,15 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.navigation.NavigationView
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.databinding.ContactListViewItemBinding
 import ltd.evilcorp.atox.databinding.FragmentContactListBinding
@@ -48,6 +52,8 @@ import ltd.evilcorp.atox.ui.chat.CONTACT_PUBLIC_KEY
 import ltd.evilcorp.atox.ui.colorFromStatus
 import ltd.evilcorp.atox.ui.contactListSorter
 import ltd.evilcorp.atox.ui.friendrequest.FRIEND_REQUEST_PUBLIC_KEY
+import ltd.evilcorp.atox.ui.search.SkyToxChatSearchDialog
+import ltd.evilcorp.atox.ui.updater.SkyToxUpdater
 import ltd.evilcorp.atox.vmFactory
 import ltd.evilcorp.core.vo.ConnectionStatus
 import ltd.evilcorp.core.vo.Contact
@@ -127,6 +133,19 @@ class ContactListFragment :
         }
 
         toolbar.title = getText(R.string.app_name)
+        toolbar.inflateMenu(R.menu.contact_list_toolbar)
+        toolbar.setOnMenuItemClickListener {
+            if (it.itemId == R.id.search_chats) {
+                SkyToxChatSearchDialog(
+                    this@ContactListFragment,
+                    search = viewModel::searchChats,
+                    openChat = ::openChat,
+                ).show()
+                true
+            } else {
+                false
+            }
+        }
 
         viewModel.user.observe(viewLifecycleOwner) { user ->
             if (user == null) return@observe
@@ -152,6 +171,9 @@ class ContactListFragment :
         }
 
         navView.setNavigationItemSelectedListener(this@ContactListFragment)
+        updateSkytox.setOnClickListener {
+            updateSkyTox()
+        }
 
         val contactAdapter = ContactAdapter(layoutInflater, requireContext())
         contactList.adapter = contactAdapter
@@ -177,6 +199,11 @@ class ContactListFragment :
             } else {
                 View.GONE
             }
+        }
+
+        viewModel.pendingMessageContacts.observe(viewLifecycleOwner) { contacts ->
+            contactAdapter.pendingMessageContacts = contacts
+            contactAdapter.notifyDataSetChanged()
         }
 
         contactList.setOnItemClickListener { _, _, position, _ ->
@@ -432,4 +459,34 @@ class ContactListFragment :
         R.id.action_contactListFragment_to_contactProfileFragment,
         bundleOf(CONTACT_PUBLIC_KEY to contact.publicKey),
     )
+
+    private fun updateSkyTox() {
+        val updater = SkyToxUpdater(requireContext())
+        lifecycleScope.launch {
+            try {
+                Toast.makeText(requireContext(), R.string.update_checking, Toast.LENGTH_SHORT).show()
+                val update = withContext(Dispatchers.IO) { updater.check() }
+                if (update == null) {
+                    Toast.makeText(requireContext(), R.string.update_not_available, Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+
+                if (!updater.canInstallPackages()) {
+                    Toast.makeText(requireContext(), R.string.update_allow_unknown_sources, Toast.LENGTH_LONG).show()
+                    updater.openInstallPermissionSettings()
+                    return@launch
+                }
+
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.update_downloading, update.versionName),
+                    Toast.LENGTH_LONG,
+                ).show()
+                val apk = withContext(Dispatchers.IO) { updater.download(update) }
+                updater.install(apk)
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), getString(R.string.update_failed, e.message), Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 }

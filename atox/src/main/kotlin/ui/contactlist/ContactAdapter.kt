@@ -29,6 +29,7 @@ enum class ContactListItemType {
 class ContactAdapter(private val inflater: LayoutInflater, private val context: Context) : BaseAdapter() {
     var friendRequests: List<FriendRequest> = listOf()
     var contacts: List<Contact> = listOf()
+    var pendingMessageContacts: Set<String> = emptySet()
 
     override fun getCount(): Int = friendRequests.size + contacts.size
     override fun getItem(position: Int): Any = when {
@@ -107,10 +108,20 @@ class ContactAdapter(private val inflater: LayoutInflater, private val context: 
                         }
                     }
                     vh.avatarImageView.setFrom(this)
-                    vh.unreadIndicator.visibility = if (hasUnreadMessages) {
-                        View.VISIBLE
-                    } else {
-                        View.GONE
+                    when {
+                        publicKey in pendingMessageContacts -> {
+                            vh.unreadIndicator.setImageResource(R.drawable.indicator_undelivered)
+                            vh.unreadIndicator.imageTintList = null
+                            vh.unreadIndicator.visibility = View.VISIBLE
+                        }
+                        hasUnreadMessages -> {
+                            vh.unreadIndicator.setImageResource(R.drawable.indicator_unread)
+                            vh.unreadIndicator.imageTintList = null
+                            vh.unreadIndicator.visibility = View.VISIBLE
+                        }
+                        else -> {
+                            vh.unreadIndicator.visibility = View.GONE
+                        }
                     }
                 }
 

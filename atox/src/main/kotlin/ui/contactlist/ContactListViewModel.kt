@@ -19,6 +19,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -26,6 +27,7 @@ import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.atox.tox.ToxStarter
 import ltd.evilcorp.atox.ui.NotificationHelper
+import ltd.evilcorp.core.repository.MessageRepository
 import ltd.evilcorp.core.vo.Contact
 import ltd.evilcorp.core.vo.FriendRequest
 import ltd.evilcorp.core.vo.PublicKey
@@ -38,6 +40,8 @@ import ltd.evilcorp.domain.feature.FileTransferManager
 import ltd.evilcorp.domain.feature.FriendRequestManager
 import ltd.evilcorp.domain.feature.TextChatImportResult
 import ltd.evilcorp.domain.feature.UserManager
+import ltd.evilcorp.domain.feature.chatmarkers.SkyToxChatMarkers
+import ltd.evilcorp.domain.feature.search.SkyToxChatSearch
 import ltd.evilcorp.domain.tox.ProxyType
 import ltd.evilcorp.domain.tox.SaveOptions
 import ltd.evilcorp.domain.tox.Tox
@@ -54,7 +58,9 @@ class ContactListViewModel @Inject constructor(
     private val exportManager: ExportManager,
     private val fileTransferManager: FileTransferManager,
     private val friendRequestManager: FriendRequestManager,
+    private val messageRepository: MessageRepository,
     private val notificationHelper: NotificationHelper,
+    private val chatSearch: SkyToxChatSearch,
     private val tox: Tox,
     private val toxStarter: ToxStarter,
     private val settings: Settings,
@@ -65,6 +71,8 @@ class ContactListViewModel @Inject constructor(
     val user: LiveData<User> by lazy { userManager.get(publicKey).asLiveData() }
     val contacts: LiveData<List<Contact>> = contactManager.getAll().asLiveData()
     val friendRequests: LiveData<List<FriendRequest>> = friendRequestManager.getAll().asLiveData()
+    val pendingMessageContacts: LiveData<Set<String>> =
+        messageRepository.getAll().map(SkyToxChatMarkers::pendingConversationKeys).asLiveData()
 
     fun isToxRunning() = tox.started
     fun tryLoadTox(password: String?): ToxSaveStatus = toxStarter.tryLoadTox(password)
@@ -169,4 +177,6 @@ class ContactListViewModel @Inject constructor(
     }
 
     fun onShareText(what: String, to: Contact) = chatManager.sendMessage(PublicKey(to.publicKey), what)
+
+    suspend fun searchChats(query: String) = chatSearch.search(query)
 }

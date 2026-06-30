@@ -12,49 +12,61 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
-import android.graphics.Typeface
 import androidx.core.graphics.createBitmap
 import kotlin.math.abs
 import ltd.evilcorp.atox.R
 
 internal object AvatarFactory {
 
-    private fun getInitials(name: String): String {
-        val segments = name.split(" ")
-        if (segments.size == 1) return segments.first().take(1)
-        return segments.first().take(1) + segments[1].take(1)
-    }
-
-    // Method will create an avatar based on the initials of a name and a public key for the background color.
+    // Stable qTox-like generated avatar based on the public key.
     fun create(
         resources: Resources,
         name: String,
         publicKey: String,
         size: Px = Px(resources.getDimension(R.dimen.default_avatar_size).toInt()),
     ): Bitmap {
-        val defaultAvatarSize = resources.getDimension(R.dimen.default_avatar_size)
-        val textScale = size.px / defaultAvatarSize
-
         val bitmap = createBitmap(size.px, size.px)
         val canvas = Canvas(bitmap)
         val rect = RectF(0f, 0f, bitmap.width.toFloat(), bitmap.height.toFloat())
         val colors = resources.getIntArray(R.array.contactBackgrounds)
-        val backgroundPaint = Paint().apply { color = colors[abs(publicKey.hashCode()).rem(colors.size)] }
-
-        val textPaint = Paint().apply {
+        val backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = colors[abs(publicKey.hashCode()).rem(colors.size)]
+        }
+        val tilePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
-            textSize = resources.getDimension(R.dimen.contact_avatar_placeholder_text) * textScale
-            textAlign = Paint.Align.CENTER
-            isAntiAlias = true
-            typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
+            alpha = 210
         }
 
-        val textBounds = Rect()
-        val initials = getInitials(name)
-        textPaint.getTextBounds(initials, 0, initials.length, textBounds)
         canvas.drawRoundRect(rect, rect.bottom, rect.right, backgroundPaint)
-        canvas.drawText(initials, rect.centerX(), rect.centerY() - textBounds.exactCenterY(), textPaint)
+
+        val key = (publicKey.ifEmpty { name }).ifEmpty { "skyTox" }
+        val tile = bitmap.width / GRID_SIZE.toFloat()
+        val inset = tile * 0.12f
+        for (y in 0 until GRID_SIZE) {
+            for (x in 0 until GRID_SIZE / 2 + 1) {
+                val index = (y * 3 + x).mod(key.length)
+                val draw = key[index].code + x * 31 + y * 17 and 1 == 0
+                if (!draw) continue
+
+                drawTile(canvas, tilePaint, x, y, tile, inset)
+                val mirrorX = GRID_SIZE - 1 - x
+                if (mirrorX != x) {
+                    drawTile(canvas, tilePaint, mirrorX, y, tile, inset)
+                }
+            }
+        }
 
         return bitmap
     }
+
+    private fun drawTile(canvas: Canvas, paint: Paint, x: Int, y: Int, tile: Float, inset: Float) {
+        canvas.drawRoundRect(
+            RectF(x * tile + inset, y * tile + inset, (x + 1) * tile - inset, (y + 1) * tile - inset),
+            inset,
+            inset,
+            paint,
+        )
+    }
+
+    private const val GRID_SIZE = 5
 }

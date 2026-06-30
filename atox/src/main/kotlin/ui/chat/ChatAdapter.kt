@@ -29,6 +29,7 @@ import java.text.DateFormat
 import java.util.Locale
 import kotlin.math.roundToInt
 import ltd.evilcorp.atox.R
+import ltd.evilcorp.atox.ui.markdown.SkyToxMarkdown
 import ltd.evilcorp.core.vo.FileTransfer
 import ltd.evilcorp.core.vo.Message
 import ltd.evilcorp.core.vo.MessageType
@@ -38,6 +39,7 @@ import ltd.evilcorp.core.vo.isInterrupted
 import ltd.evilcorp.core.vo.isRejected
 import ltd.evilcorp.core.vo.isStarted
 import ltd.evilcorp.core.vo.transferredBytes
+import ltd.evilcorp.domain.feature.chatmarkers.SkyToxChatMarkers
 
 private const val TAG = "ChatAdapter"
 private const val IMAGE_TO_SCREEN_RATIO = 0.5
@@ -151,9 +153,9 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                     view.tag = vh
                 }
 
-                val unsent = message.timestamp == 0L
+                val unsent = message.timestamp == 0L || SkyToxChatMarkers.isUndelivered(message)
                 view.setBackgroundColor(if (message.id in selectedMessageIds) SELECTED_MESSAGE_COLOR else Color.TRANSPARENT)
-                vh.message.text = message.message
+                SkyToxMarkdown.render(vh.message, message.message)
                 vh.timestamp.text = if (!unsent) {
                     timeFormatter.format(message.timestamp)
                 } else {
