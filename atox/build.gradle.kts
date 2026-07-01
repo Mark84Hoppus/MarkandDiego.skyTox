@@ -1,9 +1,25 @@
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinKsp)
+    alias(libs.plugins.googleServices)
 }
 
 val skytoxUniversal = providers.gradleProperty("skytoxUniversal").map(String::toBoolean).getOrElse(false)
+val skytoxServerEnv = rootProject.file("skytoxserver/.env")
+val skytoxPushConfig = if (skytoxServerEnv.exists()) {
+    skytoxServerEnv.readLines()
+        .mapNotNull { line ->
+            val trimmed = line.trim()
+            if (trimmed.isEmpty() || trimmed.startsWith("#") || !trimmed.contains("=")) {
+                null
+            } else {
+                trimmed.substringBefore("=") to trimmed.substringAfter("=")
+            }
+        }
+        .toMap()
+} else {
+    emptyMap()
+}
 
 kotlin {
     jvmToolchain(17)
@@ -20,9 +36,11 @@ android {
         applicationId = "markanddiego.skytox"
         minSdk = libs.versions.sdk.min.get().toInt()
         targetSdk = libs.versions.sdk.target.get().toInt()
-        versionCode = 190
-        versionName = "0.8.5"
+        versionCode = 200
+        versionName = "0.8.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "SKYTOX_PUSH_SERVER_URL", "\"http://100.113.219.109:8787/push\"")
+        buildConfigField("String", "SKYTOX_PUSH_API_KEY", "\"${skytoxPushConfig["SKYTOX_PUSH_API_KEY"].orEmpty()}\"")
     }
     buildTypes {
         getByName("debug") {
@@ -66,10 +84,10 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
         val abiVersionCodes = mapOf(
-            "armeabi-v7a" to 191,
-            "arm64-v8a" to 192,
-            "x86" to 193,
-            "x86_64" to 194,
+            "armeabi-v7a" to 201,
+            "arm64-v8a" to 202,
+            "x86" to 203,
+            "x86_64" to 204,
         )
         variant.outputs.forEach { output ->
             val abi = output.filters
@@ -94,6 +112,8 @@ dependencies {
     implementation(libs.androidx.fragment)
 
     implementation(libs.google.android.material)
+    implementation(platform(libs.google.firebase.bom))
+    implementation(libs.google.firebase.messaging)
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)

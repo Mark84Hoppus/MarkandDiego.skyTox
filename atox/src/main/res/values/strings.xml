@@ -119,6 +119,7 @@
     <string name="pref_confirm_quitting">Confirm app quit</string>
     <string name="pref_confirm_calling">Confirm call</string>
     <string name="pref_language">Language</string>
+    <string name="pref_push_enabled">Receive Push (test)</string>
     <string name="pref_language_russian">Русский</string>
     <string name="pref_language_english">English</string>
     <string-array name="pref_language_options">

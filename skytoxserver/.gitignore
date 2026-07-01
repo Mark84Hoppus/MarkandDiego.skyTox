@@ -1,0 +1,6 @@
+.env
+serviceAccount.json
+google-services.json
+*.log
+logs/
+node_modules/

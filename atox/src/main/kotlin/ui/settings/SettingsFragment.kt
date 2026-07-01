@@ -119,6 +119,9 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
             vm.setTheme(it)
         }
 
+        settingPushEnabled.isChecked = vm.getPushEnabled()
+        settingPushEnabled.setOnCheckedChangeListener { _, isChecked -> vm.setPushEnabled(isChecked) }
+
         settingRunAtStartup.isChecked = vm.getRunAtStartup()
         settingRunAtStartup.setOnCheckedChangeListener { _, isChecked -> vm.setRunAtStartup(isChecked) }
 

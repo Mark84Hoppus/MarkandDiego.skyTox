@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import ltd.evilcorp.atox.R
+import ltd.evilcorp.atox.push.SkyToxPushManager
 import ltd.evilcorp.atox.settings.FtAutoAccept
 import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.atox.ui.NotificationHelper
@@ -68,6 +69,7 @@ class EventListenerCallbacks @Inject constructor(
     private val chatManager: ChatManager,
     private val fileTransferManager: FileTransferManager,
     private val avatarManager: SkyToxAvatarManager,
+    private val pushManager: SkyToxPushManager,
     private val notificationHelper: NotificationHelper,
     private val tox: Tox,
     private val settings: Settings,
@@ -102,6 +104,7 @@ class EventListenerCallbacks @Inject constructor(
             if (status != ConnectionStatus.None) {
                 fileTransferManager.resumeOutgoingForContact(publicKey)
                 avatarManager.syncWith(publicKey)
+                pushManager.shareOwnToken(PublicKey(publicKey))
                 scope.launch {
                     val pending = messageRepository.getPending(publicKey)
                     if (pending.isNotEmpty()) {
@@ -130,7 +133,9 @@ class EventListenerCallbacks @Inject constructor(
         }
 
         friendLosslessPacketHandler = { publicKey, data ->
-            SkyToxMessageTime.rememberIncomingMetadata(publicKey, data)
+            if (!pushManager.rememberFriendToken(publicKey, data)) {
+                SkyToxMessageTime.rememberIncomingMetadata(publicKey, data)
+            }
         }
 
         friendMessageHandler = { publicKey, type, timeDelta, msg ->

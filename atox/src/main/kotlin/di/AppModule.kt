@@ -9,7 +9,9 @@ import dagger.Module
 import dagger.Provides
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import ltd.evilcorp.atox.push.SkyToxPushManager
 import ltd.evilcorp.atox.tox.BootstrapNodeRegistryImpl
+import ltd.evilcorp.domain.feature.push.SkyToxPushGateway
 import ltd.evilcorp.domain.tox.AndroidSaveManager
 import ltd.evilcorp.domain.tox.BootstrapNodeRegistry
 import ltd.evilcorp.domain.tox.SaveManager
@@ -24,4 +26,7 @@ class AppModule {
 
     @Provides
     fun provideSaveManager(ctx: Context): SaveManager = AndroidSaveManager(ctx)
+
+    @Provides
+    fun provideSkyToxPushGateway(pushManager: SkyToxPushManager): SkyToxPushGateway = pushManager
 }

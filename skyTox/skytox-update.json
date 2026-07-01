@@ -1,7 +1,7 @@
 {
-    "versionName":  "0.8.5",
-    "versionCode":  190,
-    "apkUrl":  "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/download/v0.8.5/skyTox-0.8.5-universal-release-signed.apk",
-    "sha256":  "5d5fb3c0831c4091ca6fa28037f381dc57f3b01ad402bdd0ad512cb52e79d3d3",
-    "changelog":  "skyTox 0.8.5: export/import moved to its own bottom-menu screen, updater moved to Settings, and navigation polish."
+    "versionName":  "0.8.6",
+    "versionCode":  200,
+    "apkUrl":  "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/download/v0.8.6/skyTox-0.8.6-universal-release-signed.apk",
+    "sha256":  "ba88702f7edb11b518130100cdaf51146e6394357c015eb524fadadeb6aa542d",
+    "changelog":  "skyTox 0.8.6: experimental Push receive toggle and Firebase wake-up module for sleeping clients."
 }

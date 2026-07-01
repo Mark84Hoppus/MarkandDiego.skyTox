@@ -48,6 +48,10 @@ class Settings @Inject constructor(private val ctx: Context) {
         get() = preferences.getBoolean("udp_enabled", true)
         set(enabled) = preferences.edit { putBoolean("udp_enabled", enabled) }
 
+    var pushEnabled: Boolean
+        get() = preferences.getBoolean("push_enabled", false)
+        set(enabled) = preferences.edit { putBoolean("push_enabled", enabled) }
+
     var runAtStartup: Boolean
         get() = ctx.packageManager.getComponentEnabledSetting(
             ComponentName(ctx, BootReceiver::class.java),

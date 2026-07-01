@@ -20,6 +20,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ltd.evilcorp.atox.push.SkyToxPushManager
 import ltd.evilcorp.atox.settings.BootstrapNodeSource
 import ltd.evilcorp.atox.settings.FtAutoAccept
 import ltd.evilcorp.atox.settings.Settings
@@ -50,6 +51,7 @@ class SettingsViewModel @Inject constructor(
     private val tox: Tox,
     private val nodeParser: BootstrapNodeJsonParser,
     private val nodeRegistry: BootstrapNodeRegistry,
+    private val pushManager: SkyToxPushManager,
 ) : ViewModel() {
     private var restartNeeded = false
 
@@ -89,6 +91,14 @@ class SettingsViewModel @Inject constructor(
     fun getFtAutoAccept(): FtAutoAccept = settings.ftAutoAccept
     fun setFtAutoAccept(autoAccept: FtAutoAccept) {
         settings.ftAutoAccept = autoAccept
+    }
+
+    fun getPushEnabled(): Boolean = settings.pushEnabled
+    fun setPushEnabled(enabled: Boolean) {
+        settings.pushEnabled = enabled
+        if (enabled) {
+            pushManager.refreshTokenAndShare()
+        }
     }
 
     fun getUdpEnabled(): Boolean = settings.udpEnabled

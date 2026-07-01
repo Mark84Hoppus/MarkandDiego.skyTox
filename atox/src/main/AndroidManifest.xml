@@ -27,6 +27,7 @@
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
             android:roundIcon="@mipmap/ic_launcher_round"
+            android:usesCleartextTraffic="true"
             android:supportsRtl="true"
             android:theme="@style/AppTheme">
         <service android:name=".ToxService"
@@ -35,6 +36,14 @@
             <property
                     android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                     android:value="serverless peer-to-peer messaging" />
+        </service>
+
+        <service
+                android:name=".push.SkyToxFirebaseMessagingService"
+                android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
+            </intent-filter>
         </service>
 
         <receiver android:name=".BootReceiver" android:enabled="true" android:exported="false">

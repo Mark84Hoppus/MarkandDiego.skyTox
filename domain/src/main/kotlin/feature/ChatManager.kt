@@ -20,6 +20,7 @@ import ltd.evilcorp.core.vo.MessageType
 import ltd.evilcorp.core.vo.PublicKey
 import ltd.evilcorp.core.vo.Sender
 import ltd.evilcorp.domain.feature.skymeta.SkyToxMessageTime
+import ltd.evilcorp.domain.feature.push.SkyToxPushGateway
 import ltd.evilcorp.domain.tox.MAX_MESSAGE_LENGTH
 import ltd.evilcorp.domain.tox.Tox
 
@@ -47,6 +48,7 @@ class ChatManager @Inject constructor(
     private val contactRepository: ContactRepository,
     private val messageRepository: MessageRepository,
     private val tox: Tox,
+    private val pushGateway: SkyToxPushGateway,
 ) {
     var activeChat = ""
         set(value) {
@@ -63,6 +65,7 @@ class ChatManager @Inject constructor(
     fun sendMessage(publicKey: PublicKey, message: String, type: MessageType = MessageType.Normal) = scope.launch {
         val sentAt = SkyToxMessageTime.outgoingTimestamp()
         if (contactRepository.get(publicKey.string()).first().connectionStatus == ConnectionStatus.None) {
+            pushGateway.wake(publicKey)
             queueMessage(publicKey, message, type, sentAt)
             return@launch
         }

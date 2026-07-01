@@ -12,6 +12,7 @@ import im.tox.tox4j.core.exceptions.ToxNewException
 import im.tox.tox4j.crypto.exceptions.ToxDecryptionException
 import javax.inject.Inject
 import ltd.evilcorp.atox.ToxService
+import ltd.evilcorp.atox.push.SkyToxPushManager
 import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.core.vo.PublicKey
 import ltd.evilcorp.domain.feature.FileTransferManager
@@ -36,6 +37,7 @@ class ToxStarter @Inject constructor(
     private val avEventListener: ToxAvEventListener,
     private val context: Context,
     private val settings: Settings,
+    private val pushManager: SkyToxPushManager,
 ) {
     fun startTox(save: ByteArray? = null, password: String? = null): ToxSaveStatus {
         listenerCallbacks.setUp(eventListener)
@@ -55,6 +57,7 @@ class ToxStarter @Inject constructor(
 
         // This can stay alive across core restarts and it doesn't work well when toxcore resets its numbers
         fileTransferManager.reset()
+        pushManager.refreshTokenAndShare()
         startService()
         return ToxSaveStatus.Ok
     }

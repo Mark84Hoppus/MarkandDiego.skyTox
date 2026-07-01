@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "598515859188",
+    "project_id": "skytox-8af16",
+    "storage_bucket": "skytox-8af16.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:598515859188:android:c0eb112ca8530d5d2c28a1",
+        "android_client_info": {
+          "package_name": "markanddiego.skytox"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhhQhe4QjcX6x1_E4B2OVdBOp2eKcnEPs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

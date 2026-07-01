@@ -13,6 +13,7 @@ import ltd.evilcorp.atox.BootReceiver
 import ltd.evilcorp.atox.MainActivity
 import ltd.evilcorp.atox.ToxService
 import ltd.evilcorp.atox.ToxKeepAliveWorker
+import ltd.evilcorp.atox.push.SkyToxFirebaseMessagingService
 
 @Singleton
 @Component(
@@ -35,4 +36,5 @@ interface AppComponent {
     fun inject(worker: ToxKeepAliveWorker)
     fun inject(receiver: BootReceiver)
     fun inject(receiver: ActionReceiver)
+    fun inject(service: SkyToxFirebaseMessagingService)
 }
