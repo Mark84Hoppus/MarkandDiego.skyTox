@@ -84,10 +84,10 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
         val abiVersionCodes = mapOf(
-            "armeabi-v7a" to 201,
-            "arm64-v8a" to 202,
-            "x86" to 203,
-            "x86_64" to 204,
+            "armeabi-v7a" to 207,
+            "arm64-v8a" to 208,
+            "x86" to 209,
+            "x86_64" to 210,
         )
         variant.outputs.forEach { output ->
             val abi = output.filters
