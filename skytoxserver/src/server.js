@@ -42,6 +42,10 @@ const recentRequests = new Map();
 const RATE_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_PER_TOKEN = 10;
 
+function log(message) {
+  console.log(`${new Date().toISOString()} ${message}`);
+}
+
 function pruneRateLimit(now) {
   for (const [key, value] of recentRequests.entries()) {
     if (value.resetAt <= now) {
@@ -81,17 +85,24 @@ app.get("/health", (req, res) => {
 app.post("/push", requireApiKey, async (req, res) => {
   const token = typeof req.body?.token === "string" ? req.body.token.trim() : "";
   const reason = typeof req.body?.reason === "string" ? req.body.reason.trim().slice(0, 32) : "wake";
+  const remote = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown";
 
   if (token.length < 20 || token.length > 4096) {
+    log(`push rejected invalid_token remote=${remote}`);
     return res.status(400).json({ ok: false, error: "invalid_token" });
   }
 
   if (!checkRateLimit(token)) {
+    log(`push rejected rate_limited remote=${remote} tokenPrefix=${token.slice(0, 12)}`);
     return res.status(429).json({ ok: false, error: "rate_limited" });
   }
 
   const message = {
     token,
+    notification: {
+      title: "skyTox",
+      body: "Новое сообщение",
+    },
     data: {
       type: "skytox_wakeup",
       reason,
@@ -100,19 +111,24 @@ app.post("/push", requireApiKey, async (req, res) => {
     android: {
       priority: "high",
       restrictedPackageName: packageName,
+      notification: {
+        title: "skyTox",
+        body: "Новое сообщение",
+      },
     },
   };
 
   if (dryRun) {
-    console.log(`DRY RUN push accepted: reason=${reason}, tokenPrefix=${token.slice(0, 12)}`);
+    log(`DRY RUN push accepted remote=${remote} reason=${reason} tokenPrefix=${token.slice(0, 12)}`);
     return res.json({ ok: true, dryRun: true, id: `dry-run-${Date.now()}` });
   }
 
   try {
     const id = await admin.messaging().send(message);
+    log(`push sent remote=${remote} reason=${reason} tokenPrefix=${token.slice(0, 12)} id=${id}`);
     return res.json({ ok: true, id });
   } catch (error) {
-    console.error("FCM send failed:", error.code || error.message);
+    log(`push failed remote=${remote} reason=${reason} tokenPrefix=${token.slice(0, 12)} code=${error.code || "unknown"} message=${error.message}`);
     return res.status(502).json({
       ok: false,
       error: "fcm_send_failed",
@@ -126,8 +142,8 @@ app.use((req, res) => {
 });
 
 app.listen(port, host, () => {
-  console.log(`skyTox push server listening on http://${host}:${port}`);
+  log(`skyTox push server listening on http://${host}:${port}`);
   if (dryRun) {
-    console.log("DRY RUN mode is enabled. No Firebase messages will be sent.");
+    log("DRY RUN mode is enabled. No Firebase messages will be sent.");
   }
 });
