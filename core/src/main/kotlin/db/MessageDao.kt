@@ -24,7 +24,7 @@ interface MessageDao {
 
     @Query(
         "SELECT * FROM messages " +
-            "WHERE conversation == :conversation AND (correlation_id == :pendingCorrelationId OR timestamp == 0)",
+            "WHERE conversation == :conversation AND correlation_id == :pendingCorrelationId",
     )
     fun loadPending(conversation: String, pendingCorrelationId: Int = Int.MIN_VALUE): List<Message>
 

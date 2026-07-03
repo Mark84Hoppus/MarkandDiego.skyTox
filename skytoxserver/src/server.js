@@ -99,10 +99,6 @@ app.post("/push", requireApiKey, async (req, res) => {
 
   const message = {
     token,
-    notification: {
-      title: "skyTox",
-      body: "Новое сообщение",
-    },
     data: {
       type: "skytox_wakeup",
       reason,
@@ -111,10 +107,6 @@ app.post("/push", requireApiKey, async (req, res) => {
     android: {
       priority: "high",
       restrictedPackageName: packageName,
-      notification: {
-        title: "skyTox",
-        body: "Новое сообщение",
-      },
     },
   };
 
