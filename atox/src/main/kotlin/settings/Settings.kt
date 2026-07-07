@@ -27,6 +27,11 @@ enum class BootstrapNodeSource {
     UserProvided,
 }
 
+enum class PushMode {
+    Default,
+    GoogleWakeOnly,
+}
+
 class Settings @Inject constructor(private val ctx: Context) {
     private val preferences = PreferenceManager.getDefaultSharedPreferences(ctx)
 
@@ -48,9 +53,12 @@ class Settings @Inject constructor(private val ctx: Context) {
         get() = preferences.getBoolean("udp_enabled", true)
         set(enabled) = preferences.edit { putBoolean("udp_enabled", enabled) }
 
-    var pushEnabled: Boolean
-        get() = preferences.getBoolean("push_enabled", false)
-        set(enabled) = preferences.edit { putBoolean("push_enabled", enabled) }
+    var pushMode: PushMode
+        get() = PushMode.entries[preferences.getInt("push_mode", PushMode.Default.ordinal)]
+        set(mode) = preferences.edit { putInt("push_mode", mode.ordinal) }
+
+    val googleWakePushEnabled: Boolean
+        get() = pushMode == PushMode.GoogleWakeOnly
 
     var runAtStartup: Boolean
         get() = ctx.packageManager.getComponentEnabledSetting(

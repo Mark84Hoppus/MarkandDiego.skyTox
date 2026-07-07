@@ -1,7 +1,8 @@
 {
-    "versionName":  "0.8.6",
-    "versionCode":  200,
-    "apkUrl":  "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/download/v0.8.6/skyTox-0.8.6-universal-release-signed.apk",
-    "sha256":  "ba88702f7edb11b518130100cdaf51146e6394357c015eb524fadadeb6aa542d",
-    "changelog":  "skyTox 0.8.6: experimental Push receive toggle and Firebase wake-up module for sleeping clients."
+    "versionName":  "0.8.11",
+    "versionCode":  221,
+    "apkUrl":  "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/latest/download/skyTox-0.8.11-universal-release-signed.apk",
+    "sha256":  "6469d90a004974a1671aefd4b5454051b4d4b578454d5fc2fdcad4f4d94b4c6b",
+    "size":  45522186,
+    "notes":  "Emergency stable rollback to 0.8.5 base with skyTox message-time sync and safe Google Push wake-only mode."
 }

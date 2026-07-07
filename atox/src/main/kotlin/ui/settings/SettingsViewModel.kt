@@ -23,6 +23,7 @@ import kotlinx.coroutines.withContext
 import ltd.evilcorp.atox.push.SkyToxPushManager
 import ltd.evilcorp.atox.settings.BootstrapNodeSource
 import ltd.evilcorp.atox.settings.FtAutoAccept
+import ltd.evilcorp.atox.settings.PushMode
 import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.atox.tox.ToxStarter
 import ltd.evilcorp.domain.tox.BootstrapNodeJsonParser
@@ -93,10 +94,10 @@ class SettingsViewModel @Inject constructor(
         settings.ftAutoAccept = autoAccept
     }
 
-    fun getPushEnabled(): Boolean = settings.pushEnabled
-    fun setPushEnabled(enabled: Boolean) {
-        settings.pushEnabled = enabled
-        if (enabled) {
+    fun getPushMode(): PushMode = settings.pushMode
+    fun setPushMode(mode: PushMode) {
+        settings.pushMode = mode
+        if (mode == PushMode.GoogleWakeOnly) {
             pushManager.refreshTokenAndShare()
         }
     }

@@ -11,9 +11,9 @@ import javax.inject.Singleton
 import ltd.evilcorp.atox.ActionReceiver
 import ltd.evilcorp.atox.BootReceiver
 import ltd.evilcorp.atox.MainActivity
+import ltd.evilcorp.atox.push.SkyToxFirebaseMessagingService
 import ltd.evilcorp.atox.ToxService
 import ltd.evilcorp.atox.ToxKeepAliveWorker
-import ltd.evilcorp.atox.push.SkyToxFirebaseMessagingService
 
 @Singleton
 @Component(

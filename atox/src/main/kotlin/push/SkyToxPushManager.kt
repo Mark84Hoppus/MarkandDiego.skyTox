@@ -44,7 +44,7 @@ class SkyToxPushManager @Inject constructor(
     private val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     override fun refreshTokenAndShare() {
-        if (!settings.pushEnabled) return
+        if (!settings.googleWakePushEnabled) return
 
         FirebaseMessaging.getInstance().token
             .addOnSuccessListener { token ->
@@ -62,7 +62,7 @@ class SkyToxPushManager @Inject constructor(
     }
 
     override fun shareOwnToken(publicKey: PublicKey) {
-        if (!settings.pushEnabled || !tox.started) return
+        if (!settings.googleWakePushEnabled || !tox.started) return
         val token = prefs.getString(OWN_TOKEN, null) ?: return
         val packet = packetFor(token) ?: return
         tox.sendLosslessPacket(publicKey, packet)
@@ -75,7 +75,7 @@ class SkyToxPushManager @Inject constructor(
     }
 
     override fun wake(publicKey: PublicKey, reason: String) {
-        if (!settings.pushEnabled) return
+        if (!settings.googleWakePushEnabled) return
         val token = prefs.getString(FRIEND_TOKEN_PREFIX + publicKey.string(), null) ?: return
         val serverUrl = BuildConfig.SKYTOX_PUSH_SERVER_URL
         val apiKey = BuildConfig.SKYTOX_PUSH_API_KEY
@@ -91,7 +91,7 @@ class SkyToxPushManager @Inject constructor(
     }
 
     private fun shareOwnTokenWithOnlineContacts() {
-        if (!settings.pushEnabled || !tox.started) return
+        if (!settings.googleWakePushEnabled || !tox.started) return
 
         scope.launch {
             contacts.getAll().first()

@@ -33,6 +33,7 @@ import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.databinding.FragmentSettingsBinding
 import ltd.evilcorp.atox.settings.BootstrapNodeSource
 import ltd.evilcorp.atox.settings.FtAutoAccept
+import ltd.evilcorp.atox.settings.PushMode
 import ltd.evilcorp.atox.ui.BaseFragment
 import ltd.evilcorp.atox.ui.updater.SkyToxUpdater
 import ltd.evilcorp.atox.vmFactory
@@ -119,8 +120,16 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
             vm.setTheme(it)
         }
 
-        settingPushEnabled.isChecked = vm.getPushEnabled()
-        settingPushEnabled.setOnCheckedChangeListener { _, isChecked -> vm.setPushEnabled(isChecked) }
+        settingPushMode.adapter = ArrayAdapter.createFromResource(
+            requireContext(),
+            R.array.pref_push_mode_options,
+            android.R.layout.simple_spinner_item,
+        ).apply { setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+
+        settingPushMode.setSelection(vm.getPushMode().ordinal)
+        settingPushMode.onItemSelectedListener {
+            vm.setPushMode(PushMode.entries[it])
+        }
 
         settingRunAtStartup.isChecked = vm.getRunAtStartup()
         settingRunAtStartup.setOnCheckedChangeListener { _, isChecked -> vm.setRunAtStartup(isChecked) }

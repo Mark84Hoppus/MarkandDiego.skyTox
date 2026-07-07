@@ -19,8 +19,8 @@ import ltd.evilcorp.core.vo.Message
 import ltd.evilcorp.core.vo.MessageType
 import ltd.evilcorp.core.vo.PublicKey
 import ltd.evilcorp.core.vo.Sender
-import ltd.evilcorp.domain.feature.skymeta.SkyToxMessageTime
 import ltd.evilcorp.domain.feature.push.SkyToxPushGateway
+import ltd.evilcorp.domain.feature.skymeta.SkyToxMessageTime
 import ltd.evilcorp.domain.tox.MAX_MESSAGE_LENGTH
 import ltd.evilcorp.domain.tox.Tox
 

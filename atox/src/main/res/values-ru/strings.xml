@@ -187,7 +187,13 @@
     <string name="import_text_chat_wrong_contact">Импорт не выполнен: эта резервная копия относится к другому контакту</string>
     <string name="import_text_chat_missing_contact">Импорт не выполнен: один или несколько контактов из резервной копии отсутствуют</string>
     <string name="pref_language">Язык</string>
-    <string name="pref_push_enabled">Принимать Push (тест)</string>
+    <string name="pref_push_mode">Режим Push</string>
+    <string name="pref_push_mode_default">По умолчанию</string>
+    <string name="pref_push_mode_google_wake">Только Push от Google</string>
+    <string-array name="pref_push_mode_options">
+        <item>@string/pref_push_mode_default</item>
+        <item>@string/pref_push_mode_google_wake</item>
+    </string-array>
     <string name="pref_language_russian">Русский</string>
     <string name="pref_language_english">English</string>
     <string-array name="pref_language_options">

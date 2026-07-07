@@ -14,7 +14,6 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.media.MediaMetadataRetriever
 import android.net.Uri
-import android.os.Build
 import android.os.Environment
 import android.provider.OpenableColumns
 import android.util.Log
@@ -685,29 +684,15 @@ class FileTransferManager @Inject constructor(
     }
 
     private inner class AtoxStorage {
-        private val canUsePublicFolders: Boolean
-            get() = Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment.isExternalStorageManager()
-
-        val rootDir: File
-            get() = if (canUsePublicFolders) {
-                SkyToxPublicFolders.root
-            } else {
-                File(context.getExternalFilesDir(null) ?: context.filesDir, "skyTox files")
-            }
-
-        private val imageDir get() = childDir(SkyToxPublicFolders.imageDir, "skyTox image")
-        private val videoDir get() = childDir(SkyToxPublicFolders.videoDir, "skyTox video")
-        private val recorderDir get() = childDir(SkyToxPublicFolders.recorderDir, "skyTox recorder")
-        private val documentDir get() = childDir(SkyToxPublicFolders.documentDir, "skyTox documents")
-        private val thumbDir get() = childDir(SkyToxPublicFolders.thumbDir, "skyTox thumbs")
+        val rootDir get() = SkyToxPublicFolders.root
+        private val imageDir get() = SkyToxPublicFolders.imageDir
+        private val videoDir get() = SkyToxPublicFolders.videoDir
+        private val recorderDir get() = SkyToxPublicFolders.recorderDir
+        private val documentDir get() = SkyToxPublicFolders.documentDir
+        private val thumbDir get() = SkyToxPublicFolders.thumbDir
 
         fun ensureDirectories() {
-            listOf(rootDir, imageDir, videoDir, recorderDir, documentDir, thumbDir)
-                .forEach { dir ->
-                    if (!dir.exists() && !dir.mkdirs()) {
-                        Log.w(TAG, "Unable to create storage directory: ${dir.absolutePath}")
-                    }
-                }
+            SkyToxPublicFolders.ensureDirectories()
         }
 
         fun destinationFor(ft: FileTransfer): Uri {
@@ -773,9 +758,6 @@ class FileTransferManager @Inject constructor(
                 }
             }
         }
-
-        private fun childDir(publicDir: File, fallbackName: String): File =
-            if (canUsePublicFolders) publicDir else File(rootDir, fallbackName)
     }
 
     private fun guessMime(fileName: String) =

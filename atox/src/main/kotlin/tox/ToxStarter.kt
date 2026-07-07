@@ -11,8 +11,8 @@ import android.util.Log
 import im.tox.tox4j.core.exceptions.ToxNewException
 import im.tox.tox4j.crypto.exceptions.ToxDecryptionException
 import javax.inject.Inject
-import ltd.evilcorp.atox.ToxService
 import ltd.evilcorp.atox.push.SkyToxPushManager
+import ltd.evilcorp.atox.ToxService
 import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.core.vo.PublicKey
 import ltd.evilcorp.domain.feature.FileTransferManager

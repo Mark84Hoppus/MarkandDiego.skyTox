@@ -34,7 +34,7 @@ class SkyToxFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
-        if (!settings.pushEnabled) return
+        if (!settings.googleWakePushEnabled) return
         if (message.data["type"] != "skytox_wakeup") return
 
         when (toxStarter.ensureToxServiceRunning()) {
