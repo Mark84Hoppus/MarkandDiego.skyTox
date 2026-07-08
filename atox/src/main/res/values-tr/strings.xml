@@ -80,7 +80,7 @@
     <string name="profile_information">Profil bilgisi</string>
     <string name="or_import_existing_save">veya zaten var olan Tox kaydı olarak içeri al</string>
     <string name="send_as_action">İşlem olarak gönder</string>
-    <string name="pref_bootstrap_nodes_description">Kullanıcı tarafından sağlanan JSON dosyaları https://nodes.tox.chat/json ile aynı şekli sağlamalıdır</string>
+    <string name="pref_bootstrap_nodes_description">Kullanıcı tarafından sağlanan JSON dosyaları https://nodes.tox.st/json ile aynı şekli sağlamalıdır</string>
     <string name="pref_bootstrap_node_user_provided">Kullanıcı-Tanımlı</string>
     <string name="pref_bootstrap_node_builtin">Var-olan</string>
     <string name="pref_heading_bootstrap_nodes">Bootstrap kaynak noktası</string>

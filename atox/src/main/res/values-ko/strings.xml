@@ -55,7 +55,7 @@
     <string name="pref_proxy_type_http">HTTP</string>
     <string name="pref_proxy_type_socks5">SOCKS5</string>
     <string name="pref_bootstrap_node_user_provided">사용자 제공</string>
-    <string name="pref_bootstrap_nodes_description">사용자 제공 JSON 파일은 https://nodes.tox.chat/json 과 동일한 형식이어야 함</string>
+    <string name="pref_bootstrap_nodes_description">사용자 제공 JSON 파일은 https://nodes.tox.st/json 과 동일한 형식이어야 함</string>
     <string name="send_as_action">액션 보내기</string>
     <string name="or_import_existing_save">또는 기존 Tox 저장 가져오기</string>
     <string name="profile_information">프로필 정보</string>

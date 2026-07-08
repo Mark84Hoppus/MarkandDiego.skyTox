@@ -128,7 +128,7 @@
     <string name="save_as">Mentés másként…</string>
     <string name="notification_file_transfer">Bejövő fájlátvitel: „%1$s”</string>
     <string name="friend_request">Ismerősjelölés</string>
-    <string name="pref_bootstrap_nodes_description">A felhasználó által megadott JSON-fájloknak ugyanabban a formátumban kell lenniük, mint a https://nodes.tox.chat/json oldalon</string>
+    <string name="pref_bootstrap_nodes_description">A felhasználó által megadott JSON-fájloknak ugyanabban a formátumban kell lenniük, mint a https://nodes.tox.st/json oldalon</string>
     <string name="or_import_existing_save">vagy importáljon egy meglévő Tox-mentést</string>
     <string name="cancelled">Megszakítva</string>
     <string name="completed">Befejeződött</string>

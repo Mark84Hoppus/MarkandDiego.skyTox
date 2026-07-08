@@ -69,7 +69,7 @@
     <string name="pref_heading_bootstrap_nodes">Burimi i nyjes Bootstrap</string>
     <string name="pref_bootstrap_node_builtin">I integruar</string>
     <string name="pref_bootstrap_node_user_provided">Ofrohet nga përdoruesi</string>
-    <string name="pref_bootstrap_nodes_description">Skedarët JSON të ofruar nga përdoruesi duhet të kenë të njëjtin format si në https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">Skedarët JSON të ofruar nga përdoruesi duhet të kenë të njëjtin format si në https://nodes.tox.st/json</string>
     <string name="send_as_action">Dërgo si veprim</string>
     <string name="or_import_existing_save">ose importoni një ruajtje ekzistuese të toksikologjisë</string>
     <string name="profile_information">Informacioni i profilit</string>

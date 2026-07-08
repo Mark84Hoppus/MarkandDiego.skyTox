@@ -55,7 +55,7 @@
     <string name="pref_heading_bootstrap_nodes">Zdroj uzlu bootstrapu</string>
     <string name="pref_bootstrap_node_builtin">Vestavěný</string>
     <string name="pref_bootstrap_node_user_provided">Vlastní</string>
-    <string name="pref_bootstrap_nodes_description">Uživatelem poskytnutý soubor JSON musí mít stejný formát jako na https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">Uživatelem poskytnutý soubor JSON musí mít stejný formát jako na https://nodes.tox.st/json</string>
     <string name="or_import_existing_save">nebo import existujícího uložení Toxu</string>
     <string name="send_as_action">Odeslat oznámení o činnosti</string>
     <string name="profile_information">Informace o profilu</string>

@@ -139,23 +139,27 @@ class EventListenerCallbacks @Inject constructor(
         }
 
         friendMessageHandler = { publicKey, type, timeDelta, msg ->
-            messageRepository.add(
-                Message(
-                    publicKey,
-                    msg,
-                    Sender.Received,
-                    type.toMessageType(),
-                    Int.MIN_VALUE,
-                    SkyToxMessageTime.incomingTimestamp(publicKey, msg, Date().time, timeDelta),
-                ),
-            )
+            if (SkyToxIncomingTextSanitizer.shouldIgnore(msg)) {
+                Log.w(TAG, "Ignoring unsupported noisy text payload from ${publicKey.fingerprint()}")
+            } else {
+                messageRepository.add(
+                    Message(
+                        publicKey,
+                        msg,
+                        Sender.Received,
+                        type.toMessageType(),
+                        Int.MIN_VALUE,
+                        SkyToxMessageTime.incomingTimestamp(publicKey, msg, Date().time, timeDelta),
+                    ),
+                )
 
-            if (chatManager.activeChat != publicKey) {
-                scope.launch {
-                    val contact = tryGetContact(publicKey, "Message") ?: return@launch
-                    notifyMessage(contact, msg)
+                if (chatManager.activeChat != publicKey) {
+                    scope.launch {
+                        val contact = tryGetContact(publicKey, "Message") ?: return@launch
+                        notifyMessage(contact, msg)
+                    }
+                    contactRepository.setHasUnreadMessages(publicKey, true)
                 }
-                contactRepository.setHasUnreadMessages(publicKey, true)
             }
         }
 

@@ -63,7 +63,7 @@
     <string name="pref_heading_bootstrap_nodes">Източник начални възли</string>
     <string name="pref_bootstrap_node_builtin">Вградени</string>
     <string name="pref_bootstrap_node_user_provided">Потребителски</string>
-    <string name="pref_bootstrap_nodes_description">Потребителските файлове с JSON трябва да имат структура като тази https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">Потребителските файлове с JSON трябва да имат структура като тази https://nodes.tox.st/json</string>
     <string name="send_as_action">Изпращане като действие</string>
     <string name="or_import_existing_save">или внесете запазен профил на Tox</string>
     <string name="profile_information">Сведения за профила</string>

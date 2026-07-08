@@ -63,7 +63,7 @@
     <string name="profile_information">配置文件信息</string>
     <string name="or_import_existing_save">或导入现有的 Tox 存档</string>
     <string name="send_as_action">作为操作发送</string>
-    <string name="pref_bootstrap_nodes_description">用户提供的 JSON 文件必须与 https://nodes.tox.chat/json 具有相同的格式</string>
+    <string name="pref_bootstrap_nodes_description">用户提供的 JSON 文件必须与 https://nodes.tox.st/json 具有相同的格式</string>
     <string name="pref_heading_bootstrap_nodes">引导节点源</string>
     <string name="pref_heading_advanced">进阶</string>
     <string name="pref_heading_type">类型</string>

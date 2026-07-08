@@ -32,6 +32,13 @@ enum class PushMode {
     GoogleWakeOnly,
 }
 
+enum class AppLockMode {
+    None,
+    Fingerprint,
+    Pin,
+    Pattern,
+}
+
 class Settings @Inject constructor(private val ctx: Context) {
     private val preferences = PreferenceManager.getDefaultSharedPreferences(ctx)
 
@@ -59,6 +66,10 @@ class Settings @Inject constructor(private val ctx: Context) {
 
     val googleWakePushEnabled: Boolean
         get() = pushMode == PushMode.GoogleWakeOnly
+
+    var appLockMode: AppLockMode
+        get() = AppLockMode.entries[preferences.getInt("app_lock_mode", AppLockMode.None.ordinal)]
+        set(mode) = preferences.edit { putInt("app_lock_mode", mode.ordinal) }
 
     var runAtStartup: Boolean
         get() = ctx.packageManager.getComponentEnabledSetting(

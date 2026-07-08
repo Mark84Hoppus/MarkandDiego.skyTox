@@ -82,7 +82,7 @@
     <string name="pref_heading_network">Netiweki</string>
     <string name="pref_heading_general">Chilichose</string>
     <string name="pref_bootstrap_node_builtin">Chomangindwa mkati</string>
-    <string name="pref_bootstrap_nodes_description">Wongwilisa ntchito- wapasindwa JSON fayelo pafunika yifanane ndi https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">Wongwilisa ntchito- wapasindwa JSON fayelo pafunika yifanane ndi https://nodes.tox.st/json</string>
     <string name="profile_information">Zinthu zamweniwake</string>
     <string name="profile_settings">Posithila zithu za mweniwake</string>
     <string name="profile">Uthenga</string>

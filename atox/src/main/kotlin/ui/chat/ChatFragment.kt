@@ -17,6 +17,8 @@ import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.ContextMenu
 import android.view.MenuItem
@@ -92,12 +94,18 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private var voiceRecordingStartedAt = 0L
     private var audioPlayer: MediaPlayer? = null
     private var playingAudioId: Int = Int.MIN_VALUE
+    private val voiceTimer = Handler(Looper.getMainLooper())
+    private val audioProgressTimer = Handler(Looper.getMainLooper())
+    private var startAfterMicPermission = false
 
     private val requestRecordAudioLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
         if (!granted) {
             Toast.makeText(requireContext(), getString(R.string.call_mic_permission_needed), Toast.LENGTH_LONG).show()
+        } else if (startAfterMicPermission) {
+            startAfterMicPermission = false
+            startVoiceRecording()
         }
     }
 
@@ -317,6 +325,9 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         ongoingCall.info.setOnClickListener { navigateToCallScreen() }
 
         val adapter = ChatAdapter(layoutInflater, resources)
+        adapter.onFileTransferLongClick = { anchor, position ->
+            showMessageContextMenu(anchor, adapter.messages[position], adapter)
+        }
         messages.adapter = adapter
         viewModel.messages.observe(viewLifecycleOwner) {
             adapter.messages = it
@@ -387,23 +398,17 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             attachFilesLauncher.launch(arrayOf("*/*"))
         }
 
-        voiceMessage.setOnTouchListener { _, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    WindowInsetsControllerCompat(requireActivity().window, view).hide(WindowInsetsCompat.Type.ime())
-                    startVoiceRecording()
-                    true
-                }
-                MotionEvent.ACTION_UP -> {
-                    stopVoiceRecording(send = true)
-                    true
-                }
-                MotionEvent.ACTION_CANCEL -> {
-                    stopVoiceRecording(send = false)
-                    true
-                }
-                else -> false
+        voiceMessage.setOnClickListener {
+            WindowInsetsControllerCompat(requireActivity().window, view).hide(WindowInsetsCompat.Type.ime())
+            if (voiceRecorder == null) {
+                startVoiceRecording()
+            } else {
+                stopVoiceRecording(send = true)
             }
+        }
+        voiceMessage.setOnLongClickListener {
+            stopVoiceRecording(send = false)
+            true
         }
 
         outgoingMessage.doAfterTextChanged {
@@ -636,6 +641,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         if (voiceRecorder != null) return
         if (!viewModel.contactOnline) return
         if (!requireContext().hasPermission(PERMISSION_RECORD_AUDIO)) {
+            startAfterMicPermission = true
             requestRecordAudioLauncher.launch(PERMISSION_RECORD_AUDIO)
             return
         }
@@ -656,6 +662,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             }
             voiceRecordingFile = file
             voiceRecordingStartedAt = System.currentTimeMillis()
+            startVoiceTimer()
             updateActions()
         } catch (e: Exception) {
             Log.e(TAG, "Unable to start voice recording\n$e")
@@ -681,6 +688,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             .onFailure { Log.e(TAG, "Unable to stop voice recording\n$it") }
             .isSuccess
         recorder.release()
+        stopVoiceTimer()
 
         if (send && stopped && duration >= MIN_VOICE_MESSAGE_DURATION_MS && file != null && file.length() > 0L &&
             viewModel.contactOnline
@@ -710,8 +718,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                 prepare()
                 start()
                 playingAudioId = id
-                (binding.messages.adapter as? ChatAdapter)?.playingAudioId = playingAudioId
-                (binding.messages.adapter as? ChatAdapter)?.notifyDataSetChanged()
+                startAudioProgressTimer()
             } catch (e: Exception) {
                 Log.e(TAG, "Unable to play audio message\n$e")
                 release()
@@ -727,11 +734,51 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     }
 
     private fun stopAudioPlayback() {
+        audioProgressTimer.removeCallbacksAndMessages(null)
         audioPlayer?.release()
         audioPlayer = null
         playingAudioId = Int.MIN_VALUE
-        (binding.messages.adapter as? ChatAdapter)?.playingAudioId = playingAudioId
-        (binding.messages.adapter as? ChatAdapter)?.notifyDataSetChanged()
+        (binding.messages.adapter as? ChatAdapter)?.apply {
+            playingAudioId = Int.MIN_VALUE
+            playingAudioProgress = 0f
+            notifyDataSetChanged()
+        }
+    }
+
+    private fun startVoiceTimer() {
+        voiceTimer.removeCallbacksAndMessages(null)
+        binding.voiceRecordingTimer.visibility = View.VISIBLE
+        val tick = object : Runnable {
+            override fun run() {
+                val elapsed = ((System.currentTimeMillis() - voiceRecordingStartedAt) / 1000).coerceAtLeast(0)
+                val text = "%02d:%02d".format(elapsed / 60, elapsed % 60)
+                binding.voiceRecordingTimer.text = getString(R.string.voice_recording, text)
+                voiceTimer.postDelayed(this, 500)
+            }
+        }
+        voiceTimer.post(tick)
+    }
+
+    private fun stopVoiceTimer() {
+        voiceTimer.removeCallbacksAndMessages(null)
+        binding.voiceRecordingTimer.visibility = View.GONE
+    }
+
+    private fun startAudioProgressTimer() {
+        audioProgressTimer.removeCallbacksAndMessages(null)
+        val tick = object : Runnable {
+            override fun run() {
+                val player = audioPlayer ?: return
+                val duration = player.duration.takeIf { it > 0 } ?: 1
+                (binding.messages.adapter as? ChatAdapter)?.apply {
+                    playingAudioId = this@ChatFragment.playingAudioId
+                    playingAudioProgress = player.currentPosition.toFloat() / duration.toFloat()
+                    notifyDataSetChanged()
+                }
+                audioProgressTimer.postDelayed(this, 250)
+            }
+        }
+        audioProgressTimer.post(tick)
     }
 
     private fun updateActions() = binding.run {
@@ -750,7 +797,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             ContextCompat.getColor(
                 requireContext(),
                 when {
-                    voiceRecorder != null -> android.R.color.holo_red_light
+                    voiceRecorder != null -> android.R.color.holo_green_light
                     voiceMessage.isEnabled -> android.R.color.white
                     else -> android.R.color.darker_gray
                 },

@@ -59,7 +59,7 @@
     <string name="pref_bootstrap_node_user_provided">பயனர் வழங்கிய</string>
     <string name="send_as_action">செயலாக அனுப்பவும்</string>
     <string name="or_import_existing_save">அல்லது ஏற்கனவே உள்ள டக்ச் சேமிக்க இறக்குமதி செய்யுங்கள்</string>
-    <string name="pref_bootstrap_nodes_description">பயனர் வழங்கிய சாதொபொகு கோப்புகள் https://nodes.tox.chat/json இல் உள்ள அதே வடிவத்தைக் கொண்டிருக்க வேண்டும்</string>
+    <string name="pref_bootstrap_nodes_description">பயனர் வழங்கிய சாதொபொகு கோப்புகள் https://nodes.tox.st/json இல் உள்ள அதே வடிவத்தைக் கொண்டிருக்க வேண்டும்</string>
     <string name="profile_information">சுயவிவர செய்தி</string>
     <string name="profile_settings">சுயவிவர அமைப்புகள்</string>
     <string name="profile_nickname">உங்கள் புனைப்பெயரை மாற்றவும்</string>

@@ -63,7 +63,7 @@
     <string name="pref_proxy_type_socks5">SOCKS5</string>
     <string name="pref_heading_advanced">מתקדם</string>
     <string name="pref_heading_bootstrap_nodes">מקור חוליות אתחול</string>
-    <string name="pref_bootstrap_nodes_description">קובצי JSON המסופקים על ידי המשתמש חייבים להיות באותו פורמט כמו ב - https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">קובצי JSON המסופקים על ידי המשתמש חייבים להיות באותו פורמט כמו ב - https://nodes.tox.st/json</string>
     <string name="pref_block_screenshots_description">זה **רק** חוסם צילומי מסך במכשיר **שלך**, ואינו מספק הגנה מפני צילומי מסך על ידי אנשי הקשר שלך או שמירת השיחות שלך בדרך אחרת</string>
     <string name="profile_status">שנה את הסטטוס שלך</string>
     <string name="pref_ft_auto_accept_images">תמונות</string>

@@ -65,7 +65,7 @@
     <string name="pref_heading_address">Vistfang</string>
     <string name="pref_proxy_type_none">Nei</string>
     <string name="pref_proxy_type_http">HTTP</string>
-    <string name="pref_bootstrap_nodes_description">JSON skrár frá notanda verða að hafa sama snið og á https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">JSON skrár frá notanda verða að hafa sama snið og á https://nodes.tox.st/json</string>
     <string name="send_as_action">Senda sem aðgerð</string>
     <string name="pref_new_password">Nýtt lykilorð</string>
     <string name="return_to_chat">Fara aftur í spjallið</string>

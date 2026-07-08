@@ -26,6 +26,8 @@ import androidx.navigation.fragment.findNavController
 import java.lang.NumberFormatException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ltd.evilcorp.atox.BuildConfig
@@ -51,6 +53,7 @@ private fun Spinner.onItemSelectedListener(callback: (Int) -> Unit) {
 class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsBinding::inflate) {
     private val vm: SettingsViewModel by viewModels { vmFactory }
     private val scope = CoroutineScope(Dispatchers.Default)
+    private var updateJob: Job? = null
     private val blockBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
             Toast.makeText(requireContext(), getString(R.string.warn_proxy_broken), Toast.LENGTH_LONG).show()
@@ -270,6 +273,10 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
             Toast.makeText(requireContext(), getString(R.string.password_updated), Toast.LENGTH_LONG).show()
         }
 
+        settingAppLock.setOnClickListener {
+            findNavController().navigate(R.id.action_settingsFragment_to_lockSettingsFragment)
+        }
+
         if (vm.nospamAvailable()) {
             @Suppress("SetTextI18n") // This should be displayed the way Tox likes it.
             nospam.setText("%08X".format(vm.getNospam()))
@@ -332,12 +339,25 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
     }
 
     private fun updateSkyTox() {
+        if (updateJob?.isActive == true) {
+            updateJob?.cancel()
+            binding.updateProgress.visibility = View.GONE
+            binding.settingUpdateSkytox.setBackgroundColor(
+                androidx.core.content.ContextCompat.getColor(requireContext(), R.color.colorPrimary),
+            )
+            Toast.makeText(requireContext(), R.string.update_cancelled, Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val updater = SkyToxUpdater(requireContext())
-        viewLifecycleOwner.lifecycleScope.launch {
+        updateJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
+                binding.updateProgress.progress = 0
+                binding.updateProgress.visibility = View.VISIBLE
                 Toast.makeText(requireContext(), R.string.update_checking, Toast.LENGTH_SHORT).show()
                 val update = withContext(Dispatchers.IO) { updater.check() }
                 if (update == null) {
+                    binding.updateProgress.visibility = View.GONE
                     Toast.makeText(requireContext(), R.string.update_not_available, Toast.LENGTH_LONG).show()
                     return@launch
                 }
@@ -353,10 +373,29 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
                     getString(R.string.update_downloading, update.versionName),
                     Toast.LENGTH_LONG,
                 ).show()
-                val apk = withContext(Dispatchers.IO) { updater.download(update) }
+                binding.settingUpdateSkytox.setBackgroundColor(
+                    androidx.core.content.ContextCompat.getColor(requireContext(), android.R.color.holo_green_dark),
+                )
+                val apk = withContext(Dispatchers.IO) {
+                    updater.download(
+                        update,
+                        onProgress = { progress ->
+                            binding.updateProgress.post { binding.updateProgress.progress = progress }
+                        },
+                        isCancelled = { !isActive },
+                    )
+                }
+                binding.updateProgress.visibility = View.GONE
                 updater.install(apk)
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), getString(R.string.update_failed, e.message), Toast.LENGTH_LONG).show()
+                binding.updateProgress.visibility = View.GONE
+                if (e !is InterruptedException) {
+                    Toast.makeText(requireContext(), getString(R.string.update_failed, e.message), Toast.LENGTH_LONG).show()
+                }
+            } finally {
+                binding.settingUpdateSkytox.setBackgroundColor(
+                    androidx.core.content.ContextCompat.getColor(requireContext(), R.color.colorPrimary),
+                )
             }
         }
     }

@@ -12,7 +12,7 @@
     <string name="profile_settings">تنظیمات پروفایل</string>
     <string name="profile_information">اطلاعات پروفایل</string>
     <string name="send_as_action">ارسال به عنوان اقدام</string>
-    <string name="pref_bootstrap_nodes_description">فایل JSON ارائه‌شده توسط کاربر باید دقیقا همان فرمت ارائه‌شده در https://nodes.tox.chat/json را داشته باشد</string>
+    <string name="pref_bootstrap_nodes_description">فایل JSON ارائه‌شده توسط کاربر باید دقیقا همان فرمت ارائه‌شده در https://nodes.tox.st/json را داشته باشد</string>
     <string name="pref_heading_bootstrap_nodes">منبع بوت‌استرپ‌نود</string>
     <string name="pref_heading_advanced">پیشرفته</string>
     <string name="pref_heading_type">نوع</string>

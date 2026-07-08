@@ -70,7 +70,7 @@
     <string name="pref_heading_bootstrap_nodes">Radize de\'l bootstrap node</string>
     <string name="pref_bootstrap_node_builtin">Incorporà</string>
     <string name="pref_bootstrap_node_user_provided">Fornir da\'l user</string>
-    <string name="pref_bootstrap_nodes_description">Fornir da\'l user JSON arcivi i toca da gaver el isteso formato cofà in https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">Fornir da\'l user JSON arcivi i toca da gaver el isteso formato cofà in https://nodes.tox.st/json</string>
     <string name="send_as_action">Mandar cofà n\'asion</string>
     <string name="or_import_existing_save">o menar rento cofà un Tox save belche salvà</string>
     <string name="profile_information">Informasion de ła fegura</string>

@@ -158,6 +158,14 @@
                 android:tint="@android:color/white"
                 app:tint="@android:color/white"/>
 
+        <TextView android:id="@+id/voiceRecordingTimer"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:paddingHorizontal="8dp"
+                android:textColor="@android:color/white"
+                android:visibility="gone"/>
+
         <ImageButton android:id="@+id/voiceMessage"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"

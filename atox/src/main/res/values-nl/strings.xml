@@ -119,7 +119,7 @@
     <string name="pref_proxy_type_http">HTTP</string>
     <string name="pref_proxy_type_socks5">SOCKS5</string>
     <string name="pref_heading_advanced">Uitgebreid</string>
-    <string name="pref_bootstrap_nodes_description">JSON bestanden gegeven door gebruiker moeten hetzelfe formaat hebben als https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">JSON bestanden gegeven door gebruiker moeten hetzelfe formaat hebben als https://nodes.tox.st/json</string>
     <string name="send_as_action">Zend als actie</string>
     <string name="profile">Profiel</string>
     <string name="pref_heading_network">Netwerk</string>

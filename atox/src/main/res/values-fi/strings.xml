@@ -120,7 +120,7 @@
     <string name="export_tox_save">Vie Tox-tallennus</string>
     <string name="tox_save_exported">Tox-tallennus viety</string>
     <string name="pref_bootstrap_node_user_provided">Käyttäjän tarjoama</string>
-    <string name="pref_bootstrap_nodes_description">Käyttäjän tarjoamien JSON-tiedostojen on oltava samassa muodossa kuin täällä https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">Käyttäjän tarjoamien JSON-tiedostojen on oltava samassa muodossa kuin täällä https://nodes.tox.st/json</string>
     <string name="tox_id_error_already_exists">Yhteyshenkilö tällä Tox-tunnuksella on jo olemassa</string>
     <string name="tox_service_running">skyTox on käynnissä…</string>
     <string name="pref_udp_enabled">UDP on otettu käyttöön</string>

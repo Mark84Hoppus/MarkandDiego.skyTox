@@ -59,7 +59,7 @@
     <string name="pref_heading_type">Tipo</string>
     <string name="pref_heading_advanced">Avanzada</string>
     <string name="pref_heading_bootstrap_nodes">Fuente de los nodos bootstrap</string>
-    <string name="pref_bootstrap_nodes_description">Los archivos JSON personalizados deben tener el mismo formato que https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">Los archivos JSON personalizados deben tener el mismo formato que https://nodes.tox.st/json</string>
     <string name="send_as_action">Enviar como acción</string>
     <string name="or_import_existing_save">o importar un archivo de Tox existente</string>
     <string name="profile_information">Información del perfil</string>

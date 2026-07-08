@@ -68,7 +68,7 @@
     <string name="pref_heading_type">Тип</string>
     <string name="pref_heading_advanced">Расширенные</string>
     <string name="pref_heading_bootstrap_nodes">Источник начальных узлов</string>
-    <string name="pref_bootstrap_nodes_description">Пользовательские JSON файлы должны иметь ту же структуру как и здесь https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">Пользовательские JSON файлы должны иметь ту же структуру как и здесь https://nodes.tox.st/json</string>
     <string name="send_as_action">Отправить как действие</string>
     <string name="or_import_existing_save">или импортировать уже существующий профиль Tox</string>
     <string name="profile_information">Информация профиля</string>
@@ -215,4 +215,14 @@
     <string name="update_allow_unknown_sources">Разрешите установку из этого источника, затем нажмите обновление еще раз</string>
     <string name="update_downloading">Скачивание skyTox %1$s...</string>
     <string name="update_failed">Обновление не удалось: %1$s</string>
+    <string name="update_cancelled">Скачивание отменено</string>
+    <string name="app_lock_settings">Настройка блокировки</string>
+    <string name="app_lock_use_fingerprint">Использовать отпечаток</string>
+    <string name="app_lock_use_pin">Использовать пин код</string>
+    <string name="app_lock_use_pattern">Использовать графический ключ</string>
+    <string name="app_lock_remove">Удалить защиту</string>
+    <string name="app_lock_updated">Настройка блокировки обновлена</string>
+    <string name="app_lock_unavailable">Этот способ защиты недоступен на устройстве</string>
+    <string name="app_lock_unlock_title">Разблокируйте skyTox</string>
+    <string name="voice_recording">Запись %1$s</string>
 </resources>

@@ -1,8 +1,8 @@
-{
-    "versionName":  "0.8.11",
-    "versionCode":  221,
-    "apkUrl":  "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/latest/download/skyTox-0.8.11-universal-release-signed.apk",
-    "sha256":  "6469d90a004974a1671aefd4b5454051b4d4b578454d5fc2fdcad4f4d94b4c6b",
-    "size":  45522186,
-    "notes":  "Emergency stable rollback to 0.8.5 base with skyTox message-time sync and safe Google Push wake-only mode."
+﻿{
+    "size":  45662578,
+    "notes":  "skyTox 0.8.12: update download progress and storage folder, app lock settings, voice message controls, updated bootstrap nodes, noisy text filtering, and offline notification icon.",
+    "versionName":  "0.8.12",
+    "sha256":  "ded37d9a5e3c5071419114b26db7ddf0e7d34daa5f72fb03b751eae70f5d728d",
+    "versionCode":  226,
+    "apkUrl":  "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/latest/download/skyTox-0.8.12-universal-release-signed.apk"
 }

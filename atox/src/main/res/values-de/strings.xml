@@ -107,7 +107,7 @@
     <string name="status_message_default">Ich bin für dich erreichbar, dank skyTox</string>
     <string name="error_no_nodes_loaded">Bootstrap-Knoten können nicht geladen werden, bitte wechsele zu eingebetteten Knoten oder importiere Knoten erneut</string>
     <string name="pref_heading_bootstrap_nodes">Bootstrap-Knotenquelle</string>
-    <string name="pref_bootstrap_nodes_description">Vom Benutzer bereitgestellte JSON-Dateien müssen das gleiche Format wie auf https://nodes.tox.chat/json haben</string>
+    <string name="pref_bootstrap_nodes_description">Vom Benutzer bereitgestellte JSON-Dateien müssen das gleiche Format wie auf https://nodes.tox.st/json haben</string>
     <string name="add_contact_message_default">Sprich mit mir auf skyTox wie ein vernünftiger Mensch.</string>
     <string name="in_call_with">Im Gespräch mit %1$s</string>
     <string name="ongoing_call">Laufendes Gespräch</string>

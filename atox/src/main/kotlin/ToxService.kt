@@ -91,7 +91,7 @@ class ToxService : LifecycleService() {
             }
 
         val builder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(if (status == ConnectionStatus.None) R.drawable.ic_notification_offline else R.drawable.ic_notification)
             .setColor(ResourcesCompat.getColor(resources, R.color.colorPrimary, null))
             .setContentIntent(pendingIntent)
             .setContentTitle(getString(R.string.tox_service_running))

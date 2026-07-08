@@ -11,7 +11,7 @@ import org.json.JSONObject
 
 private const val TAG = "BootstrapNodeJsonParser"
 
-// Parses a json string containing json formatted the way it is on https://nodes.tox.chat/json
+// Parses a json string containing json formatted the way it is on https://nodes.tox.st/json
 class BootstrapNodeJsonParser @Inject constructor() {
     fun parse(jsonString: String): List<BootstrapNode> = try {
         val nodes = mutableListOf<BootstrapNode>()

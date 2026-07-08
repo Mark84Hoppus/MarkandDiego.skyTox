@@ -36,7 +36,7 @@
     <string name="profile_information">Profilio informacija</string>
     <string name="or_import_existing_save">arba importuoti jau išsaugotą Tox profilį</string>
     <string name="send_as_action">Nusiųsti kaip veiksmą</string>
-    <string name="pref_bootstrap_nodes_description">Vartotojų pateikti JSOn failai turi būti tokio paties formato kaip čia https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">Vartotojų pateikti JSOn failai turi būti tokio paties formato kaip čia https://nodes.tox.st/json</string>
     <string name="pref_heading_type">Tipas</string>
     <string name="pref_heading_ft_auto_accept">Automatiškai priimami failai</string>
     <string name="pref_heading_theme">Tema</string>

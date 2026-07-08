@@ -54,7 +54,7 @@
     <string name="profile_information">Πληροφορίες προφίλ</string>
     <string name="or_import_existing_save">ή εισαγάγετε ένα υπάρχων Tox save</string>
     <string name="send_as_action">Αποστολή ως ενέργεια</string>
-    <string name="pref_bootstrap_nodes_description">Τα αρχεία JSON που παρέχονται από τον χρήστη πρέπει να έχουν την ίδια μορφή όπως στο https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">Τα αρχεία JSON που παρέχονται από τον χρήστη πρέπει να έχουν την ίδια μορφή όπως στο https://nodes.tox.st/json</string>
     <string name="pref_heading_bootstrap_nodes">Κόμβος Bootstrap</string>
     <string name="quit_confirm">Είστε σίγουροι ότι θέλετε να αποχωρήσετε;</string>
     <string name="pref_heading_type">Τύπος</string>

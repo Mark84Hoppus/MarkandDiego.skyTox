@@ -104,7 +104,7 @@
     <string name="pref_theme_dark">Тамна</string>
     <string name="pref_heading_ft_auto_accept">Аутоматско прихватање датотека</string>
     <string name="pref_ft_auto_accept_none">Никад</string>
-    <string name="pref_bootstrap_nodes_description">Кориснички задате JSON датотеке морају имати исти формат као на https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">Кориснички задате JSON датотеке морају имати исти формат као на https://nodes.tox.st/json</string>
     <string name="profile_status">Промени статус</string>
     <string name="friend_request">Захтев за пријатељство</string>
     <string name="from">Од</string>

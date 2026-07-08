@@ -47,7 +47,7 @@
     <string name="profile_information">Informations du profil</string>
     <string name="or_import_existing_save">ou importer une sauvegarde existante de Tox</string>
     <string name="send_as_action">Envoyer comme action</string>
-    <string name="pref_bootstrap_nodes_description">Les fichiers JSON fournis par l’utilisateur doivent avoir le même format que sur https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">Les fichiers JSON fournis par l’utilisateur doivent avoir le même format que sur https://nodes.tox.st/json</string>
     <string name="pref_heading_bootstrap_nodes">Source de nœud Bootstrap</string>
     <string name="pref_heading_advanced">Avancé</string>
     <string name="pref_heading_type">Type</string>

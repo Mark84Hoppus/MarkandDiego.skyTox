@@ -60,7 +60,7 @@
     <string name="pref_heading_type">Tip</string>
     <string name="pref_heading_advanced">Avansate</string>
     <string name="pref_heading_bootstrap_nodes">Sursa nodurilor bootstrap</string>
-    <string name="pref_bootstrap_nodes_description">Fișierele JSON personalizate vin cu structura https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">Fișierele JSON personalizate vin cu structura https://nodes.tox.st/json</string>
     <string name="send_as_action">Trimite ca acțiune</string>
     <string name="or_import_existing_save">sau importă profilul Tox existent</string>
     <string name="profile_information">Informație profil</string>

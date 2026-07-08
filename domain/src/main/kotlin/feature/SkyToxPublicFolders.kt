@@ -15,6 +15,7 @@ private const val SKYTOX_DOCUMENTS = "skyTox documents"
 private const val SKYTOX_THUMBS = "skyTox thumbs"
 private const val SKYTOX_ALL_CHAT = "skyTox all chat"
 private const val SKYTOX_USER_CHAT = "skyTox user chat"
+private const val SKYTOX_APP = "skyTox app"
 
 object SkyToxPublicFolders {
     @Suppress("DEPRECATION")
@@ -26,9 +27,10 @@ object SkyToxPublicFolders {
     val thumbDir: File get() = File(root, SKYTOX_THUMBS)
     val allChatDir: File get() = File(root, SKYTOX_ALL_CHAT)
     val userChatDir: File get() = File(root, SKYTOX_USER_CHAT)
+    val appDir: File get() = File(root, SKYTOX_APP)
 
     fun ensureDirectories() {
-        listOf(root, imageDir, videoDir, recorderDir, documentDir, thumbDir, allChatDir, userChatDir)
+        listOf(root, imageDir, videoDir, recorderDir, documentDir, thumbDir, allChatDir, userChatDir, appDir)
             .forEach { it.mkdirs() }
     }
 }

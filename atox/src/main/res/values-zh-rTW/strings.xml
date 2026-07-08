@@ -84,7 +84,7 @@
     <string name="pref_heading_bootstrap_nodes">節點源</string>
     <string name="pref_bootstrap_node_builtin">內建</string>
     <string name="pref_bootstrap_node_user_provided">自定</string>
-    <string name="pref_bootstrap_nodes_description">自行匯入的 JSON 檔案格式需跟 https://nodes.tox.chat/json 一致</string>
+    <string name="pref_bootstrap_nodes_description">自行匯入的 JSON 檔案格式需跟 https://nodes.tox.st/json 一致</string>
     <string name="send_as_action">以貼圖傳送</string>
     <string name="or_import_existing_save">或匯入現有的 Tox 設定</string>
     <string name="profile_information">個人檔案資訊</string>

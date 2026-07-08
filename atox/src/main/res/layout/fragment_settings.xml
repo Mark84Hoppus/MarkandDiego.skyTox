@@ -507,6 +507,17 @@
                                 app:layout_constraintEnd_toEndOf="parent"
                                 app:layout_constraintTop_toTopOf="parent"/>
                     </androidx.constraintlayout.widget.ConstraintLayout>
+                    <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="@color/dividerColor"/>
+                    <TextView
+                            android:id="@+id/setting_app_lock"
+                            style="@style/OptionItemText"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="?attr/selectableItemBackground"
+                            android:text="@string/app_lock_settings"/>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -649,6 +660,14 @@
                             android:layout_height="wrap_content"
                             android:background="?attr/selectableItemBackground"
                             android:text="@string/update_skytox"/>
+                    <ProgressBar
+                            android:id="@+id/update_progress"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="16dp"
+                            android:max="100"
+                            android:visibility="gone"/>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 

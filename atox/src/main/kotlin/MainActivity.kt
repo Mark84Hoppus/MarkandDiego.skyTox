@@ -12,14 +12,18 @@ import android.os.Environment
 import android.provider.Settings as AndroidSettings
 import android.util.Log
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.core.os.LocaleListCompat
 import androidx.core.os.bundleOf
 import androidx.core.view.WindowCompat
 import androidx.navigation.fragment.findNavController
 import javax.inject.Inject
 import ltd.evilcorp.atox.di.ViewModelFactory
+import ltd.evilcorp.atox.settings.AppLockMode
 import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.atox.ui.contactlist.ARG_ADD_CONTACT
 import ltd.evilcorp.atox.ui.contactlist.ARG_SHARE
@@ -37,6 +41,9 @@ class MainActivity : AppCompatActivity() {
 
     @Inject
     lateinit var settings: Settings
+
+    private var lockPromptActive = false
+    private var lockAccepted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         (application as App).component.inject(this)
@@ -70,11 +77,63 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         autoAway.onBackground()
+        if (!lockPromptActive) {
+            lockAccepted = false
+        }
     }
 
     override fun onResume() {
         super.onResume()
         autoAway.onForeground()
+        maybePromptAppLock()
+    }
+
+    private fun maybePromptAppLock() {
+        if (lockAccepted || lockPromptActive || settings.appLockMode == AppLockMode.None) return
+
+        val authenticators = when (settings.appLockMode) {
+            AppLockMode.Fingerprint -> BiometricManager.Authenticators.BIOMETRIC_STRONG
+            AppLockMode.Pin,
+            AppLockMode.Pattern,
+            -> BiometricManager.Authenticators.DEVICE_CREDENTIAL
+            AppLockMode.None -> return
+        }
+
+        val canAuthenticate = BiometricManager.from(this).canAuthenticate(authenticators)
+        if (canAuthenticate != BiometricManager.BIOMETRIC_SUCCESS) {
+            Toast.makeText(this, R.string.app_lock_unavailable, Toast.LENGTH_LONG).show()
+            settings.appLockMode = AppLockMode.None
+            return
+        }
+
+        lockPromptActive = true
+        val prompt = BiometricPrompt(
+            this,
+            mainExecutor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    lockAccepted = true
+                    lockPromptActive = false
+                }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    lockPromptActive = false
+                    if (errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON &&
+                        errorCode != BiometricPrompt.ERROR_USER_CANCELED
+                    ) {
+                        Toast.makeText(this@MainActivity, errString, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+        )
+
+        val infoBuilder = BiometricPrompt.PromptInfo.Builder()
+            .setTitle(getString(R.string.app_lock_unlock_title))
+            .setAllowedAuthenticators(authenticators)
+        if (settings.appLockMode == AppLockMode.Fingerprint) {
+            infoBuilder.setNegativeButtonText(getString(android.R.string.cancel))
+        }
+        prompt.authenticate(infoBuilder.build())
     }
 
     private fun handleIntent(intent: Intent) {

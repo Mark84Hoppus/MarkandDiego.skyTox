@@ -9,7 +9,7 @@
     <string name="update">Oppdater</string>
     <string name="contact_typing">Skriver…</string>
     <string name="or_import_existing_save">eller importer en sikkerhetskopiert Tox-profil</string>
-    <string name="pref_bootstrap_nodes_description">Brukerangitte JSON-filer må ha samme format som på https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">Brukerangitte JSON-filer må ha samme format som på https://nodes.tox.st/json</string>
     <string name="import_tox_save_failed">Importering mislyktes: %1$s</string>
     <string name="friend_request_from">Venneforespørsel fra %1$s</string>
     <string name="tox_id_error_hex">Kun heksadesimale verdier tillates</string>

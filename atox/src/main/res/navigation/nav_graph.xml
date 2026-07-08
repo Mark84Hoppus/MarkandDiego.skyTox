@@ -122,7 +122,20 @@
     <fragment android:id="@+id/settingsFragment"
             android:name="ltd.evilcorp.atox.ui.settings.SettingsFragment"
             android:label="SettingsFragment"
-            tools:layout="@layout/fragment_settings"/>
+            tools:layout="@layout/fragment_settings">
+        <action
+                android:id="@+id/action_settingsFragment_to_lockSettingsFragment"
+                app:destination="@id/lockSettingsFragment"
+                app:enterAnim="@anim/slide_in_right"
+                app:exitAnim="@anim/fade_out"
+                app:popEnterAnim="@anim/fade_in"
+                app:popExitAnim="@anim/slide_out_right"/>
+    </fragment>
+    <fragment
+            android:id="@+id/lockSettingsFragment"
+            android:name="ltd.evilcorp.atox.ui.settings.LockSettingsFragment"
+            android:label="LockSettingsFragment"
+            tools:layout="@layout/fragment_lock_settings"/>
     <fragment
             android:id="@+id/userProfileFragment"
             android:name="ltd.evilcorp.atox.ui.userprofile.UserProfileFragment"

@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import java.io.File
@@ -38,12 +39,34 @@ class SkyToxUpdater(private val context: Context) {
         )
     }
 
-    fun download(update: UpdateInfo): File {
-        val dir = File(context.cacheDir, UPDATE_CACHE_DIR).apply { mkdirs() }
+    fun download(update: UpdateInfo, onProgress: (Int) -> Unit, isCancelled: () -> Boolean): File {
+        val dir = File(
+            Environment.getExternalStorageDirectory(),
+            "$SKYTOX_ROOT_DIR/$UPDATE_APP_DIR",
+        ).apply { mkdirs() }
         val file = File(dir, "skytox-${update.versionName}-universal.apk")
-        URL(update.apkUrl).openStream().use { input ->
-            file.outputStream().use { output -> input.copyTo(output) }
+        val connection = URL(update.apkUrl).openConnection()
+        val total = connection.contentLengthLong
+        connection.getInputStream().use { input ->
+            file.outputStream().use { output ->
+                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                var copied = 0L
+                while (true) {
+                    if (isCancelled()) {
+                        file.delete()
+                        throw InterruptedException("cancelled")
+                    }
+                    val read = input.read(buffer)
+                    if (read < 0) break
+                    output.write(buffer, 0, read)
+                    copied += read
+                    if (total > 0L) {
+                        onProgress(((copied * 100) / total).toInt().coerceIn(0, 100))
+                    }
+                }
+            }
         }
+        onProgress(100)
         return file
     }
 
@@ -64,7 +87,8 @@ class SkyToxUpdater(private val context: Context) {
     )
 
     companion object {
-        private const val UPDATE_CACHE_DIR = "updates"
+        private const val SKYTOX_ROOT_DIR = "skyTox files"
+        private const val UPDATE_APP_DIR = "skyTox app"
         private const val APK_MIME = "application/vnd.android.package-archive"
         private const val UPDATE_JSON_URL =
             "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/latest/download/skytox-update.json"

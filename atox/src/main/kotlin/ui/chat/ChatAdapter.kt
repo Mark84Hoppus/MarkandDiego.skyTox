@@ -106,13 +106,16 @@ private class FileTransferViewHolder(row: View) {
     val completedLayout: View = row.findViewById(R.id.completedLayout)
     val imagePreview: ImageView = row.findViewById(R.id.imagePreview)
     val audioPlay: ImageButton = row.findViewById(R.id.audioPlay)
+    val audioWaveform: VoiceWaveformView = row.findViewById(R.id.audioWaveform)
 }
 
 class ChatAdapter(private val inflater: LayoutInflater, private val resources: Resources) : BaseAdapter() {
     var messages: List<Message> = listOf()
     var fileTransfers: List<FileTransfer> = listOf()
     var playingAudioId: Int = Int.MIN_VALUE
+    var playingAudioProgress: Float = 0f
     var selectedMessageIds: Set<Long> = emptySet()
+    var onFileTransferLongClick: ((View, Int) -> Unit)? = null
 
     override fun getCount(): Int = messages.size
     override fun getItem(position: Int): Any = messages[position]
@@ -211,6 +214,10 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                 vh.reject.setOnTouchListener(touchListener)
                 vh.cancel.setOnTouchListener(touchListener)
                 vh.audioPlay.setOnTouchListener(touchListener)
+                vh.audioPlay.setOnLongClickListener {
+                    onFileTransferLongClick?.invoke(vh.container, position)
+                    true
+                }
 
                 if (fileTransfer.hasThumbnail() || fileTransfer.isComplete() && !fileTransfer.isAudio()) {
                     vh.completedLayout.visibility = View.VISIBLE
@@ -237,6 +244,8 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
 
                 vh.audioPlay.visibility =
                     if (fileTransfer.isAudio() && fileTransfer.isComplete()) View.VISIBLE else View.GONE
+                vh.audioWaveform.visibility = vh.audioPlay.visibility
+                vh.audioWaveform.progress = if (fileTransfer.id == playingAudioId) playingAudioProgress else 0f
                 vh.audioPlay.setImageResource(
                     if (fileTransfer.id == playingAudioId) R.drawable.ic_stop else R.drawable.ic_play,
                 )

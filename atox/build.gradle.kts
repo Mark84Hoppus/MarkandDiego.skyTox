@@ -36,8 +36,8 @@ android {
         applicationId = "markanddiego.skytox"
         minSdk = libs.versions.sdk.min.get().toInt()
         targetSdk = libs.versions.sdk.target.get().toInt()
-        versionCode = 221
-        versionName = "0.8.11"
+        versionCode = 226
+        versionName = "0.8.12"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SKYTOX_PUSH_SERVER_URL", "\"https://push.skytox.uk/push\"")
         buildConfigField("String", "SKYTOX_PUSH_API_KEY", "\"${skytoxPushConfig["SKYTOX_PUSH_API_KEY"].orEmpty()}\"")
@@ -84,10 +84,10 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
         val abiVersionCodes = mapOf(
-            "armeabi-v7a" to 222,
-            "arm64-v8a" to 223,
-            "x86" to 224,
-            "x86_64" to 225,
+            "armeabi-v7a" to 227,
+            "arm64-v8a" to 228,
+            "x86" to 229,
+            "x86_64" to 230,
         )
         variant.outputs.forEach { output ->
             val abi = output.filters
@@ -108,6 +108,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.biometric)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.fragment)
 

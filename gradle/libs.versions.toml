@@ -30,6 +30,7 @@ googleServices = { id = "com.google.gms.google-services", version.ref = "google-
 [libraries]
 androidx-activity = "androidx.activity:activity:1.10.1" # >=1.11.0 needs compileSdk 36.
 androidx-appcompat = "androidx.appcompat:appcompat:1.7.1"
+androidx-biometric = "androidx.biometric:biometric:1.1.0"
 androidx-constraintlayout = "androidx.constraintlayout:constraintlayout:2.2.1"
 androidx-core-ktx = "androidx.core:core-ktx:1.16.0" # >=1.17.0 needs compileSdk 36.
 androidx-fragment = "androidx.fragment:fragment:1.8.9"

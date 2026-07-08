@@ -33,7 +33,7 @@
     <string name="pref_heading_advanced">अधिक नियंत्रण</string>
     <string name="pref_heading_bootstrap_nodes">बूटस्ट्रैप नोड सोर्स</string>
     <string name="pref_bootstrap_node_builtin">अंतर्निहित</string>
-    <string name="pref_bootstrap_nodes_description">उपयोगकर्ता द्वारा प्रदान की JSON फ़ाइलों का प्रारूप वही होना चाहिए जो यहाँ है https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">उपयोगकर्ता द्वारा प्रदान की JSON फ़ाइलों का प्रारूप वही होना चाहिए जो यहाँ है https://nodes.tox.st/json</string>
     <string name="send_as_action">कार्रवाई के रूप में भेजें</string>
     <string name="profile_information">स्वयं जानकारी</string>
     <string name="profile_nickname">अपना उपनाम बदलें</string>

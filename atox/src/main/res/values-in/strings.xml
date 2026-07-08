@@ -96,7 +96,7 @@
     <string name="mimetype_handler_not_found">Tidak ada aplikasi yang terpasang untuk menangani jenis media \"%1$s\"</string>
     <string name="from">Dari</string>
     <string name="reply">Balas</string>
-    <string name="pref_bootstrap_nodes_description">Berkas JSON yang diberikan oleh pengguna harus memiliki format yang sama dengan https://nodes.tox.chat/json</string>
+    <string name="pref_bootstrap_nodes_description">Berkas JSON yang diberikan oleh pengguna harus memiliki format yang sama dengan https://nodes.tox.st/json</string>
     <string name="send_as_action">Kirim sebagai tindakan</string>
     <string name="export_file_success">Berkas diekspor</string>
     <string name="export_file_failure">Ada sesuatu yang salah dalam pengeksporan. Transfer sebelum 0.5.1 diekspor secara baku.</string>

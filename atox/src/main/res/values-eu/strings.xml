@@ -117,7 +117,7 @@
     <string name="profile_information">Profil informazioa</string>
     <string name="or_import_existing_save">edo inportatu aurretiko Tox artxibategi bat</string>
     <string name="send_as_action">Ekintza bezala bidali</string>
-    <string name="pref_bootstrap_nodes_description">JSON artxibategi norberekotuek https://nodes.tox.chat/json -en formatu bera eduki behar dute</string>
+    <string name="pref_bootstrap_nodes_description">JSON artxibategi norberekotuek https://nodes.tox.st/json -en formatu bera eduki behar dute</string>
     <string name="pref_bootstrap_node_user_provided">Erabiltzaileak emana</string>
     <string name="pref_bootstrap_node_builtin">Barneratua</string>
     <string name="pref_heading_bootstrap_nodes">Bootstrap nodoaren jatorria</string>
