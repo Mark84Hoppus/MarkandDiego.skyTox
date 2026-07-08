@@ -236,51 +236,28 @@
     <string name="import_export_instructions">Export/import guide</string>
     <string name="import_export_menu">Export/import</string>
     <!-- @@@ RUS_START @@@ -->
-    <string name="import_export_instructions_body">&#x0420;&#x0443;&#x0441;&#x0441;&#x043A;&#x0430;&#x044F; &#x0438;&#x043D;&#x0441;&#x0442;&#x0440;&#x0443;&#x043A;&#x0446;&#x0438;&#x044F;</string>
+    <string name="import_export_instructions_body"><![CDATA[Русская инструкция
 
-skyTox умеет экспортировать и импортировать только текстовую историю чатов. Картинки, видео, документы, голосовые сообщения и сами переданные файлы в резервную копию чатов не попадают.
+skyTox экспортирует и импортирует только текстовую историю чатов. Картинки, видео, документы, голосовые сообщения и сами переданные файлы в резервную копию не попадают.
 
-Где находятся папки:
+Папки находятся здесь:
 /storage/emulated/0/skyTox files/
 
-Внутри этой папки создаются две папки для резервных копий:
+Для общих резервных копий используйте:
 /storage/emulated/0/skyTox files/skyTox all chat/
+
+Для резервных копий одного чата используйте:
 /storage/emulated/0/skyTox files/skyTox user chat/
 
-Лучше сохранять общие резервные копии в skyTox all chat, а резервные копии одного конкретного чата в skyTox user chat. Так их проще найти позже и меньше шанс перепутать файлы.
+Общий экспорт: откройте меню экспорта/импорта, нажмите «Экспорт текстовых чатов» и сохраните JSON-файл в папку skyTox all chat.
 
-Общий экспорт текстовых чатов:
-1. Откройте боковое меню на главном экране.
-2. Нажмите «Экспорт текстовых чатов».
-3. Android откроет стандартный проводник сохранения файла.
-4. Выберите папку skyTox all chat и сохраните JSON-файл.
+Общий импорт: откройте меню экспорта/импорта, нажмите «Импорт текстовых чатов», выберите JSON-файл из skyTox all chat и подтвердите предупреждение. Текущая текстовая история во всех чатах будет заменена.
 
-Общий импорт текстовых чатов:
-1. Откройте боковое меню на главном экране.
-2. Нажмите «Импорт текстовых чатов».
-3. Выберите JSON-файл из папки skyTox all chat.
-4. Подтвердите предупреждение.
+Экспорт одного чата: откройте нужный чат, нажмите меню с тремя точками, выберите «Экспортировать историю» и сохраните JSON-файл в skyTox user chat.
 
-Важно: при общем импорте текущая история сообщений во всех чатах заменяется данными из выбранного файла. Файлы на телефоне не импортируются, только текст.
+Импорт одного чата: откройте нужный чат, нажмите меню с тремя точками, выберите «Импортировать историю», выберите JSON-файл из skyTox user chat и подтвердите предупреждение. История будет заменена только в этом чате.
 
-Экспорт одного чата:
-1. Откройте нужный чат.
-2. Нажмите меню с тремя точками.
-3. Нажмите «Экспортировать историю».
-4. Сохраните JSON-файл в папку skyTox user chat.
-
-Импорт одного чата:
-1. Откройте нужный чат.
-2. Нажмите меню с тремя точками.
-3. Нажмите «Импортировать историю».
-4. Выберите JSON-файл из папки skyTox user chat.
-5. Подтвердите предупреждение.
-
-Важно: при импорте одного чата заменяется история только текущего открытого чата.
-
-Защита от ошибки:
-skyTox проверяет структуру JSON перед импортом. В файле должен быть правильный формат, версия и тип резервной копии. Общую резервную копию нельзя импортировать в один чат, а резервную копию одного чата нельзя импортировать как все чаты. Если файл поврежден, вручную испорчен или не относится к skyTox, импорт не выполнится и старая история не будет удалена.
-
+skyTox проверяет структуру JSON перед импортом. Общую резервную копию нельзя импортировать в один чат, а резервную копию одного чата нельзя импортировать как все чаты. Если файл поврежден или не относится к skyTox, импорт отменяется, а старая история не удаляется.
 
 English guide
 
@@ -289,44 +266,21 @@ skyTox exports and imports text chat history only. Pictures, videos, documents, 
 Folder location:
 /storage/emulated/0/skyTox files/
 
-Two backup folders are created inside it:
+Use this folder for all-chat backups:
 /storage/emulated/0/skyTox files/skyTox all chat/
+
+Use this folder for one-chat backups:
 /storage/emulated/0/skyTox files/skyTox user chat/
 
-It is best to keep full chat backups in skyTox all chat and single-chat backups in skyTox user chat. This makes them easier to find later and reduces the chance of mixing files up.
+Export all chats: open the export/import menu, tap Export text chats, and save the JSON file into skyTox all chat.
 
-Export all text chats:
-1. Open the side menu on the main screen.
-2. Tap Export text chats.
-3. Android opens the standard save-file picker.
-4. Choose the skyTox all chat folder and save the JSON file.
+Import all chats: open the export/import menu, tap Import text chats, choose a JSON file from skyTox all chat, and confirm the warning. Current text history in all chats will be replaced.
 
-Import all text chats:
-1. Open the side menu on the main screen.
-2. Tap Import text chats.
-3. Choose a JSON file from the skyTox all chat folder.
-4. Confirm the warning.
+Export one chat: open the target chat, tap the three-dot menu, tap Export history, and save the JSON file into skyTox user chat.
 
-Important: importing all chats replaces the current message history in all chats with the selected backup. Phone files are not imported, only text.
+Import one chat: open the target chat, tap the three-dot menu, tap Import history, choose a JSON file from skyTox user chat, and confirm the warning. Only this chat history will be replaced.
 
-Export one chat:
-1. Open the chat you need.
-2. Tap the three-dot menu.
-3. Tap Export history.
-4. Save the JSON file to the skyTox user chat folder.
-
-Import one chat:
-1. Open the target chat.
-2. Tap the three-dot menu.
-3. Tap Import history.
-4. Choose a JSON file from the skyTox user chat folder.
-5. Confirm the warning.
-
-Important: importing one chat replaces only the currently opened chat history.
-
-Error protection:
-skyTox validates the JSON structure before importing. The file must have the correct format, version and backup type. An all-chats backup cannot be imported into one chat, and a single-chat backup cannot be imported as all chats. If the file is damaged, manually edited incorrectly or does not belong to skyTox, the import is cancelled and the old history is not deleted.</string>
-    <string name="profile_avatar_change">Change profile avatar</string>
+skyTox validates the JSON structure before importing. An all-chats backup cannot be imported into one chat, and a single-chat backup cannot be imported as all chats. If the file is damaged or does not belong to skyTox, the import is cancelled and the old history is not deleted.]]></string>    <string name="profile_avatar_change">Change profile avatar</string>
     <string name="profile_avatar_delete">Delete profile avatar</string>
     <string name="search_chats">Search chats</string>
     <string name="search_chats_hint">Message text</string>

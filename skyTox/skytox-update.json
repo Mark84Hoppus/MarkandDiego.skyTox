@@ -1,8 +1,8 @@
 {
-    "size":  45666730,
-    "notes":  "skyTox 0.8.12 hotfix: safer app protection on Android 8.1, wake-app push label, compact voice waveform, raised bottom menu, encrypted-message module, and fixed release notes encoding.",
+    "size":  45662634,
+    "notes":  "skyTox 0.8.12 hotfix: safer app protection on Android 8.1, wake-app push label, compact voice waveform, raised bottom menu, encrypted-message module, fixed release notes encoding, and separate signed ABI APKs.",
     "versionName":  "0.8.12",
-    "sha256":  "a9d1a1cefd1df53a20eaadd62c0632a520e343d2c27ab64c2ab4d859d11fe149",
+    "sha256":  "88381fdcd98b99fa37b21f479dcf7c7844c00e6682caad6cf19a71539f7a2e2c",
     "versionCode":  226,
     "apkUrl":  "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/latest/download/skyTox-0.8.12-universal-release-signed.apk"
 }
