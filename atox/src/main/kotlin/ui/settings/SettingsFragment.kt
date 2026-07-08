@@ -165,9 +165,6 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
             vm.setFtAutoAccept(FtAutoAccept.entries[it])
         }
 
-        settingConfirmQuitting.isChecked = vm.getConfirmQuitting()
-        settingConfirmQuitting.setOnCheckedChangeListener { _, isChecked -> vm.setConfirmQuitting(isChecked) }
-
         settingConfirmCalling.isChecked = vm.getConfirmCalling()
         settingConfirmCalling.setOnCheckedChangeListener { _, isChecked -> vm.setConfirmCalling(isChecked) }
 

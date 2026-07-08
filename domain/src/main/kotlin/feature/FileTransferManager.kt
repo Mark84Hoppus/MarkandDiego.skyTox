@@ -230,7 +230,14 @@ class FileTransferManager @Inject constructor(
             }
         }
 
-        RandomAccessFile(file, "rwd").use { it.setLength(ft.fileSize) }
+        runCatching {
+            RandomAccessFile(file, "rwd").use { it.setLength(ft.fileSize) }
+        }.onFailure {
+            Log.e(TAG, "Unable to prepare destination for ft ${ft.fileNumber}: $it")
+            setProgress(ft, FT_REJECTED)
+            tox.stopFileTransfer(PublicKey(ft.publicKey), ft.fileNumber)
+            return
+        }
         setDestination(ft, Uri.fromFile(file))
         setProgress(ft, startPosition)
         if (startPosition > FT_STARTED) {
@@ -297,9 +304,15 @@ class FileTransferManager @Inject constructor(
             return
         }
 
-        RandomAccessFile(File(ft.destination.toUri().path!!), "rwd").use {
-            it.seek(position)
-            it.write(data)
+        runCatching {
+            RandomAccessFile(File(ft.destination.toUri().path!!), "rwd").use {
+                it.seek(position)
+                it.write(data)
+            }
+        }.onFailure {
+            Log.e(TAG, "Unable to write ft ${ft.fileNumber} for ${publicKey.fingerprint()}: $it")
+            reject(ft)
+            return
         }
 
         setProgress(ft, max(ft.transferredBytes(), position + data.size))

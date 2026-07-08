@@ -208,12 +208,6 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             },
         )
 
-        toolbar.setNavigationIcon(R.drawable.ic_back)
-        toolbar.setNavigationOnClickListener {
-            WindowInsetsControllerCompat(requireActivity().window, view).hide(WindowInsetsCompat.Type.ime())
-            requireActivity().onBackPressedDispatcher.onBackPressed()
-        }
-
         toolbar.inflateMenu(R.menu.chat_options_menu)
         toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
@@ -348,6 +342,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         ongoingCall.info.setOnClickListener { navigateToCallScreen() }
 
         val adapter = ChatAdapter(layoutInflater, resources)
+        updateSelectionUi(adapter)
         adapter.onFileTransferLongClick = { anchor, position ->
             showMessageContextMenu(anchor, adapter.messages[position], adapter)
         }
@@ -554,6 +549,27 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         }
         adapter.selectedMessageIds = selectedMessageIds.toSet()
         adapter.notifyDataSetChanged()
+        updateSelectionUi(adapter)
+    }
+
+    private fun clearSelection(adapter: ChatAdapter) {
+        selectedMessageIds.clear()
+        adapter.selectedMessageIds = emptySet()
+        adapter.notifyDataSetChanged()
+        updateSelectionUi(adapter)
+    }
+
+    private fun updateSelectionUi(adapter: ChatAdapter) = binding.run {
+        val selecting = selectedMessageIds.isNotEmpty()
+        toolbar.setNavigationIcon(if (selecting) R.drawable.ic_close else R.drawable.ic_back)
+        toolbar.setNavigationOnClickListener {
+            WindowInsetsControllerCompat(requireActivity().window, requireView()).hide(WindowInsetsCompat.Type.ime())
+            if (selecting) {
+                clearSelection(adapter)
+            } else {
+                requireActivity().onBackPressedDispatcher.onBackPressed()
+            }
+        }
     }
 
     private fun confirmDeleteSelected(adapter: ChatAdapter) {
@@ -564,9 +580,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             .setMessage(R.string.delete_selected_confirm)
             .setPositiveButton(R.string.delete) { _, _ ->
                 viewModel.delete(selected)
-                selectedMessageIds.clear()
-                adapter.selectedMessageIds = emptySet()
-                adapter.notifyDataSetChanged()
+                clearSelection(adapter)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
@@ -757,17 +771,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         val file = viewModel.voiceMessageFile()
 
         try {
-            @Suppress("DEPRECATION")
-            voiceRecorder = MediaRecorder().apply {
-                setAudioSource(MediaRecorder.AudioSource.MIC)
-                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                setAudioEncodingBitRate(VOICE_MESSAGE_BIT_RATE)
-                setAudioSamplingRate(44_100)
-                setOutputFile(file.absolutePath)
-                prepare()
-                start()
-            }
+            voiceRecorder = createVoiceRecorder(file).apply { start() }
             voiceRecordingFile = file
             voiceRecordingStartedAt = System.currentTimeMillis()
             startVoiceTimer()
@@ -781,6 +785,35 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             Toast.makeText(requireContext(), R.string.voice_record_failed, Toast.LENGTH_LONG).show()
             updateActions()
         }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun createVoiceRecorder(file: File): MediaRecorder {
+        var lastError: Exception? = null
+        val attempts = listOf(
+            Triple(MediaRecorder.OutputFormat.MPEG_4, MediaRecorder.AudioEncoder.AAC, 44_100),
+            Triple(MediaRecorder.OutputFormat.MPEG_4, MediaRecorder.AudioEncoder.AAC, 22_050),
+            Triple(MediaRecorder.OutputFormat.MPEG_4, MediaRecorder.AudioEncoder.AAC, 16_000),
+        )
+
+        for ((format, encoder, sampleRate) in attempts) {
+            val recorder = MediaRecorder()
+            try {
+                recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
+                recorder.setOutputFormat(format)
+                recorder.setAudioEncoder(encoder)
+                recorder.setAudioEncodingBitRate(VOICE_MESSAGE_BIT_RATE)
+                recorder.setAudioSamplingRate(sampleRate)
+                recorder.setOutputFile(file.absolutePath)
+                recorder.prepare()
+                return recorder
+            } catch (e: Exception) {
+                lastError = e
+                runCatching { recorder.release() }
+            }
+        }
+
+        throw lastError ?: IllegalStateException("Unable to prepare voice recorder")
     }
 
     private fun stopVoiceRecording(send: Boolean) {

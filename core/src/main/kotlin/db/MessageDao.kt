@@ -10,6 +10,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 import ltd.evilcorp.core.vo.Message
+import ltd.evilcorp.core.vo.Sender
 
 @Dao
 interface MessageDao {
@@ -24,9 +25,13 @@ interface MessageDao {
 
     @Query(
         "SELECT * FROM messages " +
-            "WHERE conversation == :conversation AND correlation_id == :pendingCorrelationId",
+            "WHERE conversation == :conversation AND sender == :sender AND correlation_id == :pendingCorrelationId",
     )
-    fun loadPending(conversation: String, pendingCorrelationId: Int = Int.MIN_VALUE): List<Message>
+    fun loadPending(
+        conversation: String,
+        sender: Sender = Sender.Sent,
+        pendingCorrelationId: Int = Int.MIN_VALUE,
+    ): List<Message>
 
     @Query("UPDATE messages SET correlation_id = :correlationId WHERE id == :id")
     fun setCorrelationId(id: Long, correlationId: Int)

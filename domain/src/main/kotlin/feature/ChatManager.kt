@@ -93,6 +93,8 @@ class ChatManager @Inject constructor(
 
     fun resend(messages: List<Message>) = scope.launch {
         for (message in messages) {
+            if (message.sender != Sender.Sent) continue
+
             val msgs = message.message.chunked(MAX_MESSAGE_LENGTH)
             SkyToxMessageTime.sendOutgoingMetadata(
                 tox,

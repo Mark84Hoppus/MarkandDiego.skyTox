@@ -215,6 +215,14 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                 vh.reject.setOnTouchListener(touchListener)
                 vh.cancel.setOnTouchListener(touchListener)
                 vh.audioPlay.setOnTouchListener(touchListener)
+                vh.container.setOnLongClickListener {
+                    onFileTransferLongClick?.invoke(vh.container, position)
+                    true
+                }
+                view.setOnLongClickListener {
+                    onFileTransferLongClick?.invoke(vh.container, position)
+                    true
+                }
                 vh.audioPlay.setOnLongClickListener {
                     onFileTransferLongClick?.invoke(vh.container, position)
                     true

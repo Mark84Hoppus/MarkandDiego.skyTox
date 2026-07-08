@@ -4,8 +4,10 @@
 
 package ltd.evilcorp.atox
 
+import android.Manifest
 import android.app.KeyguardManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -18,6 +20,8 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.os.LocaleListCompat
 import androidx.core.os.bundleOf
 import androidx.core.view.WindowCompat
@@ -28,10 +32,12 @@ import ltd.evilcorp.atox.settings.AppLockMode
 import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.atox.ui.contactlist.ARG_ADD_CONTACT
 import ltd.evilcorp.atox.ui.contactlist.ARG_SHARE
+import ltd.evilcorp.atox.ui.contactlist.ARG_SHARE_FILES
 
 private const val TAG = "MainActivity"
 private const val SCHEME = "tox:"
 private const val TOX_ID_LENGTH = 76
+private const val REQUEST_LEGACY_STORAGE = 8413
 
 class MainActivity : AppCompatActivity() {
     @Inject
@@ -72,6 +78,7 @@ class MainActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContentView(R.layout.activity_main)
+        requestLegacyStorageAccessIfNeeded()
         requestAllFilesAccessIfNeeded()
 
         // Only handle intent the first time it triggers the app.
@@ -149,6 +156,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun requestLegacyStorageAccessIfNeeded() {
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) return
+        val permissions = arrayOf(
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        ).filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (permissions.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, permissions.toTypedArray(), REQUEST_LEGACY_STORAGE)
+        }
+    }
+
     private fun handleToxLinkIntent(intent: Intent) {
         val data = intent.dataString ?: ""
         Log.i(TAG, "Got uri with data: $data")
@@ -164,20 +184,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleShareIntent(intent: Intent) {
-        if (intent.type != "text/plain") {
-            Log.e(TAG, "Got unsupported share type ${intent.type}")
+        val navController =
+            supportFragmentManager.findFragmentById(R.id.nav_host_fragment)?.findNavController() ?: return
+        val uris = when (intent.action) {
+            Intent.ACTION_SEND -> intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)?.let { arrayListOf(it) }
+            Intent.ACTION_SEND_MULTIPLE -> intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM)
+            else -> null
+        }.orEmpty()
+
+        if (uris.isNotEmpty()) {
+            uris.forEach {
+                grantUriPermission(packageName, it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            navController.navigate(R.id.contactListFragment, bundleOf(ARG_SHARE_FILES to uris))
             return
         }
 
         val data = intent.getStringExtra(Intent.EXTRA_TEXT)
-        if (data.isNullOrEmpty()) {
-            Log.e(TAG, "Got share intent with no data")
+        if (!data.isNullOrEmpty()) {
+            Log.i(TAG, "Got text share: $data")
+            navController.navigate(R.id.contactListFragment, bundleOf(ARG_SHARE to data))
             return
         }
 
-        Log.i(TAG, "Got text share: $data")
-        val navController =
-            supportFragmentManager.findFragmentById(R.id.nav_host_fragment)?.findNavController() ?: return
-        navController.navigate(R.id.contactListFragment, bundleOf(ARG_SHARE to data))
+        Log.e(TAG, "Got unsupported share type ${intent.type}")
     }
 }

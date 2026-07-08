@@ -6,6 +6,7 @@
 package ltd.evilcorp.atox.ui.contactlist
 
 import android.Manifest
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.text.method.PasswordTransformationMethod
@@ -60,6 +61,7 @@ import ltd.evilcorp.domain.tox.ToxSaveStatus
 
 const val ARG_ADD_CONTACT = "add_contact"
 const val ARG_SHARE = "share"
+const val ARG_SHARE_FILES = "share_files"
 private const val MAX_CONFIRM_DELETE_STRING_LENGTH = 32
 
 private fun User.online(): Boolean = connectionStatus != ConnectionStatus.None
@@ -259,6 +261,21 @@ class ContactListFragment :
                 },
                 onDialogDismissed = {
                     arguments?.remove(ARG_SHARE)
+                },
+            ).show(childFragmentManager, null)
+        }
+
+        arguments?.getParcelableArrayList<Uri>(ARG_SHARE_FILES)?.let { files ->
+            if (files.isEmpty()) return@let
+            ReceiveShareDialogFragment(
+                viewModel.contacts,
+                files.joinToString(separator = "\n") { it.lastPathSegment ?: it.toString() },
+                onContactSelected = {
+                    viewModel.onShareFiles(files, it)
+                    openChat(it)
+                },
+                onDialogDismissed = {
+                    arguments?.remove(ARG_SHARE_FILES)
                 },
             ).show(childFragmentManager, null)
         }

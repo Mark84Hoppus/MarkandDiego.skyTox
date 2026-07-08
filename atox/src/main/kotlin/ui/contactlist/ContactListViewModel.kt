@@ -180,6 +180,10 @@ class ContactListViewModel @Inject constructor(
 
     fun onShareText(what: String, to: Contact) = chatManager.sendMessage(PublicKey(to.publicKey), what)
 
+    fun onShareFiles(files: List<Uri>, to: Contact) = scope.launch {
+        files.forEach { fileTransferManager.create(PublicKey(to.publicKey), it) }
+    }
+
     suspend fun searchChats(query: String) = chatSearch.search(query)
 
     fun ownAvatarUri(): Uri? = avatarManager.ownAvatarUri()
