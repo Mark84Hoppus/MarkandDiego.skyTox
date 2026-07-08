@@ -34,9 +34,7 @@ enum class PushMode {
 
 enum class AppLockMode {
     None,
-    Fingerprint,
-    Pin,
-    Pattern,
+    DeviceCredential,
 }
 
 class Settings @Inject constructor(private val ctx: Context) {
@@ -68,7 +66,10 @@ class Settings @Inject constructor(private val ctx: Context) {
         get() = pushMode == PushMode.GoogleWakeOnly
 
     var appLockMode: AppLockMode
-        get() = AppLockMode.entries[preferences.getInt("app_lock_mode", AppLockMode.None.ordinal)]
+        get() = when (preferences.getInt("app_lock_mode", AppLockMode.None.ordinal)) {
+            AppLockMode.None.ordinal -> AppLockMode.None
+            else -> AppLockMode.DeviceCredential
+        }
         set(mode) = preferences.edit { putInt("app_lock_mode", mode.ordinal) }
 
     var runAtStartup: Boolean

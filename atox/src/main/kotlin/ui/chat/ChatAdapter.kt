@@ -104,6 +104,7 @@ private class FileTransferViewHolder(row: View) {
     val cancelLayout: View = row.findViewById(R.id.cancelLayout)
     val cancel: Button = row.findViewById(R.id.cancel)
     val completedLayout: View = row.findViewById(R.id.completedLayout)
+    val audioLayout: View = row.findViewById(R.id.audioLayout)
     val imagePreview: ImageView = row.findViewById(R.id.imagePreview)
     val audioPlay: ImageButton = row.findViewById(R.id.audioPlay)
     val audioWaveform: VoiceWaveformView = row.findViewById(R.id.audioWaveform)
@@ -242,9 +243,8 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                     vh.completedLayout.visibility = View.GONE
                 }
 
-                vh.audioPlay.visibility =
+                vh.audioLayout.visibility =
                     if (fileTransfer.isAudio() && fileTransfer.isComplete()) View.VISIBLE else View.GONE
-                vh.audioWaveform.visibility = vh.audioPlay.visibility
                 vh.audioWaveform.progress = if (fileTransfer.id == playingAudioId) playingAudioProgress else 0f
                 vh.audioPlay.setImageResource(
                     if (fileTransfer.id == playingAudioId) R.drawable.ic_stop else R.drawable.ic_play,

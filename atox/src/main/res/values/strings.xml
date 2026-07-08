@@ -121,7 +121,7 @@
     <string name="pref_language">Language</string>
     <string name="pref_push_mode">Push mode</string>
     <string name="pref_push_mode_default">Default</string>
-    <string name="pref_push_mode_google_wake">Google Push wake only</string>
+    <string name="pref_push_mode_google_wake">Wake app</string>
     <string-array name="pref_push_mode_options">
         <item>@string/pref_push_mode_default</item>
         <item>@string/pref_push_mode_google_wake</item>
@@ -340,7 +340,8 @@ skyTox validates the JSON structure before importing. The file must have the cor
     <string name="update_downloading">Downloading skyTox %1$s...</string>
     <string name="update_failed">Update failed: %1$s</string>
     <string name="update_cancelled">Download cancelled</string>
-    <string name="app_lock_settings">Lock settings</string>
+    <string name="app_lock_settings">Set protection</string>
+    <string name="app_lock_enable">Set protection</string>
     <string name="app_lock_use_fingerprint">Use fingerprint</string>
     <string name="app_lock_use_pin">Use PIN code</string>
     <string name="app_lock_use_pattern">Use pattern</string>
@@ -348,5 +349,10 @@ skyTox validates the JSON structure before importing. The file must have the cor
     <string name="app_lock_updated">Lock setting updated</string>
     <string name="app_lock_unavailable">This protection method is not available on this device</string>
     <string name="app_lock_unlock_title">Unlock skyTox</string>
+    <string name="app_lock_not_set">Protection is not set</string>
     <string name="voice_recording">Recording %1$s</string>
+    <string name="send_encrypted_message">Send encrypted message</string>
+    <string name="decrypt_message">Decrypt</string>
+    <string name="decrypted_message">Decrypted message</string>
+    <string name="encrypted_message_read_failed">Could not read</string>
 </resources>

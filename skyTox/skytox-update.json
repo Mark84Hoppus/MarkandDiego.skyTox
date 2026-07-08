@@ -1,8 +1,8 @@
 ﻿{
-    "size":  45662578,
-    "notes":  "skyTox 0.8.12: update download progress and storage folder, app lock settings, voice message controls, updated bootstrap nodes, noisy text filtering, and offline notification icon.",
+    "size":  45666730,
+    "notes":  "skyTox 0.8.12 hotfix: safer app protection on Android 8.1, wake-app push label, compact voice waveform, raised bottom menu, encrypted-message module, and fixed release notes encoding.",
     "versionName":  "0.8.12",
-    "sha256":  "ded37d9a5e3c5071419114b26db7ddf0e7d34daa5f72fb03b751eae70f5d728d",
+    "sha256":  "a9d1a1cefd1df53a20eaadd62c0632a520e343d2c27ab64c2ab4d859d11fe149",
     "versionCode":  226,
     "apkUrl":  "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/latest/download/skyTox-0.8.12-universal-release-signed.apk"
 }

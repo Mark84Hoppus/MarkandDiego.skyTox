@@ -20,36 +20,27 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-        <TextView
-                android:id="@+id/use_fingerprint"
-                style="@style/OptionItemText"
+        <androidx.constraintlayout.widget.ConstraintLayout
+                style="@style/OptionRow"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:text="@string/app_lock_use_fingerprint"/>
-
-        <TextView
-                android:id="@+id/use_pin"
-                style="@style/OptionItemText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:text="@string/app_lock_use_pin"/>
-
-        <TextView
-                android:id="@+id/use_pattern"
-                style="@style/OptionItemText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:text="@string/app_lock_use_pattern"/>
-
-        <TextView
-                android:id="@+id/remove_lock"
-                style="@style/OptionItemText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:text="@string/app_lock_remove"/>
+                android:layout_height="wrap_content">
+            <TextView
+                    style="@style/OptionItemText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/app_lock_enable"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/app_lock_enabled"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"/>
+            <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/app_lock_enabled"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="8dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
     </LinearLayout>
 </LinearLayout>

@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ltd.evilcorp.atox.R
+import ltd.evilcorp.atox.settings.AppLockMode
 import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.atox.ui.NotificationHelper
 import ltd.evilcorp.core.vo.ConnectionStatus
@@ -75,6 +76,7 @@ class ChatViewModel @Inject constructor(
     val fileTransfers: LiveData<List<FileTransfer>> by lazy { fileTransferManager.transfersFor(publicKey).asLiveData() }
 
     fun callingNeedsConfirmation(): Boolean = settings.confirmCalling
+    fun appProtectionEnabled(): Boolean = settings.appLockMode != AppLockMode.None
     val ongoingCall = callManager.inCall.asLiveData()
 
     val callState get() = contactManager.get(publicKey)

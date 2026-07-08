@@ -6,7 +6,9 @@
 package ltd.evilcorp.atox.ui.chat
 
 import android.Manifest
+import android.app.Activity
 import android.app.AlertDialog
+import android.app.KeyguardManager
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -25,6 +27,7 @@ import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.widget.AdapterView
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -97,6 +100,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private val voiceTimer = Handler(Looper.getMainLooper())
     private val audioProgressTimer = Handler(Looper.getMainLooper())
     private var startAfterMicPermission = false
+    private var pendingEncryptedMessage: String? = null
 
     private val requestRecordAudioLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -108,6 +112,17 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             startVoiceRecording()
         }
     }
+
+    private val decryptMessageLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val encrypted = pendingEncryptedMessage
+            pendingEncryptedMessage = null
+            if (result.resultCode != Activity.RESULT_OK || encrypted == null) {
+                Toast.makeText(requireContext(), R.string.encrypted_message_read_failed, Toast.LENGTH_SHORT).show()
+                return@registerForActivityResult
+            }
+            showDecryptedMessage(encrypted)
+        }
 
     private val exportBackupLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { dest ->
@@ -240,6 +255,14 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                         }
                         .setNegativeButton(android.R.string.cancel, null)
                         .show()
+                    true
+                }
+                R.id.send_encrypted_message -> {
+                    if (!viewModel.appProtectionEnabled()) {
+                        Toast.makeText(requireContext(), R.string.app_lock_not_set, Toast.LENGTH_SHORT).show()
+                    } else {
+                        showSendEncryptedDialog()
+                    }
                     true
                 }
                 else -> super.onOptionsItemSelected(item)
@@ -445,7 +468,16 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             inflater.inflate(R.menu.selected_message_context_menu, popup.menu)
         } else {
             when (message.type) {
-                MessageType.Action, MessageType.Normal -> inflater.inflate(R.menu.chat_message_context_menu, popup.menu)
+                MessageType.Action, MessageType.Normal -> {
+                    inflater.inflate(
+                        if (SkyToxEncryptedMessage.isEncrypted(message.message)) {
+                            R.menu.encrypted_message_context_menu
+                        } else {
+                            R.menu.chat_message_context_menu
+                        },
+                        popup.menu,
+                    )
+                }
                 MessageType.FileTransfer -> {
                     inflater.inflate(R.menu.ft_message_context_menu, popup.menu)
                     val ft = fts.find { it.id == message.correlationId } ?: return
@@ -476,7 +508,15 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             true
         }
         R.id.forward_message -> {
-            showForwardDialog(message.message)
+            if (SkyToxEncryptedMessage.isEncrypted(message.message)) {
+                false
+            } else {
+                showForwardDialog(message.message)
+                true
+            }
+        }
+        R.id.decrypt_message -> {
+            decryptEncryptedMessage(message.message)
             true
         }
         R.id.delete_selected -> {
@@ -561,6 +601,64 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             .show()
     }
 
+    private fun showSendEncryptedDialog() {
+        val input = EditText(requireContext()).apply {
+            minLines = 3
+            setPadding(32, 16, 32, 0)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.send_encrypted_message)
+            .setView(input)
+            .setPositiveButton(R.string.send) { _, _ ->
+                val text = input.text.toString()
+                if (text.isNotBlank()) {
+                    viewModel.send(SkyToxEncryptedMessage.encrypt(text), MessageType.Normal)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun decryptEncryptedMessage(encrypted: String) {
+        if (!viewModel.appProtectionEnabled()) {
+            Toast.makeText(requireContext(), R.string.app_lock_not_set, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val keyguard = requireContext().getSystemService(KeyguardManager::class.java)
+        if (keyguard?.isKeyguardSecure != true) {
+            Toast.makeText(requireContext(), R.string.app_lock_unavailable, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val intent = keyguard.createConfirmDeviceCredentialIntent(
+            getString(R.string.app_lock_unlock_title),
+            "",
+        )
+        if (intent == null) {
+            Toast.makeText(requireContext(), R.string.encrypted_message_read_failed, Toast.LENGTH_SHORT).show()
+            return
+        }
+        pendingEncryptedMessage = encrypted
+        decryptMessageLauncher.launch(intent)
+    }
+
+    private fun showDecryptedMessage(encrypted: String) {
+        val plainText = runCatching { SkyToxEncryptedMessage.decrypt(encrypted) }.getOrNull()
+        if (plainText == null) {
+            Toast.makeText(requireContext(), R.string.encrypted_message_read_failed, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val textView = TextView(requireContext()).apply {
+            text = plainText
+            setTextIsSelectable(true)
+            setPadding(32, 16, 32, 0)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.decrypted_message)
+            .setView(textView)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
     override fun onCreateContextMenu(menu: ContextMenu, v: View, menuInfo: ContextMenu.ContextMenuInfo?) = binding.run {
         super.onCreateContextMenu(menu, v, menuInfo)
         v.dispatchTouchEvent(MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0f, 0f, 0))
@@ -571,7 +669,11 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                 val message = messages.adapter.getItem(info.position) as Message
                 when (message.type) {
                     MessageType.Action, MessageType.Normal -> inflater.inflate(
-                        R.menu.chat_message_context_menu,
+                        if (SkyToxEncryptedMessage.isEncrypted(message.message)) {
+                            R.menu.encrypted_message_context_menu
+                        } else {
+                            R.menu.chat_message_context_menu
+                        },
                         menu,
                     )
                     MessageType.FileTransfer -> {
@@ -614,6 +716,12 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                         viewModel.delete(message)
                     }
                     .setNegativeButton(android.R.string.cancel, null).show()
+                true
+            }
+            R.id.decrypt_message -> {
+                val info = item.menuInfo as AdapterView.AdapterContextMenuInfo
+                val message = messages.adapter.getItem(info.position) as Message
+                decryptEncryptedMessage(message.message)
                 true
             }
             R.id.send_action -> {

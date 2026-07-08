@@ -189,7 +189,7 @@
     <string name="pref_language">Язык</string>
     <string name="pref_push_mode">Режим Push</string>
     <string name="pref_push_mode_default">По умолчанию</string>
-    <string name="pref_push_mode_google_wake">Только Push от Google</string>
+    <string name="pref_push_mode_google_wake">Разбудить приложение</string>
     <string-array name="pref_push_mode_options">
         <item>@string/pref_push_mode_default</item>
         <item>@string/pref_push_mode_google_wake</item>
@@ -216,7 +216,8 @@
     <string name="update_downloading">Скачивание skyTox %1$s...</string>
     <string name="update_failed">Обновление не удалось: %1$s</string>
     <string name="update_cancelled">Скачивание отменено</string>
-    <string name="app_lock_settings">Настройка блокировки</string>
+    <string name="app_lock_settings">Установить защиту</string>
+    <string name="app_lock_enable">Установить защиту</string>
     <string name="app_lock_use_fingerprint">Использовать отпечаток</string>
     <string name="app_lock_use_pin">Использовать пин код</string>
     <string name="app_lock_use_pattern">Использовать графический ключ</string>
@@ -224,5 +225,10 @@
     <string name="app_lock_updated">Настройка блокировки обновлена</string>
     <string name="app_lock_unavailable">Этот способ защиты недоступен на устройстве</string>
     <string name="app_lock_unlock_title">Разблокируйте skyTox</string>
+    <string name="app_lock_not_set">Защита не установлена</string>
     <string name="voice_recording">Запись %1$s</string>
+    <string name="send_encrypted_message">Отправить зашифрованное сообщение</string>
+    <string name="decrypt_message">Расшифровать</string>
+    <string name="decrypted_message">Расшифрованное сообщение</string>
+    <string name="encrypted_message_read_failed">Не удалось прочитать</string>
 </resources>

@@ -4,6 +4,7 @@
 
 package ltd.evilcorp.atox
 
+import android.app.KeyguardManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -11,12 +12,12 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings as AndroidSettings
 import android.util.Log
+import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricPrompt
 import androidx.core.os.LocaleListCompat
 import androidx.core.os.bundleOf
 import androidx.core.view.WindowCompat
@@ -44,6 +45,15 @@ class MainActivity : AppCompatActivity() {
 
     private var lockPromptActive = false
     private var lockAccepted = false
+    private val appLockLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        lockPromptActive = false
+        if (result.resultCode == RESULT_OK) {
+            lockAccepted = true
+            findViewById<View>(R.id.app_lock_scrim)?.visibility = View.GONE
+        } else {
+            closeAfterFailedAppLock()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         (application as App).component.inject(this)
@@ -91,49 +101,32 @@ class MainActivity : AppCompatActivity() {
     private fun maybePromptAppLock() {
         if (lockAccepted || lockPromptActive || settings.appLockMode == AppLockMode.None) return
 
-        val authenticators = when (settings.appLockMode) {
-            AppLockMode.Fingerprint -> BiometricManager.Authenticators.BIOMETRIC_STRONG
-            AppLockMode.Pin,
-            AppLockMode.Pattern,
-            -> BiometricManager.Authenticators.DEVICE_CREDENTIAL
-            AppLockMode.None -> return
-        }
-
-        val canAuthenticate = BiometricManager.from(this).canAuthenticate(authenticators)
-        if (canAuthenticate != BiometricManager.BIOMETRIC_SUCCESS) {
+        val keyguard = getSystemService(KeyguardManager::class.java)
+        if (keyguard?.isKeyguardSecure != true) {
             Toast.makeText(this, R.string.app_lock_unavailable, Toast.LENGTH_LONG).show()
             settings.appLockMode = AppLockMode.None
+            findViewById<View>(R.id.app_lock_scrim)?.visibility = View.GONE
             return
         }
 
-        lockPromptActive = true
-        val prompt = BiometricPrompt(
-            this,
-            mainExecutor,
-            object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    lockAccepted = true
-                    lockPromptActive = false
-                }
-
-                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                    lockPromptActive = false
-                    if (errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON &&
-                        errorCode != BiometricPrompt.ERROR_USER_CANCELED
-                    ) {
-                        Toast.makeText(this@MainActivity, errString, Toast.LENGTH_SHORT).show()
-                    }
-                }
-            },
-        )
-
-        val infoBuilder = BiometricPrompt.PromptInfo.Builder()
-            .setTitle(getString(R.string.app_lock_unlock_title))
-            .setAllowedAuthenticators(authenticators)
-        if (settings.appLockMode == AppLockMode.Fingerprint) {
-            infoBuilder.setNegativeButtonText(getString(android.R.string.cancel))
+        val intent = keyguard.createConfirmDeviceCredentialIntent(
+            getString(R.string.app_lock_unlock_title),
+            "",
+        ) ?: run {
+            settings.appLockMode = AppLockMode.None
+            Toast.makeText(this, R.string.app_lock_unavailable, Toast.LENGTH_LONG).show()
+            return
         }
-        prompt.authenticate(infoBuilder.build())
+
+        findViewById<View>(R.id.app_lock_scrim)?.visibility = View.VISIBLE
+        lockPromptActive = true
+        appLockLauncher.launch(intent)
+    }
+
+    private fun closeAfterFailedAppLock() {
+        lockAccepted = false
+        findViewById<View>(R.id.app_lock_scrim)?.visibility = View.VISIBLE
+        finishAndRemoveTask()
     }
 
     private fun handleIntent(intent: Intent) {
