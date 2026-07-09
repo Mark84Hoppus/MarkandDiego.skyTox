@@ -1,8 +1,8 @@
 ﻿{
-    "versionName":  "0.8.13",
-    "versionCode":  227,
-    "apkUrl":  "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/latest/download/skyTox-0.8.13-universal-release-signed.apk",
-    "sha256":  "2f2e71f023ba0f43ec995faab7e897ee73a41cff05d55bda17a6a9b359fefa3c",
-    "size":  45666786,
-    "notes":  "skyTox 0.8.13 hotfix: stops repeated resend loops, improves Android 8/9 storage permissions and file receive stability, adds legacy voice-recording fallback, fixes voice-message selection, adds selection cancel button, removes unused quit confirmation setting, and expands Android Share support."
+    "versionName":  "0.8.14",
+    "versionCode":  231,
+    "apkUrl":  "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/latest/download/skyTox-0.8.14-universal-release-signed.apk",
+    "sha256":  "b80421fdf2d44f4e73ab9796f4987322815c3c53250845b04202de3b8a2fad2b",
+    "size":  45666842,
+    "notes":  "skyTox 0.8.14: outgoing file and voice cards now match outgoing chat color, multi-selection works across file and voice cards again, the foreground notification banner can be minimized from settings, and incoming calls open a full-screen accept/reject screen."
 }

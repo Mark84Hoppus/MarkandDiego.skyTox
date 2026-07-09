@@ -116,6 +116,7 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
     var playingAudioId: Int = Int.MIN_VALUE
     var playingAudioProgress: Float = 0f
     var selectedMessageIds: Set<Long> = emptySet()
+    var onFileTransferClick: ((Int) -> Unit)? = null
     var onFileTransferLongClick: ((View, Int) -> Unit)? = null
 
     override fun getCount(): Int = messages.size
@@ -207,14 +208,21 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                 // for some reason. Will revisit this once I've replaced the ListView with a RecyclerView.
                 val touchListener = View.OnTouchListener { v, event ->
                     if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                        (parent as ListView).performItemClick(v, position, position.toLong())
+                        if (selectedMessageIds.isNotEmpty()) {
+                            onFileTransferClick?.invoke(position)
+                        } else {
+                            (parent as ListView).performItemClick(v, position, position.toLong())
+                        }
                     }
-                    false
+                    true
                 }
                 vh.accept.setOnTouchListener(touchListener)
                 vh.reject.setOnTouchListener(touchListener)
                 vh.cancel.setOnTouchListener(touchListener)
                 vh.audioPlay.setOnTouchListener(touchListener)
+                vh.container.setOnTouchListener(touchListener)
+                vh.imagePreview.setOnTouchListener(touchListener)
+                vh.completedLayout.setOnTouchListener(touchListener)
                 vh.container.setOnLongClickListener {
                     onFileTransferLongClick?.invoke(vh.container, position)
                     true
@@ -227,6 +235,13 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                     onFileTransferLongClick?.invoke(vh.container, position)
                     true
                 }
+                vh.container.setBackgroundResource(
+                    if (message.sender == Sender.Sent) {
+                        R.drawable.chat_filetransfer_background
+                    } else {
+                        R.drawable.chat_filetransfer_received_background
+                    },
+                )
 
                 if (fileTransfer.hasThumbnail() || fileTransfer.isComplete() && !fileTransfer.isAudio()) {
                     vh.completedLayout.visibility = View.VISIBLE

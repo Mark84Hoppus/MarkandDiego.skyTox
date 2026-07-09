@@ -179,6 +179,11 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
             vm.setLanguage(it)
         }
 
+        settingCompactServiceNotification.isChecked = vm.getCompactServiceNotification()
+        settingCompactServiceNotification.setOnCheckedChangeListener { _, isChecked ->
+            vm.setCompactServiceNotification(isChecked)
+        }
+
         if (vm.getProxyType() != ProxyType.None) {
             vm.setUdpEnabled(false)
         }

@@ -36,6 +36,8 @@ class CallViewModel @Inject constructor(
         publicKey = pk
     }
 
+    fun hasPendingCall(): Boolean = callManager.pendingCalls.value.any { it.publicKey == publicKey.string() }
+
     fun startCall() {
         callManager.startCall(publicKey)
         scope.launch { notificationHelper.showOngoingCallNotification(contactManager.get(publicKey).first()) }
@@ -59,6 +61,7 @@ class CallViewModel @Inject constructor(
     }
 
     val inCall = callManager.inCall
+    val pendingCalls = callManager.pendingCalls
     val sendingAudio = callManager.sendingAudio
 
     var speakerphoneOn by callManager::speakerphoneOn

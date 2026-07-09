@@ -119,6 +119,7 @@
     <string name="pref_confirm_quitting">Confirm app quit</string>
     <string name="pref_confirm_calling">Confirm call</string>
     <string name="pref_language">Language</string>
+    <string name="pref_compact_service_notification">Hide notification shade banner</string>
     <string name="pref_push_mode">Push mode</string>
     <string name="pref_push_mode_default">Default</string>
     <string name="pref_push_mode_google_wake">Wake app</string>
