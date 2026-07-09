@@ -312,20 +312,56 @@ class NotificationHelper @Inject constructor(private val context: Context) {
             return
         }
 
-        val pendingIntent = deepLinkToCall(PublicKey(c.publicKey))
         val notificationBuilder = NotificationCompat.Builder(context, CALL)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setContentIntent(pendingIntent)
-            .setFullScreenIntent(pendingIntent, true)
+
+        val pendingIntent = deepLinkToChat(PublicKey(c.publicKey))
+        if (context.hasPermission(Manifest.permission.USE_FULL_SCREEN_INTENT)) {
+            // Making the notification persistent takes a full-screen intent.
+            notificationBuilder
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setFullScreenIntent(pendingIntent, true)
+        } else {
+            notificationBuilder.setContentIntent(pendingIntent)
+        }
 
         val notification = notificationBuilder
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .setSmallIcon(android.R.drawable.ic_menu_call)
             .setContentTitle(context.getString(R.string.incoming_call))
             .setContentText(context.getString(R.string.incoming_call_from, c.name))
-            .setOngoing(true)
-            .setAutoCancel(false)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .addAction(
+                NotificationCompat.Action
+                    .Builder(
+                        IconCompat.createWithResource(context, R.drawable.ic_call),
+                        context.getString(R.string.accept),
+                        PendingIntentCompat.getBroadcast(
+                            context,
+                            "${c.publicKey}_accept_call".hashCode(),
+                            Intent(context, ActionReceiver::class.java)
+                                .putExtra(KEY_CONTACT_PK, c.publicKey)
+                                .putExtra(KEY_ACTION, Action.CallAccept),
+                            PendingIntent.FLAG_UPDATE_CURRENT,
+                        ),
+                    )
+                    .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_CALL)
+                    .build(),
+            )
+            .addAction(
+                NotificationCompat.Action
+                    .Builder(
+                        IconCompat.createWithResource(context, R.drawable.ic_not_interested),
+                        context.getString(R.string.reject),
+                        PendingIntentCompat.getBroadcast(
+                            context,
+                            "${c.publicKey}_reject_call".hashCode(),
+                            Intent(context, ActionReceiver::class.java)
+                                .putExtra(KEY_CONTACT_PK, c.publicKey)
+                                .putExtra(KEY_ACTION, Action.CallReject),
+                            PendingIntent.FLAG_UPDATE_CURRENT,
+                        ),
+                    )
+                    .build(),
+            )
             .setDeleteIntent(
                 PendingIntentCompat.getBroadcast(
                     context,
@@ -355,11 +391,5 @@ class NotificationHelper @Inject constructor(private val context: Context) {
                 FOCUS_ON_MESSAGE_BOX to focusMessageBox,
             ),
         )
-        .createPendingIntent()
-
-    private fun deepLinkToCall(publicKey: PublicKey) = NavDeepLinkBuilder(context)
-        .setGraph(R.navigation.nav_graph)
-        .addDestination(R.id.chatFragment, bundleOf(CONTACT_PUBLIC_KEY to publicKey.string()))
-        .addDestination(R.id.callFragment, bundleOf(CONTACT_PUBLIC_KEY to publicKey.string()))
         .createPendingIntent()
 }

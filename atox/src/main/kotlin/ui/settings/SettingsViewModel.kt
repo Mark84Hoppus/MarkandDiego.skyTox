@@ -89,11 +89,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun getCompactServiceNotification(): Boolean = settings.compactServiceNotification
-    fun setCompactServiceNotification(enabled: Boolean) {
-        settings.compactServiceNotification = enabled
-    }
-
     fun getFtAutoAccept(): FtAutoAccept = settings.ftAutoAccept
     fun setFtAutoAccept(autoAccept: FtAutoAccept) {
         settings.ftAutoAccept = autoAccept

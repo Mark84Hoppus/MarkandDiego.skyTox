@@ -58,17 +58,6 @@
                 android:src="@drawable/ic_call_end"
                 app:backgroundTint="@android:color/holo_red_dark" />
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton android:id="@+id/accept_call"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_toStartOf="@id/end_call"
-                android:layout_alignParentTop="true"
-                android:layout_marginEnd="32dp"
-                android:contentDescription="@string/accept"
-                android:src="@drawable/ic_call"
-                android:visibility="gone"
-                app:backgroundTint="@android:color/holo_green_dark" />
-
         <ImageButton android:id="@+id/back_to_chat"
                 android:layout_width="32dp"
                 android:layout_height="32dp"

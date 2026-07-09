@@ -29,7 +29,6 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import ltd.evilcorp.atox.tox.ToxStarter
-import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.core.repository.UserRepository
 import ltd.evilcorp.core.vo.ConnectionStatus
 import ltd.evilcorp.core.vo.FriendRequest
@@ -42,11 +41,10 @@ import ltd.evilcorp.domain.tox.ToxSaveStatus
 private const val TAG = "ToxService"
 private const val NOTIFICATION_ID = 1984
 private const val BOOTSTRAP_INTERVAL_MS = 60_000L
-private const val CHANNEL_NORMAL = "ToxService"
-private const val CHANNEL_COMPACT = "ToxServiceCompact"
-const val ACTION_REFRESH_SERVICE_NOTIFICATION = "ltd.evilcorp.atox.REFRESH_SERVICE_NOTIFICATION"
 
 class ToxService : LifecycleService() {
+    private val channelId = "ToxService"
+
     private var connectionStatus: ConnectionStatus? = null
 
     private val notifier by lazy { NotificationManagerCompat.from(this) }
@@ -61,9 +59,6 @@ class ToxService : LifecycleService() {
     lateinit var toxStarter: ToxStarter
 
     @Inject
-    lateinit var settings: Settings
-
-    @Inject
     lateinit var userRepository: UserRepository
 
     @Inject
@@ -76,14 +71,11 @@ class ToxService : LifecycleService() {
     lateinit var proximityScreenOff: ProximityScreenOff
 
     private fun createNotificationChannel() {
-        val normalChannel = NotificationChannelCompat.Builder(CHANNEL_NORMAL, NotificationManagerCompat.IMPORTANCE_LOW)
-            .setName("Tox Service")
-            .build()
-        val compactChannel = NotificationChannelCompat.Builder(CHANNEL_COMPACT, NotificationManagerCompat.IMPORTANCE_MIN)
+        val channel = NotificationChannelCompat.Builder(channelId, NotificationManagerCompat.IMPORTANCE_LOW)
             .setName("Tox Service")
             .build()
 
-        notifier.createNotificationChannelsCompat(listOf(normalChannel, compactChannel))
+        notifier.createNotificationChannel(channel)
     }
 
     private fun subTextFor(status: ConnectionStatus) = when (status) {
@@ -98,8 +90,7 @@ class ToxService : LifecycleService() {
                 PendingIntentCompat.getActivity(this, 0, notificationIntent, 0)
             }
 
-        val compact = settings.compactServiceNotification
-        val builder = NotificationCompat.Builder(this, if (compact) CHANNEL_COMPACT else CHANNEL_NORMAL)
+        val builder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(if (status == ConnectionStatus.None) R.drawable.ic_notification_offline else R.drawable.ic_notification)
             .setColor(ResourcesCompat.getColor(resources, R.color.colorPrimary, null))
             .setContentIntent(pendingIntent)
@@ -108,8 +99,6 @@ class ToxService : LifecycleService() {
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setShowWhen(false)
-            .setSilent(compact)
-            .setPriority(if (compact) NotificationCompat.PRIORITY_MIN else NotificationCompat.PRIORITY_LOW)
 
         if (status != null) {
             // Either we haven't received a status from Tox yet, or we don't
@@ -208,9 +197,6 @@ class ToxService : LifecycleService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        if (intent?.action == ACTION_REFRESH_SERVICE_NOTIFICATION) {
-            notifier.notify(NOTIFICATION_ID, notificationFor(connectionStatus))
-        }
         return START_STICKY
     }
 

@@ -8,10 +8,10 @@ import android.content.res.Resources
 import android.graphics.Color
 import android.text.format.Formatter
 import android.util.Log
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.Button
@@ -116,7 +116,6 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
     var playingAudioId: Int = Int.MIN_VALUE
     var playingAudioProgress: Float = 0f
     var selectedMessageIds: Set<Long> = emptySet()
-    var onFileTransferClick: ((Int) -> Unit)? = null
     var onFileTransferLongClick: ((View, Int) -> Unit)? = null
 
     override fun getCount(): Int = messages.size
@@ -206,38 +205,11 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                 // TODO(robinlinden)
                 // Updating the file transfer progress refreshes this so often that onClick-listeners never trigger
                 // for some reason. Will revisit this once I've replaced the ListView with a RecyclerView.
-                val touchSlop = ViewConfiguration.get(inflater.context).scaledTouchSlop
-                var downX = 0f
-                var downY = 0f
-                var moved = false
                 val touchListener = View.OnTouchListener { v, event ->
-                    when (event.actionMasked) {
-                        MotionEvent.ACTION_DOWN -> {
-                            downX = event.rawX
-                            downY = event.rawY
-                            moved = false
-                            true
-                        }
-                        MotionEvent.ACTION_MOVE -> {
-                            if (kotlin.math.abs(event.rawX - downX) > touchSlop ||
-                                kotlin.math.abs(event.rawY - downY) > touchSlop
-                            ) {
-                                moved = true
-                            }
-                            true
-                        }
-                        MotionEvent.ACTION_UP -> {
-                            if (!moved) {
-                                if (selectedMessageIds.isNotEmpty()) {
-                                    onFileTransferClick?.invoke(position)
-                                } else {
-                                    (parent as ListView).performItemClick(v, position, position.toLong())
-                                }
-                            }
-                            true
-                        }
-                        else -> true
+                    if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                        (parent as ListView).performItemClick(v, position, position.toLong())
                     }
+                    false
                 }
                 vh.accept.setOnTouchListener(touchListener)
                 vh.reject.setOnTouchListener(touchListener)
@@ -255,13 +227,6 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                     onFileTransferLongClick?.invoke(vh.container, position)
                     true
                 }
-                vh.container.setBackgroundResource(
-                    if (message.sender == Sender.Sent) {
-                        R.drawable.chat_filetransfer_background
-                    } else {
-                        R.drawable.chat_filetransfer_received_background
-                    },
-                )
 
                 if (fileTransfer.hasThumbnail() || fileTransfer.isComplete() && !fileTransfer.isAudio()) {
                     vh.completedLayout.visibility = View.VISIBLE
@@ -339,18 +304,10 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                     }
                 }
 
-                (vh.container.layoutParams as RelativeLayout.LayoutParams).apply {
-                    removeRule(RelativeLayout.ALIGN_PARENT_START)
-                    removeRule(RelativeLayout.ALIGN_PARENT_END)
-                    addRule(if (fileTransfer.outgoing) RelativeLayout.ALIGN_PARENT_END else RelativeLayout.ALIGN_PARENT_START)
-                    vh.container.layoutParams = this
-                }
-                (vh.timestamp.layoutParams as RelativeLayout.LayoutParams).apply {
-                    removeRule(RelativeLayout.ALIGN_PARENT_START)
-                    removeRule(RelativeLayout.ALIGN_PARENT_END)
-                    addRule(RelativeLayout.BELOW, R.id.container)
-                    addRule(if (fileTransfer.outgoing) RelativeLayout.ALIGN_PARENT_END else RelativeLayout.ALIGN_PARENT_START)
-                    vh.timestamp.layoutParams = this
+                vh.container.gravity = if (fileTransfer.outgoing) {
+                    Gravity.END
+                } else {
+                    Gravity.START
                 }
 
                 view

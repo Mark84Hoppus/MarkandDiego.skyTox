@@ -6,10 +6,8 @@
 package ltd.evilcorp.atox.ui.call
 
 import android.Manifest
-import android.os.Build
 import android.os.Bundle
 import android.view.View
-import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
@@ -51,8 +49,6 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
         }
 
         vm.setActiveContact(PublicKey(requireStringArg(CONTACT_PUBLIC_KEY)))
-        val incomingCall = vm.hasPendingCall()
-        configureLockScreenVisibility(incomingCall)
         vm.contact.observe(viewLifecycleOwner) {
             avatarImageView.setFrom(it)
         }
@@ -60,11 +56,6 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
         endCall.setOnClickListener {
             vm.endCall()
             findNavController().popBackStack()
-        }
-        acceptCall.setOnClickListener {
-            startCall()
-            startAudioIfAllowed()
-            showInCallControls()
         }
 
         vm.sendingAudio.asLiveData().observe(viewLifecycleOwner) { sending ->
@@ -98,25 +89,19 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
         }
 
         if (vm.inCall.value is CallState.InCall) {
-            showInCallControls()
-            observeCallEnd()
-            return
-        }
-
-        if (incomingCall) {
-            showIncomingControls()
-            observePendingCall()
+            vm.inCall.asLiveData().observe(viewLifecycleOwner) { inCall ->
+                if (inCall == CallState.NotInCall) {
+                    findNavController().popBackStack()
+                }
+            }
             return
         }
 
         startCall()
-        observeCallEnd()
-        startAudioIfAllowed()
-    }
 
-    override fun onDestroyView() {
-        configureLockScreenVisibility(false)
-        super.onDestroyView()
+        if (requireContext().hasPermission(PERMISSION)) {
+            vm.startSendingAudio()
+        }
     }
 
     private fun updateSpeakerphoneIcon() {
@@ -126,56 +111,10 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
 
     private fun startCall() {
         vm.startCall()
-    }
-
-    private fun observeCallEnd() {
         vm.inCall.asLiveData().observe(viewLifecycleOwner) { inCall ->
             if (inCall == CallState.NotInCall) {
                 findNavController().popBackStack()
             }
-        }
-    }
-
-    private fun observePendingCall() {
-        vm.pendingCalls.asLiveData().observe(viewLifecycleOwner) { pending ->
-            if (pending.none { it.publicKey == requireStringArg(CONTACT_PUBLIC_KEY) } && vm.inCall.value == CallState.NotInCall) {
-                findNavController().popBackStack()
-            }
-        }
-    }
-
-    private fun startAudioIfAllowed() {
-        if (requireContext().hasPermission(PERMISSION)) {
-            vm.startSendingAudio()
-        }
-    }
-
-    private fun showIncomingControls() = binding.run {
-        acceptCall.visibility = View.VISIBLE
-        microphoneControl.visibility = View.GONE
-        speakerphone.visibility = View.GONE
-        backToChat.visibility = View.GONE
-    }
-
-    private fun showInCallControls() = binding.run {
-        acceptCall.visibility = View.GONE
-        microphoneControl.visibility = View.VISIBLE
-        speakerphone.visibility = View.VISIBLE
-        backToChat.visibility = View.VISIBLE
-    }
-
-    private fun configureLockScreenVisibility(enabled: Boolean) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            requireActivity().setShowWhenLocked(enabled)
-            requireActivity().setTurnScreenOn(enabled)
-        }
-        val flags = WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-            WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-            WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
-        if (enabled) {
-            requireActivity().window.addFlags(flags)
-        } else {
-            requireActivity().window.clearFlags(flags)
         }
     }
 }

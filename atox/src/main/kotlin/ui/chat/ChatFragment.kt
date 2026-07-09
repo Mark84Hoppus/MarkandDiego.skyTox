@@ -343,9 +343,6 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
 
         val adapter = ChatAdapter(layoutInflater, resources)
         updateSelectionUi(adapter)
-        adapter.onFileTransferClick = { position ->
-            toggleMessageSelection(adapter.messages[position], adapter)
-        }
         adapter.onFileTransferLongClick = { anchor, position ->
             showMessageContextMenu(anchor, adapter.messages[position], adapter)
         }

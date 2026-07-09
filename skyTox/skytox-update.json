@@ -2,7 +2,7 @@
     "versionName":  "0.8.14",
     "versionCode":  231,
     "apkUrl":  "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/latest/download/skyTox-0.8.14-universal-release-signed.apk",
-    "sha256":  "264bf476a7f84807e5988256a09e75999bc74d60df9f43129d2fa2fe2dca0221",
-    "size":  45666842,
-    "notes":  "skyTox 0.8.14: outgoing file and voice cards now match outgoing chat color, multi-selection works across file and voice cards again, the foreground notification banner can be minimized from settings, and incoming calls open a full-screen accept/reject screen."
+    "sha256":  "2475a29839b815753b35c8c0d2486c3a51f9231185d77bb11d0dbf740952ad81",
+    "size":  45666786,
+    "notes":  "skyTox 0.8.14 rollback: restored stable 0.8.13 codebase and kept 0.8.14 version metadata so the APK installs over the previous 0.8.14 release."
 }

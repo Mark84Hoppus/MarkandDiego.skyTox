@@ -129,8 +129,4 @@ class Settings @Inject constructor(private val ctx: Context) {
     var confirmCalling: Boolean
         get() = preferences.getBoolean("confirm_calling", true)
         set(confirm) = preferences.edit { putBoolean("confirm_calling", confirm) }
-
-    var compactServiceNotification: Boolean
-        get() = preferences.getBoolean("compact_service_notification", false)
-        set(compact) = preferences.edit { putBoolean("compact_service_notification", compact) }
 }
