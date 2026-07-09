@@ -44,6 +44,7 @@ private const val NOTIFICATION_ID = 1984
 private const val BOOTSTRAP_INTERVAL_MS = 60_000L
 private const val CHANNEL_NORMAL = "ToxService"
 private const val CHANNEL_COMPACT = "ToxServiceCompact"
+const val ACTION_REFRESH_SERVICE_NOTIFICATION = "ltd.evilcorp.atox.REFRESH_SERVICE_NOTIFICATION"
 
 class ToxService : LifecycleService() {
     private var connectionStatus: ConnectionStatus? = null
@@ -207,6 +208,9 @@ class ToxService : LifecycleService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+        if (intent?.action == ACTION_REFRESH_SERVICE_NOTIFICATION) {
+            notifier.notify(NOTIFICATION_ID, notificationFor(connectionStatus))
+        }
         return START_STICKY
     }
 

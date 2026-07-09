@@ -215,8 +215,8 @@ class EventListenerCallbacks @Inject constructor(
             Log.e(TAG, "call ${pk.fingerprint()} $audioEnabled $videoEnabled")
             scope.launch {
                 val contact = tryGetContact(pk, "Call") ?: return@launch
-                notificationHelper.showPendingCallNotification(tox.getStatus(), contact)
                 callManager.addPendingCall(contact)
+                notificationHelper.showPendingCallNotification(tox.getStatus(), contact)
             }
         }
 

@@ -6,6 +6,7 @@
 package ltd.evilcorp.atox.ui.settings
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
@@ -15,6 +16,7 @@ import android.widget.Spinner
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -32,6 +34,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ltd.evilcorp.atox.BuildConfig
 import ltd.evilcorp.atox.R
+import ltd.evilcorp.atox.ACTION_REFRESH_SERVICE_NOTIFICATION
+import ltd.evilcorp.atox.ToxService
 import ltd.evilcorp.atox.databinding.FragmentSettingsBinding
 import ltd.evilcorp.atox.settings.BootstrapNodeSource
 import ltd.evilcorp.atox.settings.FtAutoAccept
@@ -182,6 +186,10 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
         settingCompactServiceNotification.isChecked = vm.getCompactServiceNotification()
         settingCompactServiceNotification.setOnCheckedChangeListener { _, isChecked ->
             vm.setCompactServiceNotification(isChecked)
+            ContextCompat.startForegroundService(
+                requireContext(),
+                Intent(requireContext(), ToxService::class.java).setAction(ACTION_REFRESH_SERVICE_NOTIFICATION),
+            )
         }
 
         if (vm.getProxyType() != ProxyType.None) {

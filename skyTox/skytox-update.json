@@ -2,7 +2,7 @@
     "versionName":  "0.8.14",
     "versionCode":  231,
     "apkUrl":  "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/latest/download/skyTox-0.8.14-universal-release-signed.apk",
-    "sha256":  "b80421fdf2d44f4e73ab9796f4987322815c3c53250845b04202de3b8a2fad2b",
+    "sha256":  "264bf476a7f84807e5988256a09e75999bc74d60df9f43129d2fa2fe2dca0221",
     "size":  45666842,
     "notes":  "skyTox 0.8.14: outgoing file and voice cards now match outgoing chat color, multi-selection works across file and voice cards again, the foreground notification banner can be minimized from settings, and incoming calls open a full-screen accept/reject screen."
 }

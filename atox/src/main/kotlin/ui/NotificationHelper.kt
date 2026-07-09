@@ -312,23 +312,20 @@ class NotificationHelper @Inject constructor(private val context: Context) {
             return
         }
 
-        val notificationBuilder = NotificationCompat.Builder(context, CALL)
-
         val pendingIntent = deepLinkToCall(PublicKey(c.publicKey))
-        if (context.hasPermission(Manifest.permission.USE_FULL_SCREEN_INTENT)) {
-            // Making the notification persistent takes a full-screen intent.
-            notificationBuilder
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setFullScreenIntent(pendingIntent, true)
-        } else {
-            notificationBuilder.setContentIntent(pendingIntent)
-        }
+        val notificationBuilder = NotificationCompat.Builder(context, CALL)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setContentIntent(pendingIntent)
+            .setFullScreenIntent(pendingIntent, true)
 
         val notification = notificationBuilder
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .setSmallIcon(android.R.drawable.ic_menu_call)
             .setContentTitle(context.getString(R.string.incoming_call))
             .setContentText(context.getString(R.string.incoming_call_from, c.name))
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setDeleteIntent(
                 PendingIntentCompat.getBroadcast(
                     context,
