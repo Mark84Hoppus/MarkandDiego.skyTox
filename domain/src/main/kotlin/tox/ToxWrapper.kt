@@ -128,6 +128,13 @@ class ToxWrapper(
         message.toByteArray(),
     )
 
+    fun sendMessage(publicKey: PublicKey, payload: ByteArray, type: MessageType): Int = tox.friendSendMessage(
+        contactByKey(publicKey),
+        type.toToxType(),
+        0,
+        payload,
+    )
+
     fun acceptFriendRequest(pk: PublicKey) = try {
         tox.addFriendNorequest(pk.bytes())
         updateContactMapping()

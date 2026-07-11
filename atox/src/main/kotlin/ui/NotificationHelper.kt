@@ -6,6 +6,8 @@
 package ltd.evilcorp.atox.ui
 
 import android.Manifest
+import android.app.Notification
+import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
@@ -43,9 +45,10 @@ import ltd.evilcorp.atox.KEY_CONTACT_PK
 import ltd.evilcorp.atox.KEY_TEXT_REPLY
 import ltd.evilcorp.atox.PendingIntentCompat
 import ltd.evilcorp.atox.R
-import ltd.evilcorp.atox.hasPermission
 import ltd.evilcorp.atox.ui.chat.CONTACT_PUBLIC_KEY
 import ltd.evilcorp.atox.ui.chat.FOCUS_ON_MESSAGE_BOX
+import ltd.evilcorp.atox.ui.call.INCOMING_CALL
+import ltd.evilcorp.atox.ui.call.IncomingCallActivity
 import ltd.evilcorp.core.vo.Contact
 import ltd.evilcorp.core.vo.FriendRequest
 import ltd.evilcorp.core.vo.PublicKey
@@ -56,6 +59,7 @@ private const val TAG = "NotificationHelper"
 private const val MESSAGE = "skyTox messages"
 private const val FRIEND_REQUEST = "skyTox friend requests"
 private const val CALL = "skyTox calls"
+private const val INCOMING_CALLS = "skyTox incoming calls fullscreen"
 
 @Singleton
 class NotificationHelper @Inject constructor(private val context: Context) {
@@ -87,6 +91,22 @@ class NotificationHelper @Inject constructor(private val context: Context) {
             .build()
 
         notifier.createNotificationChannelsCompat(listOf(messageChannel, friendChannel, callChannel))
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            notifierOld.createNotificationChannel(
+                NotificationChannel(
+                    INCOMING_CALLS,
+                    context.getString(R.string.incoming_call),
+                    NotificationManager.IMPORTANCE_HIGH,
+                ).apply {
+                    description = context.getString(R.string.calls)
+                    enableVibration(true)
+                    enableLights(true)
+                    setSound(ringtone, attrs)
+                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                },
+            )
+        }
     }
 
     fun dismissNotifications(publicKey: PublicKey) = notifier.cancel(publicKey.string().hashCode())
@@ -312,23 +332,19 @@ class NotificationHelper @Inject constructor(private val context: Context) {
             return
         }
 
-        val notificationBuilder = NotificationCompat.Builder(context, CALL)
+        val notificationBuilder = NotificationCompat.Builder(context, INCOMING_CALLS)
 
-        val pendingIntent = deepLinkToChat(PublicKey(c.publicKey))
-        if (context.hasPermission(Manifest.permission.USE_FULL_SCREEN_INTENT)) {
-            // Making the notification persistent takes a full-screen intent.
-            notificationBuilder
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setFullScreenIntent(pendingIntent, true)
-        } else {
-            notificationBuilder.setContentIntent(pendingIntent)
-        }
+        val pendingIntent = IncomingCallActivity.pendingIntent(context, PublicKey(c.publicKey))
 
         val notification = notificationBuilder
             .setCategory(NotificationCompat.CATEGORY_CALL)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setSmallIcon(android.R.drawable.ic_menu_call)
             .setContentTitle(context.getString(R.string.incoming_call))
             .setContentText(context.getString(R.string.incoming_call_from, c.name))
+            .setContentIntent(pendingIntent)
+            .setFullScreenIntent(pendingIntent, true)
             .addAction(
                 NotificationCompat.Action
                     .Builder(
@@ -389,6 +405,17 @@ class NotificationHelper @Inject constructor(private val context: Context) {
             bundleOf(
                 CONTACT_PUBLIC_KEY to publicKey.string(),
                 FOCUS_ON_MESSAGE_BOX to focusMessageBox,
+            ),
+        )
+        .createPendingIntent()
+
+    private fun deepLinkToCall(publicKey: PublicKey, incoming: Boolean = false) = NavDeepLinkBuilder(context)
+        .setGraph(R.navigation.nav_graph)
+        .setDestination(R.id.callFragment)
+        .setArguments(
+            bundleOf(
+                CONTACT_PUBLIC_KEY to publicKey.string(),
+                INCOMING_CALL to incoming,
             ),
         )
         .createPendingIntent()

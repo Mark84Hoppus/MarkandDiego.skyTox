@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/black"
+        android:padding="24dp">
+
+    <ltd.evilcorp.atox.ui.AvatarImageView
+            android:id="@+id/caller_avatar"
+            android:layout_width="512px"
+            android:layout_height="512px"
+            app:layout_constraintBottom_toTopOf="@id/caller_name"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_chainStyle="packed"
+            app:shapeAppearanceOverlay="@style/CircleImageView"
+            app:statusIndicatorVisible="false"
+            app:strokeColor="@null" />
+
+    <TextView
+            android:id="@+id/caller_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="2"
+            android:textColor="@android:color/white"
+            android:textSize="28sp"
+            app:layout_constraintBottom_toTopOf="@id/incoming_call_label"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/caller_avatar"
+            tools:text="Ilnar" />
+
+    <TextView
+            android:id="@+id/incoming_call_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:text="@string/incoming_call"
+            android:textColor="#CCFFFFFF"
+            android:textSize="18sp"
+            app:layout_constraintBottom_toTopOf="@id/call_actions"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/caller_name" />
+
+    <LinearLayout
+            android:id="@+id/call_actions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="48dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/incoming_call_label">
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/reject_call"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="40dp"
+                android:contentDescription="@string/reject"
+                android:src="@drawable/ic_call_end"
+                app:backgroundTint="@android:color/holo_red_dark"
+                app:tint="@android:color/white" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/accept_call"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/accept"
+                android:src="@drawable/ic_call"
+                app:backgroundTint="@android:color/holo_green_dark"
+                app:tint="@android:color/white" />
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

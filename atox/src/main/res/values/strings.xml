@@ -304,6 +304,7 @@ skyTox validates the JSON structure before importing. An all-chats backup cannot
     <string name="app_lock_unavailable">This protection method is not available on this device</string>
     <string name="app_lock_unlock_title">Unlock skyTox</string>
     <string name="app_lock_not_set">Protection is not set</string>
+    <string name="overlay_permission_needed_for_calls">Allow skyTox to appear on top of other apps so incoming calls can open on this Android version</string>
     <string name="voice_recording">Recording %1$s</string>
     <string name="send_encrypted_message">Send encrypted message</string>
     <string name="decrypt_message">Decrypt</string>

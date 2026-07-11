@@ -12,6 +12,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
@@ -55,6 +57,15 @@
 
         <receiver android:name=".ActionReceiver"/>
 
+        <activity
+                android:name=".ui.call.IncomingCallActivity"
+                android:excludeFromRecents="true"
+                android:exported="false"
+                android:launchMode="singleTask"
+                android:showWhenLocked="true"
+                android:theme="@style/AppTheme.IncomingCall"
+                android:turnScreenOn="true" />
+
         <provider
                 android:name="androidx.core.content.FileProvider"
                 android:authorities="${applicationId}.fileprovider"
@@ -65,7 +76,12 @@
                     android:resource="@xml/file_paths" />
         </provider>
 
-        <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask">
+        <activity
+                android:name=".MainActivity"
+                android:exported="true"
+                android:launchMode="singleTask"
+                android:showWhenLocked="true"
+                android:turnScreenOn="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

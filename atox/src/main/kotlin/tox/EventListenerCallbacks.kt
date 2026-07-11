@@ -37,6 +37,7 @@ import ltd.evilcorp.core.vo.UserStatus
 import ltd.evilcorp.domain.av.AudioPlayer
 import ltd.evilcorp.domain.feature.CallManager
 import ltd.evilcorp.domain.feature.ChatManager
+import ltd.evilcorp.domain.feature.ContactNameCache
 import ltd.evilcorp.domain.feature.FileTransferManager
 import ltd.evilcorp.domain.feature.avatar.SkyToxAvatarManager
 import ltd.evilcorp.domain.feature.skymeta.SkyToxMessageTime
@@ -68,6 +69,7 @@ class EventListenerCallbacks @Inject constructor(
     private val callManager: CallManager,
     private val chatManager: ChatManager,
     private val fileTransferManager: FileTransferManager,
+    private val contactNameCache: ContactNameCache,
     private val avatarManager: SkyToxAvatarManager,
     private val pushManager: SkyToxPushManager,
     private val notificationHelper: NotificationHelper,
@@ -138,10 +140,12 @@ class EventListenerCallbacks @Inject constructor(
             }
         }
 
-        friendMessageHandler = { publicKey, type, timeDelta, msg ->
+        friendMessageHandler = { publicKey, type, timeDelta, msg, trifaSentAtMs ->
             if (SkyToxIncomingTextSanitizer.shouldIgnore(msg)) {
                 Log.w(TAG, "Ignoring unsupported noisy text payload from ${publicKey.fingerprint()}")
             } else {
+                val timestamp = trifaSentAtMs
+                    ?: SkyToxMessageTime.incomingTimestamp(publicKey, msg, Date().time, timeDelta)
                 messageRepository.add(
                     Message(
                         publicKey,
@@ -149,7 +153,7 @@ class EventListenerCallbacks @Inject constructor(
                         Sender.Received,
                         type.toMessageType(),
                         Int.MIN_VALUE,
-                        SkyToxMessageTime.incomingTimestamp(publicKey, msg, Date().time, timeDelta),
+                        timestamp,
                     ),
                 )
 
@@ -164,6 +168,7 @@ class EventListenerCallbacks @Inject constructor(
         }
 
         friendNameHandler = { publicKey, newName ->
+            contactNameCache.remember(publicKey, newName)
             contactRepository.setName(publicKey, newName)
         }
 
@@ -215,8 +220,8 @@ class EventListenerCallbacks @Inject constructor(
             Log.e(TAG, "call ${pk.fingerprint()} $audioEnabled $videoEnabled")
             scope.launch {
                 val contact = tryGetContact(pk, "Call") ?: return@launch
-                notificationHelper.showPendingCallNotification(tox.getStatus(), contact)
                 callManager.addPendingCall(contact)
+                notificationHelper.showPendingCallNotification(tox.getStatus(), contact)
             }
         }
 

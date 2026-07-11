@@ -80,6 +80,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         requestLegacyStorageAccessIfNeeded()
         requestAllFilesAccessIfNeeded()
+        requestOverlayAccessForLegacyIncomingCallsIfNeeded()
 
         // Only handle intent the first time it triggers the app.
         if (savedInstanceState != null) return
@@ -107,6 +108,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun maybePromptAppLock() {
         if (lockAccepted || lockPromptActive || settings.appLockMode == AppLockMode.None) return
+        if (isIncomingCallDeepLink()) {
+            allowCallScreenOverAppLock()
+            return
+        }
 
         val keyguard = getSystemService(KeyguardManager::class.java)
         if (keyguard?.isKeyguardSecure != true) {
@@ -136,6 +141,17 @@ class MainActivity : AppCompatActivity() {
         finishAndRemoveTask()
     }
 
+    fun allowCallScreenOverAppLock() {
+        lockPromptActive = false
+        lockAccepted = true
+        findViewById<View>(R.id.app_lock_scrim)?.visibility = View.GONE
+    }
+
+    private fun isIncomingCallDeepLink(): Boolean {
+        val deepLinkIds = intent.getIntArrayExtra("android-support-nav:controller:deepLinkIds") ?: return false
+        return deepLinkIds.contains(R.id.callFragment)
+    }
+
     private fun handleIntent(intent: Intent) {
         when (intent.action) {
             Intent.ACTION_VIEW -> handleToxLinkIntent(intent)
@@ -153,6 +169,22 @@ class MainActivity : AppCompatActivity() {
             )
         }.onFailure {
             startActivity(Intent(AndroidSettings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+        }
+    }
+
+    private fun requestOverlayAccessForLegacyIncomingCallsIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Build.VERSION.SDK_INT > Build.VERSION_CODES.O_MR1) return
+        if (AndroidSettings.canDrawOverlays(this)) return
+
+        Toast.makeText(this, R.string.overlay_permission_needed_for_calls, Toast.LENGTH_LONG).show()
+        runCatching {
+            startActivity(
+                Intent(AndroidSettings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
+                    data = Uri.parse("package:$packageName")
+                },
+            )
+        }.onFailure {
+            startActivity(Intent(AndroidSettings.ACTION_MANAGE_OVERLAY_PERMISSION))
         }
     }
 

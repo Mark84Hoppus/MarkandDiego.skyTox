@@ -26,6 +26,7 @@ import ltd.evilcorp.core.vo.FileKind
 import ltd.evilcorp.core.vo.MessageType
 import ltd.evilcorp.core.vo.PublicKey
 import ltd.evilcorp.core.vo.UserStatus
+import ltd.evilcorp.domain.feature.ContactNameCache
 
 private const val TAG = "Tox"
 private const val SLOW_ITERATION_LIMIT_MS = 10
@@ -37,6 +38,7 @@ class Tox @Inject constructor(
     private val userRepository: UserRepository,
     private val saveManager: SaveManager,
     private val nodeRegistry: BootstrapNodeRegistry,
+    private val contactNameCache: ContactNameCache,
 ) {
     val toxId: ToxID get() = tox.getToxId()
     val publicKey: PublicKey by lazy { tox.getPublicKey() }
@@ -90,7 +92,12 @@ class Tox @Inject constructor(
 
             for ((publicKey, _) in tox.getContacts()) {
                 if (!contactRepository.exists(publicKey.string())) {
-                    contactRepository.add(Contact(publicKey.string()))
+                    contactRepository.add(
+                        Contact(
+                            publicKey.string(),
+                            name = contactNameCache.nameFor(publicKey.string()),
+                        ),
+                    )
                 }
             }
         }
@@ -210,6 +217,9 @@ class Tox @Inject constructor(
 
     fun sendMessage(publicKey: PublicKey, message: String, type: MessageType) =
         tox.sendMessage(publicKey, message, type)
+
+    fun sendMessage(publicKey: PublicKey, payload: ByteArray, type: MessageType) =
+        tox.sendMessage(publicKey, payload, type)
 
     fun getSaveData(): ByteArray {
         val passkey = passkey

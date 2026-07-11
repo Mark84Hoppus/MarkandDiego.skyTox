@@ -226,6 +226,7 @@
     <string name="app_lock_unavailable">Этот способ защиты недоступен на устройстве</string>
     <string name="app_lock_unlock_title">Разблокируйте skyTox</string>
     <string name="app_lock_not_set">Защита не установлена</string>
+    <string name="overlay_permission_needed_for_calls">Разрешите skyTox показываться поверх других окон, чтобы входящие звонки открывались на этой версии Android</string>
     <string name="voice_recording">Запись %1$s</string>
     <string name="send_encrypted_message">Отправить зашифрованное сообщение</string>
     <string name="decrypt_message">Расшифровать</string>

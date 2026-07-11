@@ -93,6 +93,7 @@ private class MessageViewHolder(row: View) {
 
 private class FileTransferViewHolder(row: View) {
     val container: RelativeLayout = row.findViewById(R.id.fileTransfer)
+    val bubble: View = row.findViewById(R.id.container)
     val fileName: TextView = row.findViewById(R.id.fileName)
     val fileSize: TextView = row.findViewById(R.id.fileSize)
     val progress: ProgressBar = row.findViewById(R.id.progress)
@@ -227,6 +228,13 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                     onFileTransferLongClick?.invoke(vh.container, position)
                     true
                 }
+                vh.bubble.setBackgroundResource(
+                    if (fileTransfer.outgoing) {
+                        R.drawable.chat_filetransfer_sent_background
+                    } else {
+                        R.drawable.chat_filetransfer_background
+                    },
+                )
 
                 if (fileTransfer.hasThumbnail() || fileTransfer.isComplete() && !fileTransfer.isAudio()) {
                     vh.completedLayout.visibility = View.VISIBLE

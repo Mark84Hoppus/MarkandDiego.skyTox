@@ -14,6 +14,7 @@ import javax.inject.Inject
 import ltd.evilcorp.core.vo.ConnectionStatus
 import ltd.evilcorp.core.vo.PublicKey
 import ltd.evilcorp.core.vo.UserStatus
+import ltd.evilcorp.domain.feature.trifa.TrifaMessageV3
 
 typealias FriendLosslessPacketHandler = (publicKey: String, data: ByteArray) -> Unit
 typealias FileRecvControlHandler = (publicKey: String, fileNo: Int, control: ToxFileControl) -> Unit
@@ -27,6 +28,7 @@ typealias FriendMessageHandler = (
     messageType: ToxMessageType,
     timeDelta: Int,
     message: String,
+    trifaSentAtMs: Long?,
 ) -> Unit
 typealias FriendNameHandler = (publicKey: String, newName: String) -> Unit
 typealias FileRecvChunkHandler = (publicKey: String, fileNo: Int, position: Long, data: ByteArray) -> Unit
@@ -46,7 +48,7 @@ class ToxEventListener @Inject constructor() : ToxCoreEventListener<Unit> {
     var friendStatusHandler: FriendStatusHandler = { _, _ -> }
     var friendConnectionStatusHandler: FriendConnectionStatusHandler = { _, _ -> }
     var friendRequestHandler: FriendRequestHandler = { _, _, _ -> }
-    var friendMessageHandler: FriendMessageHandler = { _, _, _, _ -> }
+    var friendMessageHandler: FriendMessageHandler = { _, _, _, _, _ -> }
     var friendNameHandler: FriendNameHandler = { _, _ -> }
     var fileRecvChunkHandler: FileRecvChunkHandler = { _, _, _, _ -> }
     var fileRecvHandler: FileRecvHandler = { _, _, _, _, _ -> }
@@ -78,8 +80,12 @@ class ToxEventListener @Inject constructor() : ToxCoreEventListener<Unit> {
     override fun friendRequest(publicKey: ByteArray, timeDelta: Int, message: ByteArray, s: Unit?) =
         friendRequestHandler(publicKey.bytesToHex(), timeDelta, String(message))
 
-    override fun friendMessage(friendNo: Int, type: ToxMessageType, timeDelta: Int, message: ByteArray, s: Unit?) =
-        friendMessageHandler(keyFor(friendNo), type, timeDelta, String(message))
+    override fun friendMessage(friendNo: Int, type: ToxMessageType, timeDelta: Int, message: ByteArray, s: Unit?) {
+        val publicKey = keyFor(friendNo)
+        val parsed = TrifaMessageV3.parseIncoming(publicKey, message)
+        if (parsed.duplicate) return
+        friendMessageHandler(publicKey, type, timeDelta, parsed.message, parsed.sentAtMs)
+    }
 
     override fun friendName(friendNo: Int, newName: ByteArray, s: Unit?) =
         friendNameHandler(keyFor(friendNo), String(newName))

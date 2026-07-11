@@ -21,6 +21,7 @@ import ltd.evilcorp.core.vo.PublicKey
 import ltd.evilcorp.core.vo.Sender
 import ltd.evilcorp.domain.feature.push.SkyToxPushGateway
 import ltd.evilcorp.domain.feature.skymeta.SkyToxMessageTime
+import ltd.evilcorp.domain.feature.trifa.TrifaMessageV3
 import ltd.evilcorp.domain.tox.MAX_MESSAGE_LENGTH
 import ltd.evilcorp.domain.tox.Tox
 
@@ -70,10 +71,12 @@ class ChatManager @Inject constructor(
             return@launch
         }
 
-        val msgs = message.chunked(MAX_MESSAGE_LENGTH)
+        val contact = contactRepository.get(publicKey.string()).first()
+        val trifaCompatible = TrifaMessageV3.shouldSendTo(contact)
+        val msgs = message.chunked(if (trifaCompatible) MAX_MESSAGE_LENGTH - 38 else MAX_MESSAGE_LENGTH)
         SkyToxMessageTime.sendOutgoingMetadata(tox, publicKey, message, sentAt)
         while (msgs.size > 1) {
-            tox.sendMessage(publicKey, msgs.removeAt(0), type)
+            sendMessagePayload(publicKey, msgs.removeAt(0), type, sentAt, trifaCompatible)
         }
 
         messageRepository.add(
@@ -82,7 +85,7 @@ class ChatManager @Inject constructor(
                 message,
                 Sender.Sent,
                 type,
-                tox.sendMessage(publicKey, msgs.first(), type),
+                sendMessagePayload(publicKey, msgs.first(), type, sentAt, trifaCompatible),
                 sentAt,
             ),
         )
@@ -95,7 +98,9 @@ class ChatManager @Inject constructor(
         for (message in messages) {
             if (message.sender != Sender.Sent) continue
 
-            val msgs = message.message.chunked(MAX_MESSAGE_LENGTH)
+            val contact = contactRepository.get(message.publicKey).first()
+            val trifaCompatible = TrifaMessageV3.shouldSendTo(contact)
+            val msgs = message.message.chunked(if (trifaCompatible) MAX_MESSAGE_LENGTH - 38 else MAX_MESSAGE_LENGTH)
             SkyToxMessageTime.sendOutgoingMetadata(
                 tox,
                 PublicKey(message.publicKey),
@@ -104,15 +109,40 @@ class ChatManager @Inject constructor(
             )
 
             while (msgs.size > 1) {
-                tox.sendMessage(PublicKey(message.publicKey), msgs.removeAt(0), message.type)
+                sendMessagePayload(
+                    PublicKey(message.publicKey),
+                    msgs.removeAt(0),
+                    message.type,
+                    message.timestamp,
+                    trifaCompatible,
+                )
             }
 
             messageRepository.setCorrelationId(
                 message.id,
-                tox.sendMessage(PublicKey(message.publicKey), msgs.first(), message.type),
+                sendMessagePayload(
+                    PublicKey(message.publicKey),
+                    msgs.first(),
+                    message.type,
+                    message.timestamp,
+                    trifaCompatible,
+                ),
             )
         }
     }
+
+    private fun sendMessagePayload(
+        publicKey: PublicKey,
+        message: String,
+        type: MessageType,
+        sentAt: Long,
+        trifaCompatible: Boolean,
+    ): Int =
+        if (trifaCompatible) {
+            tox.sendMessage(publicKey, TrifaMessageV3.payloadFor(message, sentAt), type)
+        } else {
+            tox.sendMessage(publicKey, message, type)
+        }
 
     fun deleteMessage(id: Long) = scope.launch {
         messageRepository.deleteMessage(id)
