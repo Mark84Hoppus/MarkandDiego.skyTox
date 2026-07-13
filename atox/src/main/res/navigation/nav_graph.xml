@@ -12,7 +12,9 @@
     <fragment android:id="@+id/callFragment"
             android:name="ltd.evilcorp.atox.ui.call.CallFragment"
             android:label="CallFragment"
-            tools:layout="@layout/fragment_call"/>
+            tools:layout="@layout/fragment_call">
+        <argument android:name="requestVideoCall" android:defaultValue="false" app:argType="boolean"/>
+    </fragment>
 
     <fragment android:id="@+id/contactListFragment"
             android:name="ltd.evilcorp.atox.ui.contactlist.ContactListFragment"

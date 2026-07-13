@@ -192,6 +192,7 @@
     <string name="delete_message">Delete message</string>
     <string name="contact_default_name">Unknown</string>
     <string name="incoming_call">Incoming call</string>
+    <string name="incoming_video">Incoming video</string>
     <string name="incoming_call_from">Incoming call from %1$s</string>
     <string name="call_mic_permission_needed">Microphone permission required to enable sending audio</string>
     <string name="password">Password</string>
@@ -207,6 +208,10 @@
     <string name="pref_block_screenshots_description">This **only** blocks screenshots on **your** device, and provides no protection against your contacts taking screenshots or otherwise saving your conversations</string>
     <string name="return_to_chat">Return to chat</string>
     <string name="speakerphone_toggle">Toggle speakerphone</string>
+    <string name="video_toggle">Toggle video</string>
+    <string name="video_toggle_failed">Could not switch video</string>
+    <string name="video_call">Video call</string>
+    <string name="switch_camera">Switch camera</string>
 
     <!-- Run at boot w/ encrypted profile notification -->
     <string name="channel_profile_locked_explanation">Sent when your profile needs to be unlocked for skyTox to run</string>

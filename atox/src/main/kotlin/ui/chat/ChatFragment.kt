@@ -60,6 +60,7 @@ import ltd.evilcorp.atox.hasPermission
 import ltd.evilcorp.atox.requireStringArg
 import ltd.evilcorp.atox.truncated
 import ltd.evilcorp.atox.ui.BaseFragment
+import ltd.evilcorp.atox.ui.call.REQUEST_VIDEO_CALL
 import ltd.evilcorp.atox.vmFactory
 import ltd.evilcorp.core.vo.ConnectionStatus
 import ltd.evilcorp.core.vo.Contact
@@ -239,13 +240,27 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                 }
                 R.id.call -> {
                     if (!viewModel.callingNeedsConfirmation()) {
-                        navigateToCallScreen()
+                        navigateToCallScreen(requestVideo = false)
                         return@setOnMenuItemClickListener true
                     }
                     AlertDialog.Builder(requireContext())
                         .setTitle(R.string.call_confirm)
                         .setPositiveButton(R.string.call) { _, _ ->
-                            navigateToCallScreen()
+                            navigateToCallScreen(requestVideo = false)
+                        }
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show()
+                    true
+                }
+                R.id.video_call -> {
+                    if (!viewModel.callingNeedsConfirmation()) {
+                        navigateToCallScreen(requestVideo = true)
+                        return@setOnMenuItemClickListener true
+                    }
+                    AlertDialog.Builder(requireContext())
+                        .setTitle(R.string.call_confirm)
+                        .setPositiveButton(R.string.video_call) { _, _ ->
+                            navigateToCallScreen(requestVideo = true)
                         }
                         .setNegativeButton(android.R.string.cancel, null)
                         .show()
@@ -306,14 +321,17 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                 CallAvailability.Unavailable -> {
                     toolbar.menu.findItem(R.id.call).title = getString(R.string.call)
                     toolbar.menu.findItem(R.id.call).isEnabled = false
+                    toolbar.menu.findItem(R.id.video_call).isEnabled = false
                 }
                 CallAvailability.Available -> {
                     toolbar.menu.findItem(R.id.call).title = getString(R.string.call)
                     toolbar.menu.findItem(R.id.call).isEnabled = true
+                    toolbar.menu.findItem(R.id.video_call).isEnabled = true
                 }
                 CallAvailability.Active -> {
                     toolbar.menu.findItem(R.id.call).title = getString(R.string.ongoing_call)
                     toolbar.menu.findItem(R.id.call).isEnabled = true
+                    toolbar.menu.findItem(R.id.video_call).isEnabled = false
                 }
                 null -> {}
             }
@@ -946,11 +964,11 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         )
     }
 
-    private fun navigateToCallScreen() {
+    private fun navigateToCallScreen(requestVideo: Boolean = false) {
         view?.let { WindowInsetsControllerCompat(requireActivity().window, it).hide(WindowInsetsCompat.Type.ime()) }
         findNavController().navigate(
             R.id.action_chatFragment_to_callFragment,
-            bundleOf(CONTACT_PUBLIC_KEY to contactPubKey),
+            bundleOf(CONTACT_PUBLIC_KEY to contactPubKey, REQUEST_VIDEO_CALL to requestVideo),
         )
     }
 }

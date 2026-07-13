@@ -132,6 +132,7 @@
     <string name="contact_default_name">Неизвестный</string>
     <string name="incoming_call_from">Входящий звонок от %1$s</string>
     <string name="incoming_call">Входящий звонок</string>
+    <string name="incoming_video">Входящее видео</string>
     <string name="call_mic_permission_needed">Необходимо разрешение на доступ к микрофону для включения передачи звука</string>
     <string name="pref_bootstrap_node_user_provided">Пользовательские</string>
     <string name="pref_bootstrap_node_builtin">Встроенные</string>
@@ -157,6 +158,10 @@
     <string name="pref_block_screenshots">Блокировка скриншотов skyTox</string>
     <string name="return_to_chat">Вернуться в чат</string>
     <string name="speakerphone_toggle">Переключить динамик</string>
+    <string name="video_toggle">Переключить видео</string>
+    <string name="video_toggle_failed">Не удалось переключить видео</string>
+    <string name="video_call">Видеозвонок</string>
+    <string name="switch_camera">Переключить камеру</string>
     <string name="tap_to_unlock_and_start_atox">Нажмите, чтобы разблокировать ваш профиль и запустить skyTox</string>
     <string name="channel_profile_locked_explanation">Отправляется, когда ваш профиль необходимо разблокировать для запуска skyTox</string>
     <string name="atox_profile_locked">Профиль skyTox заблокирован</string>

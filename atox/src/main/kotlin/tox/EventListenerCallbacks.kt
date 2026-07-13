@@ -38,6 +38,7 @@ import ltd.evilcorp.domain.av.AudioPlayer
 import ltd.evilcorp.domain.feature.CallManager
 import ltd.evilcorp.domain.feature.ChatManager
 import ltd.evilcorp.domain.feature.ContactNameCache
+import ltd.evilcorp.domain.feature.SkyToxCrashLogger
 import ltd.evilcorp.domain.feature.FileTransferManager
 import ltd.evilcorp.domain.feature.avatar.SkyToxAvatarManager
 import ltd.evilcorp.domain.feature.skymeta.SkyToxMessageTime
@@ -218,21 +219,23 @@ class EventListenerCallbacks @Inject constructor(
     fun setUp(listener: ToxAvEventListener) = with(listener) {
         callHandler = { pk, audioEnabled, videoEnabled ->
             Log.e(TAG, "call ${pk.fingerprint()} $audioEnabled $videoEnabled")
+            SkyToxCrashLogger.event("toxav.call pk=${pk.fingerprint()} audio=$audioEnabled video=$videoEnabled")
             scope.launch {
                 val contact = tryGetContact(pk, "Call") ?: return@launch
-                callManager.addPendingCall(contact)
+                callManager.addPendingCall(contact, videoEnabled)
                 notificationHelper.showPendingCallNotification(tox.getStatus(), contact)
             }
         }
 
         callStateHandler = { pk, callState ->
             Log.e(TAG, "callState ${pk.fingerprint()} $callState")
+            SkyToxCrashLogger.event("toxav.callState pk=${pk.fingerprint()} state=$callState")
             if (callState.contains(ToxavFriendCallState.FINISHED) || callState.contains(ToxavFriendCallState.ERROR)) {
                 audioPlayer?.stop()
                 audioPlayer?.release()
                 audioPlayer = null
                 notificationHelper.dismissCallNotification(PublicKey(pk))
-                callManager.endCall(PublicKey(pk))
+                callManager.remoteCallEnded(PublicKey(pk))
             }
         }
 
@@ -251,13 +254,7 @@ class EventListenerCallbacks @Inject constructor(
                 uStride,
                 vStride,
             ->
-            Log.v(
-                TAG,
-                "videoReceiveFrame ${pk.fingerprint()}" +
-                    "$width $height" +
-                    "${y.size} ${u.size} ${v.size}" +
-                    "$yStride $uStride $vStride",
-            )
+            callManager.receiveVideoFrame(PublicKey(pk), width, height, y, u, v, yStride, uStride, vStride)
         }
 
         audioBitRateHandler = { pk, bitRate ->

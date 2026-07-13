@@ -9,6 +9,7 @@ import android.app.Application
 import androidx.annotation.VisibleForTesting
 import ltd.evilcorp.atox.di.AppComponent
 import ltd.evilcorp.atox.di.DaggerAppComponent
+import ltd.evilcorp.domain.feature.SkyToxCrashLogger
 import ltd.evilcorp.domain.feature.SkyToxPublicFolders
 
 class App : Application() {
@@ -22,6 +23,8 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         SkyToxPublicFolders.ensureDirectories()
+        SkyToxCrashLogger.install(this, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)
+        SkyToxCrashLogger.event("app.onCreate")
         ToxKeepAliveScheduler.schedule(this)
     }
 }

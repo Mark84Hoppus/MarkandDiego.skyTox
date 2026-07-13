@@ -1,8 +1,6 @@
 ﻿{
-    "versionName":  "0.8.14",
-    "versionCode":  231,
-    "apkUrl":  "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/latest/download/skyTox-0.8.14-universal-release-signed.apk",
-    "sha256":  "2475a29839b815753b35c8c0d2486c3a51f9231185d77bb11d0dbf740952ad81",
-    "size":  45666786,
-    "notes":  "skyTox 0.8.14 rollback: restored stable 0.8.13 codebase and kept 0.8.14 version metadata so the APK installs over the previous 0.8.14 release."
+    "versionName":  "0.8.16",
+    "versionCode":  241,
+    "apkUrl":  "https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases/latest/download/skyTox-0.8.16-universal-release-signed.apk",
+    "sha256":  "4666fc8a417d82b1dc16ff93b7a928ac7554e802fa7c032a2f54a40f607dfc80"
 }

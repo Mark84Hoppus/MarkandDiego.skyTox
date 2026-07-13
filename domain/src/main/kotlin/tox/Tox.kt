@@ -248,9 +248,14 @@ class Tox @Inject constructor(
     fun sendLosslessPacket(pk: PublicKey, packet: ByteArray) = tox.sendLosslessPacket(pk, packet)
 
     // ToxAv, probably move these.
-    fun startCall(pk: PublicKey) = tox.startCall(pk)
-    fun answerCall(pk: PublicKey) = tox.answerCall(pk)
+    fun startCall(pk: PublicKey, videoBitRate: Int = 0) = tox.startCall(pk, videoBitRate)
+    fun answerCall(pk: PublicKey, videoBitRate: Int = 0) = tox.answerCall(pk, videoBitRate)
     fun endCall(pk: PublicKey) = tox.endCall(pk)
+    fun showVideo(pk: PublicKey) = tox.showVideo(pk)
+    fun hideVideo(pk: PublicKey) = tox.hideVideo(pk)
+    fun setVideoBitRate(pk: PublicKey, videoBitRate: Int) = tox.setVideoBitRate(pk, videoBitRate)
     fun sendAudio(pk: PublicKey, pcm: ShortArray, channels: Int, samplingRate: Int) =
         tox.sendAudio(pk, pcm, channels, samplingRate)
+    fun sendVideo(pk: PublicKey, width: Int, height: Int, y: ByteArray, u: ByteArray, v: ByteArray) =
+        tox.sendVideo(pk, width, height, y, u, v)
 }

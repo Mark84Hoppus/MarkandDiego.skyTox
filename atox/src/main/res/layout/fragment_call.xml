@@ -6,6 +6,7 @@
         android:orientation="vertical">
 
     <RelativeLayout
+            android:id="@+id/video_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@android:color/black"
@@ -13,6 +14,13 @@
             android:layout_alignParentStart="true"
             android:layout_alignParentEnd="true"
             android:layout_above="@id/control_container">
+        <ImageView
+                android:id="@+id/remote_video"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/incoming_video"
+                android:scaleType="centerCrop"
+                android:visibility="gone" />
         <ltd.evilcorp.atox.ui.AvatarImageView
                 android:id="@+id/avatarImageView"
                 android:layout_height="512px"
@@ -20,6 +28,15 @@
                 android:layout_centerInParent="true"
                 app:statusIndicatorVisible="false"
                 app:strokeColor="@null" />
+        <SurfaceView
+                android:id="@+id/local_video_preview"
+                android:layout_width="132dp"
+                android:layout_height="176dp"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentBottom="true"
+                android:layout_margin="16dp"
+                android:background="@android:color/black"
+                android:visibility="gone" />
     </RelativeLayout>
 
     <RelativeLayout android:id="@+id/control_container"
@@ -76,6 +93,17 @@
                 android:contentDescription="@string/speakerphone_toggle"
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_speakerphone"/>
+
+        <ImageButton android:id="@+id/video_control"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_alignTop="@id/back_to_chat"
+                android:layout_marginEnd="24dp"
+                android:layout_toStartOf="@id/back_to_chat"
+                android:background="@null"
+                android:contentDescription="@string/switch_camera"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_switch_camera"/>
 
         <ImageButton android:id="@+id/back_to_chat"
                 android:layout_width="32dp"

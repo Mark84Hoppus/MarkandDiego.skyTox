@@ -207,9 +207,14 @@ class ToxWrapper(
     private fun contactByKey(pk: PublicKey): Int = tox.friendByPublicKey(pk.bytes())
 
     // ToxAv, probably move these.
-    fun startCall(pk: PublicKey) = av.call(contactByKey(pk), AUDIO_BIT_RATE, 0)
-    fun answerCall(pk: PublicKey) = av.answer(contactByKey(pk), AUDIO_BIT_RATE, 0)
+    fun startCall(pk: PublicKey, videoBitRate: Int = 0) = av.call(contactByKey(pk), AUDIO_BIT_RATE, videoBitRate)
+    fun answerCall(pk: PublicKey, videoBitRate: Int = 0) = av.answer(contactByKey(pk), AUDIO_BIT_RATE, videoBitRate)
     fun endCall(pk: PublicKey) = av.callControl(contactByKey(pk), ToxavCallControl.CANCEL)
+    fun showVideo(pk: PublicKey) = av.callControl(contactByKey(pk), ToxavCallControl.SHOW_VIDEO)
+    fun hideVideo(pk: PublicKey) = av.callControl(contactByKey(pk), ToxavCallControl.HIDE_VIDEO)
+    fun setVideoBitRate(pk: PublicKey, videoBitRate: Int) = av.setVideoBitRate(contactByKey(pk), videoBitRate)
     fun sendAudio(pk: PublicKey, pcm: ShortArray, channels: Int, samplingRate: Int) =
         av.audioSendFrame(contactByKey(pk), pcm, pcm.size, channels, samplingRate)
+    fun sendVideo(pk: PublicKey, width: Int, height: Int, y: ByteArray, u: ByteArray, v: ByteArray) =
+        av.videoSendFrame(contactByKey(pk), width, height, y, u, v)
 }

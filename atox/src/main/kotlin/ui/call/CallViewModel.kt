@@ -36,8 +36,8 @@ class CallViewModel @Inject constructor(
         publicKey = pk
     }
 
-    fun startCall() {
-        callManager.startCall(publicKey)
+    fun startCall(requestVideo: Boolean = false) {
+        callManager.startCall(publicKey, requestVideo)
         scope.launch { notificationHelper.showOngoingCallNotification(contactManager.get(publicKey).first()) }
     }
 
@@ -50,6 +50,9 @@ class CallViewModel @Inject constructor(
 
     fun startSendingAudio() = callManager.startSendingAudio()
     fun stopSendingAudio() = callManager.stopSendingAudio()
+    fun sendVideoFrame(width: Int, height: Int, y: ByteArray, u: ByteArray, v: ByteArray) =
+        callManager.sendVideoFrame(width, height, y, u, v)
+    fun setLocalVideoEnabled(enabled: Boolean) = callManager.setLocalVideoEnabled(enabled)
 
     fun toggleSpeakerphone() {
         speakerphoneOn = !speakerphoneOn
@@ -63,6 +66,9 @@ class CallViewModel @Inject constructor(
     val inCall = callManager.inCall
     val pendingCalls = callManager.pendingCalls
     val sendingAudio = callManager.sendingAudio
+    val incomingVideoFrame = callManager.incomingVideoFrame
+    val localVideoEnabled = callManager.localVideoEnabled
+    val outgoingVideoHeight = callManager.outgoingVideoHeight
 
     fun hasPendingCall() = callManager.pendingCalls.value.any { it.publicKey == publicKey.string() }
 

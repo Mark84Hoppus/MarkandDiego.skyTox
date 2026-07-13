@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/call" android:title="@string/call"/>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+            android:id="@+id/call"
+            android:icon="@drawable/ic_call"
+            android:title="@string/call"
+            app:showAsAction="always"/>
+    <item
+            android:id="@+id/video_call"
+            android:icon="@drawable/ic_videocam"
+            android:title="@string/video_call"
+            app:showAsAction="always"/>
     <item android:id="@+id/send_encrypted_message" android:title="@string/send_encrypted_message"/>
     <item android:id="@+id/backup_history" android:title="@string/export_history"/>
     <item android:id="@+id/import_history" android:title="@string/import_history"/>
