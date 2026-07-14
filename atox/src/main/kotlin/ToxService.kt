@@ -12,6 +12,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationChannelCompat
@@ -35,12 +37,15 @@ import ltd.evilcorp.core.vo.FriendRequest
 import ltd.evilcorp.domain.feature.CallManager
 import ltd.evilcorp.domain.feature.CallState
 import ltd.evilcorp.domain.feature.FriendRequestManager
+import ltd.evilcorp.domain.feature.SkyToxCrashLogger
 import ltd.evilcorp.domain.tox.Tox
 import ltd.evilcorp.domain.tox.ToxSaveStatus
+import ltd.evilcorp.atox.settings.Settings
 
 private const val TAG = "ToxService"
 private const val NOTIFICATION_ID = 1984
 private const val BOOTSTRAP_INTERVAL_MS = 60_000L
+private const val WAKE_MODE_ACTIVE_WINDOW_MS = 10 * 60 * 1000L
 
 class ToxService : LifecycleService() {
     private val channelId = "ToxService"
@@ -49,6 +54,7 @@ class ToxService : LifecycleService() {
 
     private val notifier by lazy { NotificationManagerCompat.from(this) }
     private var bootstrapTimer = Timer()
+    private val wakeModeStopHandler = Handler(Looper.getMainLooper())
 
     private val knownFriendRequests = mutableSetOf<FriendRequest>()
 
@@ -69,6 +75,9 @@ class ToxService : LifecycleService() {
 
     @Inject
     lateinit var proximityScreenOff: ProximityScreenOff
+
+    @Inject
+    lateinit var settings: Settings
 
     private fun createNotificationChannel() {
         val channel = NotificationChannelCompat.Builder(channelId, NotificationManagerCompat.IMPORTANCE_LOW)
@@ -114,9 +123,13 @@ class ToxService : LifecycleService() {
         (application as App).component.inject(this)
 
         super.onCreate()
+        SkyToxCrashLogger.diagnostic(
+            "toxservice.onCreate mode=${if (settings.keepAwakeEnabled) "keep_awake" else "wake"} toxStarted=${tox.started}",
+        )
 
         if (!tox.started) {
             if (toxStarter.tryLoadTox(null) != ToxSaveStatus.Ok) {
+                SkyToxCrashLogger.diagnostic("toxservice.stop no_save_or_locked")
                 Log.e(TAG, "Tox service started without a Tox save")
                 stopSelf()
                 return
@@ -142,6 +155,7 @@ class ToxService : LifecycleService() {
         } else {
             startForeground(NOTIFICATION_ID, notificationFor(connectionStatus))
         }
+        scheduleWakeModeStopIfNeeded()
 
         lifecycleScope.launch(Dispatchers.Default) {
             userRepository.get(tox.publicKey.string())
@@ -197,12 +211,33 @@ class ToxService : LifecycleService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        return START_STICKY
+        scheduleWakeModeStopIfNeeded()
+        val mode = if (settings.keepAwakeEnabled) START_STICKY else START_NOT_STICKY
+        SkyToxCrashLogger.diagnostic(
+            "toxservice.onStartCommand keepAwake=${settings.keepAwakeEnabled} return=$mode",
+        )
+        return mode
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        SkyToxCrashLogger.diagnostic("toxservice.onDestroy")
+        wakeModeStopHandler.removeCallbacksAndMessages(null)
         bootstrapTimer.cancel()
         tox.stop()
+    }
+
+    private fun scheduleWakeModeStopIfNeeded() {
+        wakeModeStopHandler.removeCallbacksAndMessages(null)
+        if (settings.keepAwakeEnabled) {
+            SkyToxCrashLogger.diagnostic("toxservice.keep_awake no_auto_stop")
+            return
+        }
+
+        SkyToxCrashLogger.diagnostic("toxservice.wake auto_stop_scheduled_ms=$WAKE_MODE_ACTIVE_WINDOW_MS")
+        wakeModeStopHandler.postDelayed({
+            SkyToxCrashLogger.diagnostic("toxservice.wake auto_stop_now")
+            stopSelf()
+        }, WAKE_MODE_ACTIVE_WINDOW_MS)
     }
 }

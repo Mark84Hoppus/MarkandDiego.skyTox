@@ -131,7 +131,9 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
 
         settingPushMode.setSelection(vm.getPushMode().ordinal)
         settingPushMode.onItemSelectedListener {
-            vm.setPushMode(PushMode.entries[it])
+            if (vm.setPushMode(PushMode.entries[it])) {
+                Toast.makeText(requireContext(), R.string.push_mode_restart_required, Toast.LENGTH_LONG).show()
+            }
         }
 
         settingRunAtStartup.isChecked = vm.getRunAtStartup()

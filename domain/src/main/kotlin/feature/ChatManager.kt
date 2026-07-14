@@ -66,7 +66,6 @@ class ChatManager @Inject constructor(
     fun sendMessage(publicKey: PublicKey, message: String, type: MessageType = MessageType.Normal) = scope.launch {
         val sentAt = SkyToxMessageTime.outgoingTimestamp()
         if (contactRepository.get(publicKey.string()).first().connectionStatus == ConnectionStatus.None) {
-            pushGateway.wake(publicKey)
             queueMessage(publicKey, message, type, sentAt)
             return@launch
         }

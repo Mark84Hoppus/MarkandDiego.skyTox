@@ -25,6 +25,7 @@ class App : Application() {
         SkyToxPublicFolders.ensureDirectories()
         SkyToxCrashLogger.install(this, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)
         SkyToxCrashLogger.event("app.onCreate")
+        SkyToxCrashLogger.diagnostic("app.onCreate version=${BuildConfig.VERSION_NAME} code=${BuildConfig.VERSION_CODE}")
         ToxKeepAliveScheduler.schedule(this)
     }
 }

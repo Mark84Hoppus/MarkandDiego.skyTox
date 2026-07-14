@@ -78,6 +78,7 @@ private const val MAX_CONFIRM_DELETE_STRING_LENGTH = 20
 private const val VOICE_MESSAGE_BIT_RATE = 64_000
 private const val MIN_VOICE_MESSAGE_DURATION_MS = 500
 private const val PERMISSION_RECORD_AUDIO = Manifest.permission.RECORD_AUDIO
+private const val WAKE_CONTACT_COOLDOWN_MS = 30_000L
 
 class OpenMultiplePersistableDocuments : ActivityResultContracts.OpenMultipleDocuments() {
     override fun createIntent(context: Context, input: Array<String>): Intent = super.createIntent(context, input)
@@ -100,8 +101,10 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private var playingAudioId: Int = Int.MIN_VALUE
     private val voiceTimer = Handler(Looper.getMainLooper())
     private val audioProgressTimer = Handler(Looper.getMainLooper())
+    private val wakeTimer = Handler(Looper.getMainLooper())
     private var startAfterMicPermission = false
     private var pendingEncryptedMessage: String? = null
+    private var lastWakeSignalAtMs = 0L
 
     private val requestRecordAudioLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -266,6 +269,16 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                         .show()
                     true
                 }
+                R.id.wake_contact -> {
+                    if (wakeContactReady()) {
+                        lastWakeSignalAtMs = System.currentTimeMillis()
+                        if (viewModel.wakeContact()) {
+                            Toast.makeText(requireContext(), R.string.wake_signal_sent, Toast.LENGTH_SHORT).show()
+                        }
+                        updateWakeContactMenuItem()
+                    }
+                    true
+                }
                 R.id.send_encrypted_message -> {
                     if (!viewModel.appProtectionEnabled()) {
                         Toast.makeText(requireContext(), R.string.app_lock_not_set, Toast.LENGTH_SHORT).show()
@@ -314,6 +327,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             }
 
             updateActions()
+            updateWakeContactMenuItem()
         }
 
         viewModel.callState.observe(viewLifecycleOwner) { state ->
@@ -462,6 +476,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     override fun onPause() {
         stopVoiceRecording(send = false)
         stopAudioPlayback()
+        wakeTimer.removeCallbacksAndMessages(null)
         viewModel.setDraft(binding.outgoingMessage.text.toString())
         viewModel.setActiveChat(PublicKey(""))
         super.onPause()
@@ -470,6 +485,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     override fun onResume() = binding.run {
         viewModel.setActiveChat(PublicKey(contactPubKey))
         viewModel.setTyping(outgoingMessage.text.isNotEmpty())
+        updateWakeContactMenuItem()
         super.onResume()
     }
 
@@ -962,6 +978,25 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                 },
             ),
         )
+    }
+
+    private fun wakeContactReady(): Boolean =
+        viewModel.hasWakeToken() && wakeCooldownRemainingMs() <= 0L
+
+    private fun wakeCooldownRemainingMs(): Long =
+        WAKE_CONTACT_COOLDOWN_MS - (System.currentTimeMillis() - lastWakeSignalAtMs)
+
+    private fun updateWakeContactMenuItem() {
+        val item = binding.toolbar.menu.findItem(R.id.wake_contact) ?: return
+        val remainingMs = wakeCooldownRemainingMs()
+        val waiting = remainingMs > 0L
+        item.title = getString(if (waiting) R.string.wake_contact_waiting else R.string.wake_contact)
+        item.isEnabled = viewModel.hasWakeToken() && !waiting
+
+        wakeTimer.removeCallbacksAndMessages(null)
+        if (waiting) {
+            wakeTimer.postDelayed({ updateWakeContactMenuItem() }, remainingMs)
+        }
     }
 
     private fun navigateToCallScreen(requestVideo: Boolean = false) {

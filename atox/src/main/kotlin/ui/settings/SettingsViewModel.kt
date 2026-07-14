@@ -21,6 +21,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ltd.evilcorp.atox.push.SkyToxPushManager
+import ltd.evilcorp.atox.ToxKeepAliveScheduler
 import ltd.evilcorp.atox.settings.BootstrapNodeSource
 import ltd.evilcorp.atox.settings.FtAutoAccept
 import ltd.evilcorp.atox.settings.PushMode
@@ -33,6 +34,7 @@ import ltd.evilcorp.domain.tox.SaveOptions
 import ltd.evilcorp.domain.tox.Tox
 import ltd.evilcorp.domain.tox.ToxSaveStatus
 import ltd.evilcorp.domain.tox.testToxSave
+import ltd.evilcorp.domain.feature.SkyToxCrashLogger
 
 private const val TOX_SHUTDOWN_POLL_DELAY_MS = 200L
 
@@ -95,11 +97,19 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun getPushMode(): PushMode = settings.pushMode
-    fun setPushMode(mode: PushMode) {
-        settings.pushMode = mode
-        if (mode == PushMode.GoogleWakeOnly) {
-            pushManager.refreshTokenAndShare()
+    fun setPushMode(mode: PushMode): Boolean {
+        if (settings.pushMode == mode) {
+            return false
         }
+        settings.pushMode = mode
+        SkyToxCrashLogger.diagnostic("settings.pushMode changed mode=$mode keepAwake=${settings.keepAwakeEnabled}")
+        pushManager.refreshTokenAndShare()
+        if (settings.keepAwakeEnabled) {
+            ToxKeepAliveScheduler.schedule(context)
+        } else {
+            ToxKeepAliveScheduler.cancel(context)
+        }
+        return true
     }
 
     fun getUdpEnabled(): Boolean = settings.udpEnabled

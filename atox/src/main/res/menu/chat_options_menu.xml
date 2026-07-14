@@ -11,6 +11,7 @@
             android:icon="@drawable/ic_videocam"
             android:title="@string/video_call"
             app:showAsAction="always"/>
+    <item android:id="@+id/wake_contact" android:title="@string/wake_contact"/>
     <item android:id="@+id/send_encrypted_message" android:title="@string/send_encrypted_message"/>
     <item android:id="@+id/backup_history" android:title="@string/export_history"/>
     <item android:id="@+id/import_history" android:title="@string/import_history"/>

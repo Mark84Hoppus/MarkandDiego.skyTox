@@ -193,8 +193,9 @@
     <string name="import_text_chat_missing_contact">Импорт не выполнен: один или несколько контактов из резервной копии отсутствуют</string>
     <string name="pref_language">Язык</string>
     <string name="pref_push_mode">Режим Push</string>
-    <string name="pref_push_mode_default">По умолчанию</string>
+    <string name="pref_push_mode_default">Не засыпать</string>
     <string name="pref_push_mode_google_wake">Разбудить приложение</string>
+    <string name="push_mode_restart_required">Перезапустите skyTox, чтобы полностью применить этот режим Push</string>
     <string-array name="pref_push_mode_options">
         <item>@string/pref_push_mode_default</item>
         <item>@string/pref_push_mode_google_wake</item>
@@ -234,6 +235,9 @@
     <string name="overlay_permission_needed_for_calls">Разрешите skyTox показываться поверх других окон, чтобы входящие звонки открывались на этой версии Android</string>
     <string name="voice_recording">Запись %1$s</string>
     <string name="send_encrypted_message">Отправить зашифрованное сообщение</string>
+    <string name="wake_contact">Разбудить</string>
+    <string name="wake_contact_waiting">Ожидание</string>
+    <string name="wake_signal_sent">Сигнал пробуждения отправлен</string>
     <string name="decrypt_message">Расшифровать</string>
     <string name="decrypted_message">Расшифрованное сообщение</string>
     <string name="encrypted_message_read_failed">Не удалось прочитать</string>

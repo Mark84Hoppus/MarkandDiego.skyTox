@@ -16,10 +16,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ltd.evilcorp.atox.BuildConfig
-import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.core.repository.ContactRepository
 import ltd.evilcorp.core.vo.ConnectionStatus
 import ltd.evilcorp.core.vo.PublicKey
+import ltd.evilcorp.domain.feature.SkyToxCrashLogger
 import ltd.evilcorp.domain.feature.push.SkyToxPushGateway
 import ltd.evilcorp.domain.tox.Tox
 import org.json.JSONObject
@@ -31,11 +31,12 @@ private const val MAX_TOKEN_BYTES = 1200
 private const val PREFS_NAME = "skytox_push"
 private const val OWN_TOKEN = "own_token"
 private const val FRIEND_TOKEN_PREFIX = "friend_token_"
+private const val FINGERPRINT_LEN = 8
 
 @Singleton
 class SkyToxPushManager @Inject constructor(
     context: Context,
-    private val settings: Settings,
+    @Suppress("UNUSED_PARAMETER") settings: ltd.evilcorp.atox.settings.Settings,
     private val tox: Tox,
     private val contacts: ContactRepository,
     private val scope: CoroutineScope,
@@ -44,14 +45,15 @@ class SkyToxPushManager @Inject constructor(
     private val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     override fun refreshTokenAndShare() {
-        if (!settings.googleWakePushEnabled) return
-
+        SkyToxCrashLogger.diagnostic("push.refreshToken requested")
         FirebaseMessaging.getInstance().token
             .addOnSuccessListener { token ->
+                SkyToxCrashLogger.diagnostic("push.refreshToken success tokenLength=${token.length}")
                 saveOwnToken(token)
                 shareOwnTokenWithOnlineContacts()
             }
             .addOnFailureListener { error ->
+                SkyToxCrashLogger.diagnostic("push.refreshToken failed ${error.javaClass.simpleName}:${error.message}")
                 Log.w(TAG, "Unable to get FCM token: ${error.message}")
             }
     }
@@ -59,44 +61,90 @@ class SkyToxPushManager @Inject constructor(
     fun saveOwnToken(token: String) {
         if (token.isBlank()) return
         prefs.edit { putString(OWN_TOKEN, token) }
+        SkyToxCrashLogger.diagnostic("push.ownToken saved length=${token.length}")
     }
 
     override fun shareOwnToken(publicKey: PublicKey) {
-        if (!settings.googleWakePushEnabled || !tox.started) return
-        val token = prefs.getString(OWN_TOKEN, null) ?: return
-        val packet = packetFor(token) ?: return
-        tox.sendLosslessPacket(publicKey, packet)
+        if (!tox.started) {
+            SkyToxCrashLogger.diagnostic("push.shareOwnToken skipped tox_stopped pk=${publicKey.fingerprint()}")
+            return
+        }
+        val token = prefs.getString(OWN_TOKEN, null)
+        if (token.isNullOrBlank()) {
+            SkyToxCrashLogger.diagnostic("push.shareOwnToken skipped no_own_token pk=${publicKey.fingerprint()}")
+            return
+        }
+        val packet = packetFor(token)
+        if (packet == null) {
+            SkyToxCrashLogger.diagnostic("push.shareOwnToken skipped packet_invalid tokenLength=${token.length}")
+            return
+        }
+        val result = tox.sendLosslessPacket(publicKey, packet)
+        SkyToxCrashLogger.diagnostic(
+            "push.shareOwnToken sent pk=${publicKey.fingerprint()} tokenLength=${token.length} result=$result",
+        )
     }
 
     override fun rememberFriendToken(publicKey: String, packet: ByteArray): Boolean {
-        val token = parsePacket(packet) ?: return false
+        val token = parsePacket(packet)
+        if (token == null) {
+            SkyToxCrashLogger.diagnostic("push.friendToken ignored pk=${publicKey.fingerprint()} bytes=${packet.size}")
+            return false
+        }
         prefs.edit { putString(FRIEND_TOKEN_PREFIX + publicKey, token) }
+        SkyToxCrashLogger.diagnostic("push.friendToken saved pk=${publicKey.fingerprint()} tokenLength=${token.length}")
         return true
     }
 
     override fun wake(publicKey: PublicKey, reason: String) {
-        if (!settings.googleWakePushEnabled) return
-        val token = prefs.getString(FRIEND_TOKEN_PREFIX + publicKey.string(), null) ?: return
+        sendWake(publicKey, reason)
+    }
+
+    fun hasFriendToken(publicKey: PublicKey): Boolean =
+        !prefs.getString(FRIEND_TOKEN_PREFIX + publicKey.string(), null).isNullOrBlank()
+
+    fun sendManualWake(publicKey: PublicKey): Boolean {
+        val hasToken = hasFriendToken(publicKey)
+        SkyToxCrashLogger.diagnostic("push.manualWake requested pk=${publicKey.fingerprint()} hasToken=$hasToken")
+        return sendWake(publicKey, "manual_wake")
+    }
+
+    private fun sendWake(publicKey: PublicKey, reason: String): Boolean {
+        val token = prefs.getString(FRIEND_TOKEN_PREFIX + publicKey.string(), null)
+        if (token.isNullOrBlank()) {
+            SkyToxCrashLogger.diagnostic("push.wake skipped no_friend_token pk=${publicKey.fingerprint()} reason=$reason")
+            return false
+        }
         val serverUrl = BuildConfig.SKYTOX_PUSH_SERVER_URL
         val apiKey = BuildConfig.SKYTOX_PUSH_API_KEY
-        if (serverUrl.isBlank() || apiKey.isBlank()) return
+        if (serverUrl.isBlank() || apiKey.isBlank()) {
+            SkyToxCrashLogger.diagnostic("push.wake skipped config_missing urlBlank=${serverUrl.isBlank()} keyBlank=${apiKey.isBlank()}")
+            return false
+        }
 
         scope.launch(Dispatchers.IO) {
             runCatching {
                 postWakeup(serverUrl, apiKey, token, reason)
+                SkyToxCrashLogger.diagnostic("push.wake posted pk=${publicKey.fingerprint()} reason=$reason")
             }.onFailure {
+                SkyToxCrashLogger.diagnostic("push.wake failed pk=${publicKey.fingerprint()} reason=$reason ${it.message}")
                 Log.w(TAG, "Push wake-up failed: ${it.message}")
             }
         }
+        return true
     }
 
     private fun shareOwnTokenWithOnlineContacts() {
-        if (!settings.googleWakePushEnabled || !tox.started) return
+        if (!tox.started) {
+            SkyToxCrashLogger.diagnostic("push.shareOnline skipped tox_stopped")
+            return
+        }
 
         scope.launch {
-            contacts.getAll().first()
+            val online = contacts.getAll().first()
                 .filter { it.connectionStatus != ConnectionStatus.None }
-                .forEach { shareOwnToken(PublicKey(it.publicKey)) }
+            SkyToxCrashLogger.diagnostic("push.shareOnline count=${online.size}")
+            online.forEach { shareOwnToken(PublicKey(it.publicKey)) }
         }
     }
 
@@ -143,4 +191,7 @@ class SkyToxPushManager @Inject constructor(
         val token = packet.copyOfRange(2, packet.size).toString(Charsets.UTF_8)
         return token.takeIf { it.isNotBlank() && it.toByteArray(Charsets.UTF_8).size <= MAX_TOKEN_BYTES }
     }
+
+    private fun PublicKey.fingerprint(): String = string().fingerprint()
+    private fun String.fingerprint(): String = take(FINGERPRINT_LEN)
 }

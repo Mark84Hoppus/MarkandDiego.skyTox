@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ltd.evilcorp.atox.R
+import ltd.evilcorp.atox.push.SkyToxPushManager
 import ltd.evilcorp.atox.settings.AppLockMode
 import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.atox.ui.NotificationHelper
@@ -64,6 +65,7 @@ class ChatViewModel @Inject constructor(
     private val context: Context,
     private val scope: CoroutineScope,
     private val settings: Settings,
+    private val pushManager: SkyToxPushManager,
 ) : ViewModel() {
     private var publicKey = PublicKey("")
     private var sentTyping = false
@@ -100,6 +102,8 @@ class ChatViewModel @Inject constructor(
 
     fun send(message: String, type: MessageType) = chatManager.sendMessage(publicKey, message, type)
     fun forwardText(publicKey: String, message: String) = chatManager.sendMessage(PublicKey(publicKey), message, MessageType.Normal)
+    fun hasWakeToken(): Boolean = pushManager.hasFriendToken(publicKey)
+    fun wakeContact(): Boolean = pushManager.sendManualWake(publicKey)
 
     fun clearHistory() = scope.launch {
         chatManager.clearHistory(publicKey)

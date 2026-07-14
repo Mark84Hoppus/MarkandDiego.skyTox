@@ -16,6 +16,7 @@ import ltd.evilcorp.atox.ToxService
 import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.core.vo.PublicKey
 import ltd.evilcorp.domain.feature.FileTransferManager
+import ltd.evilcorp.domain.feature.SkyToxCrashLogger
 import ltd.evilcorp.domain.feature.UserManager
 import ltd.evilcorp.domain.tox.SaveManager
 import ltd.evilcorp.domain.tox.SaveOptions
@@ -40,6 +41,9 @@ class ToxStarter @Inject constructor(
     private val pushManager: SkyToxPushManager,
 ) {
     fun startTox(save: ByteArray? = null, password: String? = null): ToxSaveStatus {
+        SkyToxCrashLogger.diagnostic(
+            "toxstarter.startTox requested keepAwake=${settings.keepAwakeEnabled} toxStarted=${tox.started}",
+        )
         listenerCallbacks.setUp(eventListener)
         listenerCallbacks.setUp(avEventListener)
         val options =
@@ -48,9 +52,11 @@ class ToxStarter @Inject constructor(
             tox.isBootstrapNeeded = true
             tox.start(options, password, eventListener, avEventListener)
         } catch (e: ToxNewException) {
+            SkyToxCrashLogger.diagnostic("toxstarter.startTox tox_new_error ${e.message}")
             Log.e(TAG, e.message)
             return testToxSave(options, password)
         } catch (e: ToxDecryptionException) {
+            SkyToxCrashLogger.diagnostic("toxstarter.startTox encrypted")
             Log.e(TAG, e.message)
             return ToxSaveStatus.Encrypted
         }
@@ -59,14 +65,19 @@ class ToxStarter @Inject constructor(
         fileTransferManager.reset()
         pushManager.refreshTokenAndShare()
         startService()
+        SkyToxCrashLogger.diagnostic("toxstarter.startTox ok")
         return ToxSaveStatus.Ok
     }
 
     fun stopTox() = context.run {
+        SkyToxCrashLogger.diagnostic("toxstarter.stopTox")
         stopService(Intent(this, ToxService::class.java))
     }
 
     fun ensureToxServiceRunning(): ToxSaveStatus {
+        SkyToxCrashLogger.diagnostic(
+            "toxstarter.ensureService keepAwake=${settings.keepAwakeEnabled} toxStarted=${tox.started}",
+        )
         if (tox.started) {
             startService()
             return ToxSaveStatus.Ok
@@ -81,10 +92,12 @@ class ToxStarter @Inject constructor(
         if (status == ToxSaveStatus.Ok) {
             userManager.verifyExists(tox.publicKey)
         }
+        SkyToxCrashLogger.diagnostic("toxstarter.tryLoadTox status=$status")
         return status
     }
 
     private fun startService() = context.run {
+        SkyToxCrashLogger.diagnostic("toxstarter.startService sdk=${Build.VERSION.SDK_INT}")
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             startService(Intent(this, ToxService::class.java))
         } else {

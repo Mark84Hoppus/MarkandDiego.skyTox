@@ -65,6 +65,9 @@ class Settings @Inject constructor(private val ctx: Context) {
     val googleWakePushEnabled: Boolean
         get() = pushMode == PushMode.GoogleWakeOnly
 
+    val keepAwakeEnabled: Boolean
+        get() = pushMode == PushMode.Default
+
     var appLockMode: AppLockMode
         get() = when (preferences.getInt("app_lock_mode", AppLockMode.None.ordinal)) {
             AppLockMode.None.ordinal -> AppLockMode.None

@@ -16,6 +16,7 @@ import java.util.Locale
 
 object SkyToxCrashLogger {
     private const val MAX_RECENT_EVENTS = 200
+    private const val MAX_DIAGNOSTIC_BYTES = 512 * 1024
 
     private val lock = Any()
     private val dateFormat = SimpleDateFormat("yyyyMMdd-HHmmss-SSS", Locale.US)
@@ -53,6 +54,17 @@ object SkyToxCrashLogger {
             if (throwable != null) {
                 remember(stackTrace(throwable))
             }
+        }
+    }
+
+    fun diagnostic(message: String) {
+        val line = "${humanTime()} DIAG $message"
+        synchronized(lock) {
+            remember(line)
+            val dir = logsDir ?: return
+            val file = File(dir, "push-keepalive-diagnostics.log")
+            trimDiagnosticLog(file)
+            appendLine(file, line)
         }
     }
 
@@ -111,6 +123,15 @@ object SkyToxCrashLogger {
             }
             file.parentFile?.mkdirs()
             file.appendText("$text\n")
+        }
+    }
+
+    private fun trimDiagnosticLog(file: File) {
+        runCatching {
+            if (!file.exists() || file.length() <= MAX_DIAGNOSTIC_BYTES) {
+                return
+            }
+            file.writeText("")
         }
     }
 
