@@ -18,6 +18,7 @@ import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.databinding.ContactListViewItemBinding
 import ltd.evilcorp.atox.databinding.FriendRequestItemBinding
 import ltd.evilcorp.atox.ui.AvatarImageView
+import ltd.evilcorp.core.vo.ConnectionStatus
 import ltd.evilcorp.core.vo.Contact
 import ltd.evilcorp.core.vo.FriendRequest
 
@@ -85,6 +86,13 @@ class ContactAdapter(private val inflater: LayoutInflater, private val context: 
                     val shortId = publicKey.take(8)
                     vh.publicKey.text = String.format("%s %s", shortId.take(4), shortId.takeLast(4))
                     vh.name.text = name
+                    vh.name.setTextColor(
+                        if (connectionStatus == ConnectionStatus.None) {
+                            vh.defaultNameTextColor
+                        } else {
+                            ContextCompat.getColor(context, android.R.color.holo_green_light)
+                        },
+                    )
                     vh.lastMessage.text = if (lastMessage != 0L) {
                         DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
                             .format(lastMessage)
@@ -141,5 +149,6 @@ class ContactAdapter(private val inflater: LayoutInflater, private val context: 
         val lastMessage: TextView = row.lastMessage
         val avatarImageView: AvatarImageView = row.avatarImageView
         val unreadIndicator: ImageView = row.unreadIndicator
+        val defaultNameTextColor: Int = name.currentTextColor
     }
 }

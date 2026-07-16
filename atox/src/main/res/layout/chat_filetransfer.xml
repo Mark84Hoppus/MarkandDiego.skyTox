@@ -59,6 +59,11 @@
                     android:layout_width="110dp"
                     android:layout_height="14dp"
                     android:layout_marginEnd="12dp"/>
+            <TextView android:id="@+id/audioDuration"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@android:color/white"
+                    tools:text="00:12"/>
         </LinearLayout>
         <LinearLayout android:id="@+id/acceptLayout"
                 style="?buttonBarStyle"

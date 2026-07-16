@@ -36,6 +36,7 @@ import ltd.evilcorp.core.vo.ConnectionStatus
 import ltd.evilcorp.core.vo.FriendRequest
 import ltd.evilcorp.domain.feature.CallManager
 import ltd.evilcorp.domain.feature.CallState
+import ltd.evilcorp.domain.feature.FileTransferManager
 import ltd.evilcorp.domain.feature.FriendRequestManager
 import ltd.evilcorp.domain.feature.SkyToxCrashLogger
 import ltd.evilcorp.domain.tox.Tox
@@ -45,7 +46,7 @@ import ltd.evilcorp.atox.settings.Settings
 private const val TAG = "ToxService"
 private const val NOTIFICATION_ID = 1984
 private const val BOOTSTRAP_INTERVAL_MS = 60_000L
-private const val WAKE_MODE_ACTIVE_WINDOW_MS = 10 * 60 * 1000L
+private const val WAKE_MODE_ACTIVE_WINDOW_MS = 30 * 60 * 1000L
 
 class ToxService : LifecycleService() {
     private val channelId = "ToxService"
@@ -72,6 +73,9 @@ class ToxService : LifecycleService() {
 
     @Inject
     lateinit var friendRequestManager: FriendRequestManager
+
+    @Inject
+    lateinit var fileTransferManager: FileTransferManager
 
     @Inject
     lateinit var proximityScreenOff: ProximityScreenOff
@@ -236,6 +240,11 @@ class ToxService : LifecycleService() {
 
         SkyToxCrashLogger.diagnostic("toxservice.wake auto_stop_scheduled_ms=$WAKE_MODE_ACTIVE_WINDOW_MS")
         wakeModeStopHandler.postDelayed({
+            if (fileTransferManager.hasActiveDataTransfers()) {
+                SkyToxCrashLogger.diagnostic("toxservice.wake auto_stop_deferred active_file_transfer=true")
+                scheduleWakeModeStopIfNeeded()
+                return@postDelayed
+            }
             SkyToxCrashLogger.diagnostic("toxservice.wake auto_stop_now")
             stopSelf()
         }, WAKE_MODE_ACTIVE_WINDOW_MS)

@@ -79,6 +79,8 @@ private const val VOICE_MESSAGE_BIT_RATE = 64_000
 private const val MIN_VOICE_MESSAGE_DURATION_MS = 500
 private const val PERMISSION_RECORD_AUDIO = Manifest.permission.RECORD_AUDIO
 private const val WAKE_CONTACT_COOLDOWN_MS = 30_000L
+private const val AUTO_WAKE_INTERVAL_MS = 3 * 60 * 1000L
+private const val AUTO_WAKE_OPEN_ATTEMPTS = 3
 
 class OpenMultiplePersistableDocuments : ActivityResultContracts.OpenMultipleDocuments() {
     override fun createIntent(context: Context, input: Array<String>): Intent = super.createIntent(context, input)
@@ -105,6 +107,8 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private var startAfterMicPermission = false
     private var pendingEncryptedMessage: String? = null
     private var lastWakeSignalAtMs = 0L
+    private var autoWakeOpenAttempts = 0
+    private var pendingMessageWakeActive = false
 
     private val requestRecordAudioLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -213,6 +217,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         )
 
         toolbar.inflateMenu(R.menu.chat_options_menu)
+        toolbar.menu.findItem(R.id.wake_contact)?.isVisible = false
         toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.backup_history -> {
@@ -328,6 +333,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
 
             updateActions()
             updateWakeContactMenuItem()
+            updateAutoWakeForContact()
         }
 
         viewModel.callState.observe(viewLifecycleOwner) { state ->
@@ -336,16 +342,19 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                     toolbar.menu.findItem(R.id.call).title = getString(R.string.call)
                     toolbar.menu.findItem(R.id.call).isEnabled = false
                     toolbar.menu.findItem(R.id.video_call).isEnabled = false
+                    tintCallIcons(enabled = false)
                 }
                 CallAvailability.Available -> {
                     toolbar.menu.findItem(R.id.call).title = getString(R.string.call)
                     toolbar.menu.findItem(R.id.call).isEnabled = true
                     toolbar.menu.findItem(R.id.video_call).isEnabled = true
+                    tintCallIcons(enabled = true)
                 }
                 CallAvailability.Active -> {
                     toolbar.menu.findItem(R.id.call).title = getString(R.string.ongoing_call)
                     toolbar.menu.findItem(R.id.call).isEnabled = true
                     toolbar.menu.findItem(R.id.video_call).isEnabled = false
+                    tintCallIcons(enabled = true)
                 }
                 null -> {}
             }
@@ -405,32 +414,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                 R.id.fileTransfer -> {
                     val id = adapter.messages[position].correlationId
                     val ft = adapter.fileTransfers.find { it.id == id } ?: return@setOnItemClickListener
-                    if (ft.outgoing) return@setOnItemClickListener
-                    if (!ft.isComplete()) return@setOnItemClickListener
-                    if (!ft.destination.startsWith("file://")) return@setOnItemClickListener
-                    val file = File(ft.destination.toUri().path!!)
-                    if (!file.exists()) return@setOnItemClickListener
-                    val contentType = URLConnection.guessContentTypeFromName(ft.fileName)
-                    val uri = FileProvider.getUriForFile(
-                        requireContext(),
-                        "${BuildConfig.APPLICATION_ID}.fileprovider",
-                        file,
-                    )
-                    val shareIntent = Intent(Intent.ACTION_VIEW).apply {
-                        putExtra(Intent.EXTRA_TITLE, ft.fileName)
-                        setDataAndType(uri, contentType)
-                        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    }
-                    try {
-                        WindowInsetsControllerCompat(requireActivity().window, view).hide(WindowInsetsCompat.Type.ime())
-                        startActivity(Intent.createChooser(shareIntent, null))
-                    } catch (_: ActivityNotFoundException) {
-                        Toast.makeText(
-                            requireContext(),
-                            getString(R.string.mimetype_handler_not_found, contentType),
-                            Toast.LENGTH_LONG,
-                        ).show()
-                    }
+                    openFileTransfer(ft)
                 }
             }
         }
@@ -790,7 +774,52 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private fun send(type: MessageType) = binding.run {
         viewModel.clearDraft()
         viewModel.send(outgoingMessage.text.toString(), type)
+        if (!viewModel.contactOnline) {
+            startPendingMessageWakeLoop()
+        }
         outgoingMessage.text.clear()
+    }
+
+    private fun openFileTransfer(ft: FileTransfer) {
+        if (!ft.isComplete()) return
+
+        val destination = ft.destination.takeIf { it.isNotBlank() }?.toUri() ?: run {
+            Toast.makeText(requireContext(), R.string.file_not_found, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val uri = when (destination.scheme) {
+            "file" -> {
+                val file = File(destination.path ?: "")
+                if (!file.exists()) {
+                    Toast.makeText(requireContext(), R.string.file_not_found, Toast.LENGTH_SHORT).show()
+                    return
+                }
+                FileProvider.getUriForFile(requireContext(), "${BuildConfig.APPLICATION_ID}.fileprovider", file)
+            }
+            "content" -> destination
+            else -> {
+                Toast.makeText(requireContext(), R.string.file_not_found, Toast.LENGTH_SHORT).show()
+                return
+            }
+        }
+
+        val contentType = URLConnection.guessContentTypeFromName(ft.fileName) ?: "*/*"
+        val openIntent = Intent(Intent.ACTION_VIEW).apply {
+            putExtra(Intent.EXTRA_TITLE, ft.fileName)
+            setDataAndType(uri, contentType)
+            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+        }
+        try {
+            view?.let { WindowInsetsControllerCompat(requireActivity().window, it).hide(WindowInsetsCompat.Type.ime()) }
+            startActivity(Intent.createChooser(openIntent, getString(R.string.open_with)))
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.mimetype_handler_not_found, contentType),
+                Toast.LENGTH_LONG,
+            ).show()
+        }
     }
 
     private fun startVoiceRecording() {
@@ -988,6 +1017,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
 
     private fun updateWakeContactMenuItem() {
         val item = binding.toolbar.menu.findItem(R.id.wake_contact) ?: return
+        if (!item.isVisible) return
         val remainingMs = wakeCooldownRemainingMs()
         val waiting = remainingMs > 0L
         item.title = getString(if (waiting) R.string.wake_contact_waiting else R.string.wake_contact)
@@ -999,11 +1029,64 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         }
     }
 
+    private fun updateAutoWakeForContact() {
+        if (viewModel.contactOnline) {
+            autoWakeOpenAttempts = 0
+            pendingMessageWakeActive = false
+            wakeTimer.removeCallbacksAndMessages(null)
+            return
+        }
+        if (autoWakeOpenAttempts == 0) {
+            scheduleOpenAutoWake()
+        }
+    }
+
+    private fun scheduleOpenAutoWake() {
+        if (viewModel.contactOnline || autoWakeOpenAttempts >= AUTO_WAKE_OPEN_ATTEMPTS) return
+        if (sendWakeSignal("auto_chat_open")) {
+            autoWakeOpenAttempts++
+        }
+        if (autoWakeOpenAttempts < AUTO_WAKE_OPEN_ATTEMPTS) {
+            wakeTimer.postDelayed({ scheduleOpenAutoWake() }, AUTO_WAKE_INTERVAL_MS)
+        }
+    }
+
+    private fun startPendingMessageWakeLoop() {
+        if (pendingMessageWakeActive) return
+        pendingMessageWakeActive = true
+        val tick = object : Runnable {
+            override fun run() {
+                if (!pendingMessageWakeActive || viewModel.contactOnline) {
+                    pendingMessageWakeActive = false
+                    return
+                }
+                sendWakeSignal("auto_pending_message")
+                wakeTimer.postDelayed(this, AUTO_WAKE_INTERVAL_MS)
+            }
+        }
+        tick.run()
+    }
+
+    private fun sendWakeSignal(reason: String): Boolean {
+        if (!viewModel.hasWakeToken()) return false
+        lastWakeSignalAtMs = System.currentTimeMillis()
+        return viewModel.wakeContact(reason)
+    }
+
     private fun navigateToCallScreen(requestVideo: Boolean = false) {
         view?.let { WindowInsetsControllerCompat(requireActivity().window, it).hide(WindowInsetsCompat.Type.ime()) }
         findNavController().navigate(
             R.id.action_chatFragment_to_callFragment,
             bundleOf(CONTACT_PUBLIC_KEY to contactPubKey, REQUEST_VIDEO_CALL to requestVideo),
         )
+    }
+
+    private fun tintCallIcons(enabled: Boolean) {
+        val color = ContextCompat.getColor(
+            requireContext(),
+            if (enabled) android.R.color.white else android.R.color.darker_gray,
+        )
+        binding.toolbar.menu.findItem(R.id.call)?.icon?.mutate()?.setTint(color)
+        binding.toolbar.menu.findItem(R.id.video_call)?.icon?.mutate()?.setTint(color)
     }
 }

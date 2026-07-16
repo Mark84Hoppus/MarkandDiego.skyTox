@@ -74,6 +74,17 @@
                     app:backgroundTint="@android:color/holo_red_dark" />
         </LinearLayout>
 
+        <Chronometer
+                android:id="@+id/call_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/call_buttons"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="8dp"
+                android:textColor="@android:color/white"
+                android:textSize="16sp"
+                android:visibility="gone" />
+
         <ImageButton android:id="@+id/microphone_control"
                 android:layout_width="32dp"
                 android:layout_height="32dp"

@@ -104,8 +104,12 @@ class FileTransferManager @Inject constructor(
 
     fun interruptForContact(pk: String) {
         Log.i(TAG, "Interrupting fts for contact ${pk.fingerprint()}")
+        SkyToxCrashLogger.fileTransfer("interrupt contact=${pk.fingerprint()} active=${fileTransfers.count { it.publicKey == pk }}")
         fileTransfers.filter { it.publicKey == pk }.kForEach { ft ->
             if (ft.fileKind == FileKind.Data.ordinal && !ft.isComplete() && !ft.isRejected()) {
+                SkyToxCrashLogger.fileTransfer(
+                    "interrupt ft=${ft.id} fileNo=${ft.fileNumber} outgoing=${ft.outgoing} progress=${ft.transferredBytes()}/${ft.fileSize}",
+                )
                 setProgress(ft, ft.interruptedProgress())
             }
 
@@ -120,13 +124,18 @@ class FileTransferManager @Inject constructor(
 
     fun resumeOutgoingForContact(pk: String) = scope.launch {
         fileTransferRepository.getInterruptedOutgoing(pk).kForEach { ft ->
+            SkyToxCrashLogger.fileTransfer(
+                "resume_outgoing requested ft=${ft.id} contact=${pk.fingerprint()} progress=${ft.transferredBytes()}/${ft.fileSize}",
+            )
             if (fileTransfers.any { it.id == ft.id }) {
+                SkyToxCrashLogger.fileTransfer("resume_outgoing skipped_already_active ft=${ft.id}")
                 return@kForEach
             }
 
             val uri = ft.destination.toUri()
             if (!canRead(uri)) {
                 Log.e(TAG, "Unable to resume outgoing ft ${ft.id}: source is no longer readable")
+                SkyToxCrashLogger.fileTransfer("resume_outgoing failed_missing_source ft=${ft.id} uri=$uri")
                 fileTransferRepository.updateProgress(ft.id, FT_REJECTED)
                 releaseFilePermission(uri)
                 return@kForEach
@@ -142,11 +151,15 @@ class FileTransferManager @Inject constructor(
             fileTransferRepository.add(resumed)
             fileTransfers.add(resumed)
             outgoingFiles[Pair(pk, resumed.fileNumber)] = OutgoingFile(uri, mutableListOf())
+            SkyToxCrashLogger.fileTransfer("resume_outgoing started ft=${resumed.id} fileNo=${resumed.fileNumber}")
         }
     }
 
     fun add(ft: FileTransfer): Int {
         Log.i(TAG, "Add ${ft.fileNumber} for ${ft.publicKey.fingerprint()}")
+        SkyToxCrashLogger.fileTransfer(
+            "incoming add contact=${ft.publicKey.fingerprint()} fileNo=${ft.fileNumber} kind=${ft.fileKind} size=${ft.fileSize} name=${ft.fileName}",
+        )
         return when (ft.fileKind) {
             FileKind.Data.ordinal -> {
                 val fileId = tox.getFileFileId(PublicKey(ft.publicKey), ft.fileNumber).bytesToHex()
@@ -168,6 +181,7 @@ class FileTransferManager @Inject constructor(
                 } else {
                     val withFileId = ft.copy(fileId = fileId)
                     val id = fileTransferRepository.add(withFileId).toInt()
+                    SkyToxCrashLogger.fileTransfer("incoming stored ft=$id fileNo=${ft.fileNumber} fileId=${fileId.take(8)}")
                     messageRepository.add(
                         Message(ft.publicKey, ft.fileName, Sender.Received, MessageType.FileTransfer, id, Date().time),
                     )
@@ -206,8 +220,12 @@ class FileTransferManager @Inject constructor(
 
     fun accept(ft: FileTransfer) {
         Log.i(TAG, "Accept ${ft.fileNumber} for ${ft.publicKey.fingerprint()}")
+        SkyToxCrashLogger.fileTransfer(
+            "accept ft=${ft.id} contact=${ft.publicKey.fingerprint()} fileNo=${ft.fileNumber} interrupted=${ft.isInterrupted()}",
+        )
         if (ft.isStarted() && !ft.isInterrupted()) {
             Log.i(TAG, "Ignoring duplicate accept for ${ft.fileNumber} from ${ft.publicKey.fingerprint()}")
+            SkyToxCrashLogger.fileTransfer("accept duplicate_ignored ft=${ft.id}")
             return
         }
 
@@ -234,6 +252,7 @@ class FileTransferManager @Inject constructor(
             RandomAccessFile(file, "rwd").use { it.setLength(ft.fileSize) }
         }.onFailure {
             Log.e(TAG, "Unable to prepare destination for ft ${ft.fileNumber}: $it")
+            SkyToxCrashLogger.fileTransfer("accept failed_prepare ft=${ft.id} error=${it.message}")
             setProgress(ft, FT_REJECTED)
             tox.stopFileTransfer(PublicKey(ft.publicKey), ft.fileNumber)
             return
@@ -254,6 +273,9 @@ class FileTransferManager @Inject constructor(
 
     fun reject(ft: FileTransfer) {
         Log.i(TAG, "Reject ${ft.fileNumber} for ${ft.publicKey.fingerprint()}")
+        SkyToxCrashLogger.fileTransfer(
+            "reject ft=${ft.id} contact=${ft.publicKey.fingerprint()} fileNo=${ft.fileNumber} outgoing=${ft.outgoing}",
+        )
         fileTransfers.remove(ft)
         setProgress(ft, FT_REJECTED)
         tox.stopFileTransfer(PublicKey(ft.publicKey), ft.fileNumber)
@@ -311,6 +333,7 @@ class FileTransferManager @Inject constructor(
             }
         }.onFailure {
             Log.e(TAG, "Unable to write ft ${ft.fileNumber} for ${publicKey.fingerprint()}: $it")
+            SkyToxCrashLogger.fileTransfer("incoming write_failed ft=${ft.id} fileNo=$fileNumber pos=$position error=${it.message}")
             reject(ft)
             return
         }
@@ -319,6 +342,7 @@ class FileTransferManager @Inject constructor(
 
         if (ft.isComplete()) {
             Log.i(TAG, "Finished ${ft.fileNumber} for ${ft.publicKey.fingerprint()}")
+            SkyToxCrashLogger.fileTransfer("incoming complete ft=${ft.id} fileNo=${ft.fileNumber} size=${ft.fileSize}")
             if (ft.fileKind == FileKind.Avatar.ordinal) {
                 wipAvatar(ft.fileName).copyTo(avatar(ft.fileName), overwrite = true)
                 wipAvatar(ft.fileName).delete()
@@ -338,6 +362,7 @@ class FileTransferManager @Inject constructor(
         val (name, size) = queryNameAndSize(file) ?: return
 
         val fileId = Random.nextBytes(TOX_FILE_ID_BYTES).bytesToHex()
+        SkyToxCrashLogger.fileTransfer("outgoing create contact=${pk.string().fingerprint()} size=$size name=$name uri=$file")
         val ft = FileTransfer(
             pk.string(),
             tox.sendFile(pk, FileKind.Data, size, name, fileId.hexToBytes()),
@@ -362,10 +387,12 @@ class FileTransferManager @Inject constructor(
         fileTransfers.add(ft.copy().apply { this.id = id })
 
         if (!canRead(file)) {
+            SkyToxCrashLogger.fileTransfer("outgoing create failed_unreadable ft=$id uri=$file")
             reject(ft)
             return
         }
         outgoingFiles[Pair(ft.publicKey, ft.fileNumber)] = OutgoingFile(file, mutableListOf())
+        SkyToxCrashLogger.fileTransfer("outgoing started ft=$id fileNo=${ft.fileNumber} fileId=${fileId.take(8)}")
     }
 
     fun sendAvatar(pk: PublicKey, file: Uri) {
@@ -411,6 +438,7 @@ class FileTransferManager @Inject constructor(
 
         if (length == 0) {
             Log.i(TAG, "Finished outgoing ft ${pk.fingerprint()} $fileNo ${ft.isComplete()}")
+            SkyToxCrashLogger.fileTransfer("outgoing complete ft=${ft.id} contact=${pk.fingerprint()} fileNo=$fileNo size=${ft.fileSize}")
             setProgress(ft, ft.fileSize)
             fileTransfers.remove(ft)
             outgoingFiles.remove(Pair(pk, fileNo))
@@ -419,12 +447,16 @@ class FileTransferManager @Inject constructor(
             return
         }
 
-        val file = outgoingFiles[Pair(pk, fileNo)] ?: return
+        val file = outgoingFiles[Pair(pk, fileNo)] ?: run {
+            SkyToxCrashLogger.fileTransfer("outgoing missing_source_state ft=${ft.id} contact=${pk.fingerprint()} fileNo=$fileNo")
+            return
+        }
 
         while (file.unsentChunks.isNotEmpty()) {
             val chunk = file.unsentChunks.first()
             Log.i(TAG, "Resending chunk @ ${chunk.pos} to ${pk.fingerprint()} ($fileNo)}")
             if (tox.sendFileChunk(PublicKey(pk), fileNo, chunk.pos, chunk.data).isFailure) {
+                SkyToxCrashLogger.fileTransfer("outgoing resend_failed ft=${ft.id} pos=${chunk.pos} size=${chunk.data.size}")
                 scheduleChunkRetry(pk, fileNo)
                 return
             }
@@ -433,11 +465,13 @@ class FileTransferManager @Inject constructor(
         }
 
         val bytes = readChunk(file.uri, pos, length) ?: run {
+            SkyToxCrashLogger.fileTransfer("outgoing read_failed ft=${ft.id} pos=$pos len=$length")
             reject(ft)
             return
         }
 
         if (tox.sendFileChunk(PublicKey(pk), fileNo, pos, bytes).isFailure) {
+            SkyToxCrashLogger.fileTransfer("outgoing send_chunk_failed ft=${ft.id} pos=$pos len=${bytes.size}")
             file.queueUnsent(Chunk(pos, bytes))
             scheduleChunkRetry(pk, fileNo)
             return
@@ -469,6 +503,7 @@ class FileTransferManager @Inject constructor(
                     continue
                 }
 
+                SkyToxCrashLogger.fileTransfer("outgoing retry_sent ft=${ft.id} pos=${chunk.pos} len=${chunk.data.size}")
                 setProgress(ft, max(ft.transferredBytes(), chunk.pos + chunk.data.size))
                 current.unsentChunks.removeAt(0)
             }
@@ -478,6 +513,7 @@ class FileTransferManager @Inject constructor(
 
     fun setStatus(pk: String, fileNo: Int, fileStatus: ToxFileControl) {
         Log.e(TAG, "Setting ${pk.fingerprint()} $fileNo to status $fileStatus")
+        SkyToxCrashLogger.fileTransfer("control contact=${pk.fingerprint()} fileNo=$fileNo status=$fileStatus")
         val ft = fileTransfers.find { it.publicKey == pk && it.fileNumber == fileNo }
         if (ft == null) {
             Log.e(TAG, "Attempted to set status for unknown ft ${pk.fingerprint()} $fileNo")
@@ -491,6 +527,9 @@ class FileTransferManager @Inject constructor(
             reject(ft)
         }
     }
+
+    fun hasActiveDataTransfers(): Boolean =
+        fileTransfers.any { it.fileKind == FileKind.Data.ordinal && !it.isComplete() && !it.isRejected() }
 
     suspend fun deleteAll(publicKey: PublicKey) {
         fileTransferRepository.get(publicKey.string()).take(1).collect { fts ->

@@ -14,6 +14,7 @@ import android.graphics.PixelFormat
 import android.hardware.Camera
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.SurfaceHolder
 import android.view.View
 import android.view.Surface
@@ -253,6 +254,8 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
         speakerphone.visibility = View.GONE
         videoControl.visibility = View.GONE
         backToChat.visibility = View.GONE
+        callDuration.visibility = View.GONE
+        callDuration.stop()
     }
 
     private fun showActiveCallControls() = binding.run {
@@ -261,6 +264,9 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
         speakerphone.visibility = View.VISIBLE
         videoControl.visibility = if (vm.localVideoEnabled.value) View.VISIBLE else View.GONE
         backToChat.visibility = View.VISIBLE
+        callDuration.visibility = View.VISIBLE
+        callDuration.base = SystemClock.elapsedRealtime()
+        callDuration.start()
     }
 
     private fun prepareIncomingCallWindow() {
@@ -350,6 +356,7 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
         }
         SkyToxCrashLogger.event("call.ui.close endCurrentCall=$endCurrentCall")
         callClosing = true
+        binding.callDuration.stop()
         stopLocalVideo()
         if (endCurrentCall) {
             vm.endCall()

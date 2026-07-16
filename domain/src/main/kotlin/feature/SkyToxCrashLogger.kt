@@ -68,6 +68,17 @@ object SkyToxCrashLogger {
         }
     }
 
+    fun fileTransfer(message: String) {
+        val line = "${humanTime()} FT $message"
+        synchronized(lock) {
+            remember(line)
+            val dir = logsDir ?: return
+            val file = File(dir, "file-transfer-diagnostics.log")
+            trimDiagnosticLog(file)
+            appendLine(file, line)
+        }
+    }
+
     private fun writeCrash(
         thread: Thread,
         throwable: Throwable,

@@ -171,6 +171,7 @@
     <string name="pref_disabled_tox_error">Отключено в связи с ошибкой при запуске Tox</string>
     <string name="pref_confirm_quitting">Подтверждение выхода из приложения</string>
     <string name="file_not_found">Файл не найден</string>
+    <string name="open_with">Открыть с помощью</string>
     <string name="export_history_success">История сообщений экспортирована</string>
     <string name="export_history">Экспортировать историю</string>
     <string name="export_history_failure">Экспортирование истории сообщений не удалось: %1$s</string>

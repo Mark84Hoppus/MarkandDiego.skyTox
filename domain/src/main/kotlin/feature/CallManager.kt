@@ -9,6 +9,7 @@ import android.media.AudioManager
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.ContextCompat
+import im.tox.tox4j.av.exceptions.ToxavCallException
 import im.tox.tox4j.av.exceptions.ToxavCallControlException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -117,19 +118,31 @@ class CallManager @Inject constructor(private val tox: Tox, private val scope: C
                 "pending=${pendingCalls.value.any { it.publicKey == publicKey.string() }}",
         )
         var answerVideoBitRate = if (requestVideo) videoBitRateForHeight(VIDEO_HEIGHT_LADDER[DEFAULT_VIDEO_HEIGHT_INDEX]) else 0
-        if (pendingCalls.value.any { it.publicKey == publicKey.string() }) {
-            answerVideoBitRate = if (pendingVideoCalls.contains(publicKey.string()) || requestVideo) {
-                videoBitRateForHeight(VIDEO_HEIGHT_LADDER[DEFAULT_VIDEO_HEIGHT_INDEX])
+        try {
+            if (pendingCalls.value.any { it.publicKey == publicKey.string() }) {
+                answerVideoBitRate = if (pendingVideoCalls.contains(publicKey.string()) || requestVideo) {
+                    videoBitRateForHeight(VIDEO_HEIGHT_LADDER[DEFAULT_VIDEO_HEIGHT_INDEX])
+                } else {
+                    0
+                }
+                tox.answerCall(publicKey, answerVideoBitRate)
+                if (answerVideoBitRate > 0) {
+                    runCatching { tox.showVideo(publicKey) }
+                        .onFailure { Log.w(TAG, "Could not request incoming video: ${it.message}") }
+                }
             } else {
-                0
+                tox.startCall(publicKey, answerVideoBitRate)
             }
-            tox.answerCall(publicKey, answerVideoBitRate)
-            if (answerVideoBitRate > 0) {
-                runCatching { tox.showVideo(publicKey) }
-                    .onFailure { Log.w(TAG, "Could not request incoming video: ${it.message}") }
-            }
-        } else {
-            tox.startCall(publicKey, answerVideoBitRate)
+        } catch (e: ToxavCallException) {
+            SkyToxCrashLogger.error("call.start failed pk=${publicKey.fingerprint()} code=${e.code()}", e)
+            removePendingCall(publicKey)
+            _inCall.value = CallState.NotInCall
+            return
+        } catch (e: Exception) {
+            SkyToxCrashLogger.error("call.start failed pk=${publicKey.fingerprint()}", e)
+            removePendingCall(publicKey)
+            _inCall.value = CallState.NotInCall
+            return
         }
         resetVideoQuality()
         videoStopping = false

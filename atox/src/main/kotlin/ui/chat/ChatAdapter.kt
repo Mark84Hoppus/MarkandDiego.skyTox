@@ -6,6 +6,7 @@ package ltd.evilcorp.atox.ui.chat
 
 import android.content.res.Resources
 import android.graphics.Color
+import android.media.MediaMetadataRetriever
 import android.text.format.Formatter
 import android.util.Log
 import android.view.Gravity
@@ -109,6 +110,7 @@ private class FileTransferViewHolder(row: View) {
     val imagePreview: ImageView = row.findViewById(R.id.imagePreview)
     val audioPlay: ImageButton = row.findViewById(R.id.audioPlay)
     val audioWaveform: VoiceWaveformView = row.findViewById(R.id.audioWaveform)
+    val audioDuration: TextView = row.findViewById(R.id.audioDuration)
 }
 
 class ChatAdapter(private val inflater: LayoutInflater, private val resources: Resources) : BaseAdapter() {
@@ -265,6 +267,7 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                 vh.audioPlay.setImageResource(
                     if (fileTransfer.id == playingAudioId) R.drawable.ic_stop else R.drawable.ic_play,
                 )
+                vh.audioDuration.text = audioDurationText(fileTransfer)
 
                 vh.state.visibility = View.GONE
                 if (fileTransfer.isRejected() || fileTransfer.isComplete() || fileTransfer.isInterrupted()) {
@@ -321,4 +324,20 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                 view
             }
         }
+
+    private fun audioDurationText(fileTransfer: FileTransfer): String {
+        if (!fileTransfer.isAudio() || !fileTransfer.isComplete()) return ""
+        val durationMs = runCatching {
+            val retriever = MediaMetadataRetriever()
+            try {
+                retriever.setDataSource(inflater.context, fileTransfer.destination.toUri())
+                retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+            } finally {
+                retriever.release()
+            }
+        }.getOrNull() ?: return ""
+
+        val seconds = (durationMs / 1000).coerceAtLeast(0)
+        return "%02d:%02d".format(seconds / 60, seconds % 60)
+    }
 }

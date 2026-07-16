@@ -36,8 +36,8 @@ android {
         applicationId = "markanddiego.skytox"
         minSdk = libs.versions.sdk.min.get().toInt()
         targetSdk = libs.versions.sdk.target.get().toInt()
-        versionCode = 246
-        versionName = "0.8.17"
+        versionCode = 251
+        versionName = "0.8.18"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SKYTOX_PUSH_SERVER_URL", "\"https://push.skytox.uk/push\"")
         buildConfigField("String", "SKYTOX_PUSH_API_KEY", "\"${skytoxPushConfig["SKYTOX_PUSH_API_KEY"].orEmpty()}\"")
@@ -84,10 +84,10 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
         val abiVersionCodes = mapOf(
-            "armeabi-v7a" to 247,
-            "arm64-v8a" to 248,
-            "x86" to 249,
-            "x86_64" to 250,
+            "armeabi-v7a" to 252,
+            "arm64-v8a" to 253,
+            "x86" to 254,
+            "x86_64" to 255,
         )
         variant.outputs.forEach { output ->
             val abi = output.filters

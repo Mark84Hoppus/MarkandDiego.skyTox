@@ -104,6 +104,7 @@ class ChatViewModel @Inject constructor(
     fun forwardText(publicKey: String, message: String) = chatManager.sendMessage(PublicKey(publicKey), message, MessageType.Normal)
     fun hasWakeToken(): Boolean = pushManager.hasFriendToken(publicKey)
     fun wakeContact(): Boolean = pushManager.sendManualWake(publicKey)
+    fun wakeContact(reason: String): Boolean = pushManager.sendWakeSignal(publicKey, reason)
 
     fun clearHistory() = scope.launch {
         chatManager.clearHistory(publicKey)

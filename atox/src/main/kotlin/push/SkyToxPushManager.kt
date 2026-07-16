@@ -109,6 +109,12 @@ class SkyToxPushManager @Inject constructor(
         return sendWake(publicKey, "manual_wake")
     }
 
+    fun sendWakeSignal(publicKey: PublicKey, reason: String): Boolean {
+        val hasToken = hasFriendToken(publicKey)
+        SkyToxCrashLogger.diagnostic("push.autoWake requested pk=${publicKey.fingerprint()} reason=$reason hasToken=$hasToken")
+        return sendWake(publicKey, reason)
+    }
+
     private fun sendWake(publicKey: PublicKey, reason: String): Boolean {
         val token = prefs.getString(FRIEND_TOKEN_PREFIX + publicKey.string(), null)
         if (token.isNullOrBlank()) {
