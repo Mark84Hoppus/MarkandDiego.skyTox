@@ -20,6 +20,11 @@ pepk.jar
 skyTox.original.png
 unload-ubuntu-wsl.bat
 github-upload-*.zip
+skytoxserver/.env
+skytoxserver/serviceAccount.json
+skytoxserver/google-services.json
+skytoxserver/node_modules/
+skytoxserver/*.log
 
 # gradle-from-source build
 _build

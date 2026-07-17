@@ -24,22 +24,6 @@ val skytoxReleaseSigningInfo = if (skytoxReleaseSigningInfoFile.exists()) {
 val skytoxReleaseSigningEnabled =
     skytoxReleaseKeystore.exists() &&
         (skytoxReleaseSigningInfo["storePassword"] ?: skytoxReleaseSigningInfo["keystore_password"]) != null
-val skytoxServerEnv = rootProject.file("skytoxserver/.env")
-val skytoxPushConfig = if (skytoxServerEnv.exists()) {
-    skytoxServerEnv.readLines()
-        .mapNotNull { line ->
-            val trimmed = line.trim()
-            if (trimmed.isEmpty() || trimmed.startsWith("#") || !trimmed.contains("=")) {
-                null
-            } else {
-                trimmed.substringBefore("=") to trimmed.substringAfter("=")
-            }
-        }
-        .toMap()
-} else {
-    emptyMap()
-}
-
 kotlin {
     jvmToolchain(17)
     compilerOptions {
@@ -55,11 +39,10 @@ android {
         applicationId = "markanddiego.skytox"
         minSdk = libs.versions.sdk.min.get().toInt()
         targetSdk = libs.versions.sdk.target.get().toInt()
-        versionCode = 256
-        versionName = "0.8.19"
+        versionCode = 261
+        versionName = "0.8.20"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SKYTOX_PUSH_SERVER_URL", "\"https://push.skytox.uk/push\"")
-        buildConfigField("String", "SKYTOX_PUSH_API_KEY", "\"${skytoxPushConfig["SKYTOX_PUSH_API_KEY"].orEmpty()}\"")
     }
     signingConfigs {
         getByName("debug") {
@@ -120,10 +103,10 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
         val abiVersionCodes = mapOf(
-            "armeabi-v7a" to 257,
-            "arm64-v8a" to 258,
-            "x86" to 259,
-            "x86_64" to 260,
+            "armeabi-v7a" to 262,
+            "arm64-v8a" to 263,
+            "x86" to 264,
+            "x86_64" to 265,
         )
         variant.outputs.forEach { output ->
             val abi = output.filters

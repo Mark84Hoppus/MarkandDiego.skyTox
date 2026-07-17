@@ -122,15 +122,14 @@ class SkyToxPushManager @Inject constructor(
             return false
         }
         val serverUrl = BuildConfig.SKYTOX_PUSH_SERVER_URL
-        val apiKey = BuildConfig.SKYTOX_PUSH_API_KEY
-        if (serverUrl.isBlank() || apiKey.isBlank()) {
-            SkyToxCrashLogger.diagnostic("push.wake skipped config_missing urlBlank=${serverUrl.isBlank()} keyBlank=${apiKey.isBlank()}")
+        if (serverUrl.isBlank()) {
+            SkyToxCrashLogger.diagnostic("push.wake skipped config_missing urlBlank=true")
             return false
         }
 
         scope.launch(Dispatchers.IO) {
             runCatching {
-                postWakeup(serverUrl, apiKey, token, reason)
+                postWakeup(serverUrl, token, reason)
                 SkyToxCrashLogger.diagnostic("push.wake posted pk=${publicKey.fingerprint()} reason=$reason")
             }.onFailure {
                 SkyToxCrashLogger.diagnostic("push.wake failed pk=${publicKey.fingerprint()} reason=$reason ${it.message}")
@@ -154,7 +153,7 @@ class SkyToxPushManager @Inject constructor(
         }
     }
 
-    private suspend fun postWakeup(serverUrl: String, apiKey: String, token: String, reason: String) =
+    private suspend fun postWakeup(serverUrl: String, token: String, reason: String) =
         withContext(Dispatchers.IO) {
             val body = JSONObject()
                 .put("token", token)
@@ -168,7 +167,7 @@ class SkyToxPushManager @Inject constructor(
                 readTimeout = 8000
                 doOutput = true
                 setRequestProperty("Content-Type", "application/json")
-                setRequestProperty("X-SkyTox-Key", apiKey)
+                setRequestProperty("X-SkyTox-Client", "android")
                 outputStream.use { it.write(body) }
             }
 
