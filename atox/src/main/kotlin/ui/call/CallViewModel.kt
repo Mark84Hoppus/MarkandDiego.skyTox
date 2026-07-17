@@ -68,6 +68,7 @@ class CallViewModel @Inject constructor(
     val sendingAudio = callManager.sendingAudio
     val incomingVideoFrame = callManager.incomingVideoFrame
     val localVideoEnabled = callManager.localVideoEnabled
+    val remoteCallAccepted = callManager.remoteCallAccepted
     val outgoingVideoHeight = callManager.outgoingVideoHeight
 
     fun hasPendingCall() = callManager.pendingCalls.value.any { it.publicKey == publicKey.string() }

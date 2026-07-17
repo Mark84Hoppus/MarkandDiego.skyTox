@@ -89,6 +89,25 @@ class FileTransferManager @Inject constructor(
     private val outgoingCacheRoot by lazy { context.cacheDir.canonicalFile }
     private val storage by lazy { AtoxStorage() }
 
+    private fun activeTransfer(publicKey: String, fileNumber: Int): FileTransfer? =
+        fileTransfers.lastOrNull { it.publicKey == publicKey && it.fileNumber == fileNumber }
+
+    private fun removeStaleActiveTransfer(publicKey: String, fileNumber: Int) {
+        val stale = fileTransfers.filter { it.publicKey == publicKey && it.fileNumber == fileNumber }
+        stale.kForEach { ft ->
+            SkyToxCrashLogger.fileTransfer(
+                "active stale_remove ft=${ft.id} contact=${publicKey.fingerprint()} fileNo=$fileNumber outgoing=${ft.outgoing}",
+            )
+            if (ft.fileKind == FileKind.Data.ordinal && !ft.isComplete() && !ft.isRejected()) {
+                setProgress(ft, ft.interruptedProgress())
+            }
+            if (ft.outgoing) {
+                outgoingFiles.remove(Pair(publicKey, fileNumber))
+            }
+            fileTransfers.remove(ft)
+        }
+    }
+
     init {
         File(context.filesDir, "ft").mkdir()
         File(context.filesDir, "avatar").mkdir()
@@ -276,7 +295,7 @@ class FileTransferManager @Inject constructor(
         SkyToxCrashLogger.fileTransfer(
             "reject ft=${ft.id} contact=${ft.publicKey.fingerprint()} fileNo=${ft.fileNumber} outgoing=${ft.outgoing}",
         )
-        fileTransfers.remove(ft)
+        fileTransfers.removeAll { it.id == ft.id }
         setProgress(ft, FT_REJECTED)
         tox.stopFileTransfer(PublicKey(ft.publicKey), ft.fileNumber)
         val uri = ft.destination.toUri()
@@ -313,7 +332,7 @@ class FileTransferManager @Inject constructor(
     }
 
     fun addDataToTransfer(publicKey: String, fileNumber: Int, position: Long, data: ByteArray) {
-        val ft = fileTransfers.find { it.publicKey == publicKey && it.fileNumber == fileNumber }
+        val ft = activeTransfer(publicKey, fileNumber)
         if (ft == null) {
             if (data.isNotEmpty()) {
                 Log.e(TAG, "Got data for ft $fileNumber for ${publicKey.fingerprint()} we don't know about")
@@ -361,6 +380,11 @@ class FileTransferManager @Inject constructor(
     fun create(pk: PublicKey, file: Uri) {
         val (name, size) = queryNameAndSize(file) ?: return
 
+        if (!canRead(file)) {
+            SkyToxCrashLogger.fileTransfer("outgoing create failed_unreadable contact=${pk.string().fingerprint()} uri=$file")
+            return
+        }
+
         val fileId = Random.nextBytes(TOX_FILE_ID_BYTES).bytesToHex()
         SkyToxCrashLogger.fileTransfer("outgoing create contact=${pk.string().fingerprint()} size=$size name=$name uri=$file")
         val ft = FileTransfer(
@@ -374,6 +398,11 @@ class FileTransferManager @Inject constructor(
             file.toString(),
             fileId,
         )
+
+        removeStaleActiveTransfer(ft.publicKey, ft.fileNumber)
+        fileTransfers.add(ft)
+        outgoingFiles[Pair(ft.publicKey, ft.fileNumber)] = OutgoingFile(file, mutableListOf())
+
         val id = fileTransferRepository.add(ft).toInt()
         ft.id = id
         messageRepository.add(
@@ -384,14 +413,6 @@ class FileTransferManager @Inject constructor(
             ft.thumbnail = thumbnail.toString()
             fileTransferRepository.setThumbnail(id, ft.thumbnail)
         }
-        fileTransfers.add(ft.copy().apply { this.id = id })
-
-        if (!canRead(file)) {
-            SkyToxCrashLogger.fileTransfer("outgoing create failed_unreadable ft=$id uri=$file")
-            reject(ft)
-            return
-        }
-        outgoingFiles[Pair(ft.publicKey, ft.fileNumber)] = OutgoingFile(file, mutableListOf())
         SkyToxCrashLogger.fileTransfer("outgoing started ft=$id fileNo=${ft.fileNumber} fileId=${fileId.take(8)}")
     }
 
@@ -429,9 +450,10 @@ class FileTransferManager @Inject constructor(
 
     // TODO(robinlinden): An error when sending the last chunk in a transfer will stall it.
     fun sendChunk(pk: String, fileNo: Int, pos: Long, length: Int) {
-        val ft = fileTransfers.find { it.publicKey == pk && it.fileNumber == fileNo }
+        val ft = activeTransfer(pk, fileNo)
         if (ft == null) {
             Log.e(TAG, "Received request for chunk of unknown ft ${pk.fingerprint()} $fileNo")
+            SkyToxCrashLogger.fileTransfer("outgoing unknown_chunk_request contact=${pk.fingerprint()} fileNo=$fileNo pos=$pos len=$length")
             tox.stopFileTransfer(PublicKey(pk), fileNo)
             return
         }
@@ -496,7 +518,7 @@ class FileTransferManager @Inject constructor(
             while (true) {
                 delay(CHUNK_RETRY_DELAY_MS)
                 val current = outgoingFiles[key] ?: break
-                val ft = fileTransfers.find { it.publicKey == pk && it.fileNumber == fileNo } ?: break
+                val ft = activeTransfer(pk, fileNo) ?: break
                 val chunk = current.unsentChunks.firstOrNull() ?: break
 
                 if (tox.sendFileChunk(PublicKey(pk), fileNo, chunk.pos, chunk.data).isFailure) {
@@ -514,7 +536,7 @@ class FileTransferManager @Inject constructor(
     fun setStatus(pk: String, fileNo: Int, fileStatus: ToxFileControl) {
         Log.e(TAG, "Setting ${pk.fingerprint()} $fileNo to status $fileStatus")
         SkyToxCrashLogger.fileTransfer("control contact=${pk.fingerprint()} fileNo=$fileNo status=$fileStatus")
-        val ft = fileTransfers.find { it.publicKey == pk && it.fileNumber == fileNo }
+        val ft = activeTransfer(pk, fileNo)
         if (ft == null) {
             Log.e(TAG, "Attempted to set status for unknown ft ${pk.fingerprint()} $fileNo")
             return

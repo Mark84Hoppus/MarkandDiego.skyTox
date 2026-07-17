@@ -214,10 +214,16 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                     }
                     false
                 }
+                val openListener = View.OnClickListener { v ->
+                    (parent as ListView).performItemClick(v, position, position.toLong())
+                }
                 vh.accept.setOnTouchListener(touchListener)
                 vh.reject.setOnTouchListener(touchListener)
                 vh.cancel.setOnTouchListener(touchListener)
                 vh.audioPlay.setOnTouchListener(touchListener)
+                vh.bubble.setOnClickListener(openListener)
+                vh.completedLayout.setOnClickListener(openListener)
+                vh.imagePreview.setOnClickListener(openListener)
                 vh.container.setOnLongClickListener {
                     onFileTransferLongClick?.invoke(vh.container, position)
                     true

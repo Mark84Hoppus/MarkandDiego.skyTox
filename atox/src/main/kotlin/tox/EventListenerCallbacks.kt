@@ -230,6 +230,7 @@ class EventListenerCallbacks @Inject constructor(
         callStateHandler = { pk, callState ->
             Log.e(TAG, "callState ${pk.fingerprint()} $callState")
             SkyToxCrashLogger.event("toxav.callState pk=${pk.fingerprint()} state=$callState")
+            callManager.updateCallState(PublicKey(pk), callState)
             if (callState.contains(ToxavFriendCallState.FINISHED) || callState.contains(ToxavFriendCallState.ERROR)) {
                 audioPlayer?.stop()
                 audioPlayer?.release()

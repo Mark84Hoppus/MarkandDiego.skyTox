@@ -9,6 +9,7 @@ import android.media.AudioManager
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.ContextCompat
+import im.tox.tox4j.av.enums.ToxavFriendCallState
 import im.tox.tox4j.av.exceptions.ToxavCallException
 import im.tox.tox4j.av.exceptions.ToxavCallControlException
 import javax.inject.Inject
@@ -77,6 +78,8 @@ class CallManager @Inject constructor(private val tox: Tox, private val scope: C
     val incomingVideoFrame: StateFlow<IncomingVideoFrame?> get() = _incomingVideoFrame
     private val _localVideoEnabled = MutableStateFlow(false)
     val localVideoEnabled: StateFlow<Boolean> get() = _localVideoEnabled
+    private val _remoteCallAccepted = MutableStateFlow(false)
+    val remoteCallAccepted: StateFlow<Boolean> get() = _remoteCallAccepted
     private val _outgoingVideoHeight = MutableStateFlow(VIDEO_HEIGHT_LADDER[DEFAULT_VIDEO_HEIGHT_INDEX])
     val outgoingVideoHeight: StateFlow<Int> get() = _outgoingVideoHeight
 
@@ -117,6 +120,7 @@ class CallManager @Inject constructor(private val tox: Tox, private val scope: C
             "call.start pk=${publicKey.fingerprint()} requestVideo=$requestVideo " +
                 "pending=${pendingCalls.value.any { it.publicKey == publicKey.string() }}",
         )
+        _remoteCallAccepted.value = false
         var answerVideoBitRate = if (requestVideo) videoBitRateForHeight(VIDEO_HEIGHT_LADDER[DEFAULT_VIDEO_HEIGHT_INDEX]) else 0
         try {
             if (pendingCalls.value.any { it.publicKey == publicKey.string() }) {
@@ -184,6 +188,21 @@ class CallManager @Inject constructor(private val tox: Tox, private val scope: C
         removePendingCall(publicKey)
     }
 
+    fun updateCallState(publicKey: PublicKey, callState: Set<ToxavFriendCallState>) {
+        val state = inCall.value
+        if (state !is CallState.InCall || state.publicKey != publicKey) {
+            return
+        }
+        if (
+            callState.contains(ToxavFriendCallState.ACCEPTING_A) ||
+            callState.contains(ToxavFriendCallState.ACCEPTING_V) ||
+            callState.contains(ToxavFriendCallState.SENDING_A) ||
+            callState.contains(ToxavFriendCallState.SENDING_V)
+        ) {
+            _remoteCallAccepted.value = true
+        }
+    }
+
     private fun finishCall(publicKey: PublicKey) {
         SkyToxCrashLogger.event("call.finish pk=${publicKey.fingerprint()} state=${inCall.value}")
         videoStopping = true
@@ -191,6 +210,7 @@ class CallManager @Inject constructor(private val tox: Tox, private val scope: C
         if (state is CallState.InCall && state.publicKey == publicKey) {
             audioManager?.mode = AudioManager.MODE_NORMAL
             _localVideoEnabled.value = false
+            _remoteCallAccepted.value = false
             _incomingVideoFrame.value = null
             resetVideoQuality()
             _inCall.value = CallState.NotInCall

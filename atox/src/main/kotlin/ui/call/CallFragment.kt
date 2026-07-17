@@ -12,8 +12,12 @@ import android.graphics.Bitmap
 import android.graphics.ImageFormat
 import android.graphics.PixelFormat
 import android.hardware.Camera
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.view.SurfaceHolder
 import android.view.View
@@ -53,6 +57,16 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
     private var localVideoRequested = false
     private var localVideoHeight = 360
     private var callClosing = false
+    private val ringbackHandler = Handler(Looper.getMainLooper())
+    private var ringbackTone: ToneGenerator? = null
+    private var ringbackRunning = false
+    private val ringbackRunnable = object : Runnable {
+        override fun run() {
+            if (!ringbackRunning) return
+            ringbackTone?.startTone(ToneGenerator.TONE_SUP_RINGTONE, 1500)
+            ringbackHandler.postDelayed(this, 3500)
+        }
+    }
 
     private val requestAudioPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -141,6 +155,12 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
             }
         }
 
+        vm.remoteCallAccepted.asLiveData().observe(viewLifecycleOwner) { accepted ->
+            if (accepted) {
+                stopOutgoingRingback()
+            }
+        }
+
         acceptCall.setOnClickListener {
             acceptIncomingCall()
         }
@@ -205,6 +225,7 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
 
         showActiveCallControls()
         startCall()
+        startOutgoingRingback()
 
         if (requireContext().hasPermission(AUDIO_PERMISSION)) {
             vm.startSendingAudio()
@@ -214,6 +235,7 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
     override fun onDestroyView() {
         SkyToxCrashLogger.event("call.ui.onDestroyView closing=$callClosing")
         callClosing = true
+        stopOutgoingRingback()
         stopLocalVideo()
         super.onDestroyView()
     }
@@ -227,6 +249,7 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
         vm.startCall(arguments?.getBoolean(REQUEST_VIDEO_CALL, false) == true)
         vm.inCall.asLiveData().observe(viewLifecycleOwner) { inCall ->
             if (inCall == CallState.NotInCall) {
+                stopOutgoingRingback()
                 closeCallScreen(endCurrentCall = false)
             }
         }
@@ -246,6 +269,24 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
                 closeCallScreen(endCurrentCall = false)
             }
         }
+    }
+
+    private fun startOutgoingRingback() {
+        if (ringbackRunning || vm.remoteCallAccepted.value) return
+        ringbackTone = runCatching {
+            ToneGenerator(AudioManager.STREAM_VOICE_CALL, 70)
+        }.getOrNull()
+        ringbackRunning = ringbackTone != null
+        if (ringbackRunning) {
+            ringbackRunnable.run()
+        }
+    }
+
+    private fun stopOutgoingRingback() {
+        ringbackRunning = false
+        ringbackHandler.removeCallbacks(ringbackRunnable)
+        ringbackTone?.release()
+        ringbackTone = null
     }
 
     private fun showIncomingCallControls() = binding.run {
@@ -357,6 +398,7 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
         SkyToxCrashLogger.event("call.ui.close endCurrentCall=$endCurrentCall")
         callClosing = true
         binding.callDuration.stop()
+        stopOutgoingRingback()
         stopLocalVideo()
         if (endCurrentCall) {
             vm.endCall()
