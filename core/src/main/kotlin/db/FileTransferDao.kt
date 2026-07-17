@@ -26,7 +26,7 @@ interface FileTransferDao {
     fun load(publicKey: String): Flow<List<FileTransfer>>
 
     @Query("SELECT * FROM file_transfers WHERE id == :id")
-    fun load(id: Int): Flow<FileTransfer>
+    fun load(id: Int): Flow<FileTransfer?>
 
     @Query(
         """

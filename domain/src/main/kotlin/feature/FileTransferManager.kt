@@ -544,9 +544,13 @@ class FileTransferManager @Inject constructor(
             }
             fileTransfers.remove(it)
         }
-        fileTransferRepository.get(id).take(1).collect {
-            deleteStoredFile(it.destination.toUri())
-            deleteStoredFile(it.thumbnail.toUri())
+        fileTransferRepository.get(id).take(1).collect { ft ->
+            if (ft == null) {
+                Log.i(TAG, "Ignoring delete for missing ft id=$id")
+                return@collect
+            }
+            deleteStoredFile(ft.destination.toUri())
+            deleteStoredFile(ft.thumbnail.toUri())
             fileTransferRepository.delete(id)
         }
     }

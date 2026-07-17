@@ -24,6 +24,8 @@ import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.os.bundleOf
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
@@ -132,7 +134,9 @@ class ContactListFragment :
             compat
         }
 
-        toolbar.title = getText(R.string.app_name)
+        toolbar.title = ""
+        toolbar.subtitle = ""
+        updateHeaderConnectionLogo(false)
         toolbar.inflateMenu(R.menu.contact_list_toolbar)
         toolbar.setOnMenuItemClickListener {
             if (it.itemId == R.id.search_chats) {
@@ -163,11 +167,9 @@ class ContactListFragment :
                 }
             }
 
-            toolbar.subtitle = if (user.online()) {
-                resources.getStringArray(R.array.user_statuses)[user.status.ordinal]
-            } else {
-                getText(R.string.connecting)
-            }
+            toolbar.title = ""
+            toolbar.subtitle = ""
+            updateHeaderConnectionLogo(user.online())
             startMenuModule?.renderUser(user)
         }
 
@@ -290,6 +292,19 @@ class ContactListFragment :
     override fun onResume() {
         super.onResume()
         startMenuModule?.renderAvatar()
+    }
+
+    private fun updateHeaderConnectionLogo(connected: Boolean) = binding.toolbar.run {
+        val color = ContextCompat.getColor(
+            requireContext(),
+            if (connected) android.R.color.holo_green_light else android.R.color.white,
+        )
+        val icon = ContextCompat.getDrawable(requireContext(), R.drawable.atox_logo_white)
+            ?.mutate()
+            ?.let { DrawableCompat.wrap(it) }
+            ?: return@run
+        DrawableCompat.setTint(icon, color)
+        logo = icon
     }
 
     override fun onCreateContextMenu(menu: ContextMenu, v: View, menuInfo: ContextMenu.ContextMenuInfo?) {

@@ -316,6 +316,7 @@ skyTox validates the JSON structure before importing. An all-chats backup cannot
     <string name="send_encrypted_message">Send encrypted message</string>
     <string name="wake_contact">Wake</string>
     <string name="wake_contact_waiting">Waiting</string>
+    <string name="wake_signal_sending">Waking contact...</string>
     <string name="wake_signal_sent">Wake signal sent</string>
     <string name="decrypt_message">Decrypt</string>
     <string name="decrypted_message">Decrypted message</string>

@@ -238,6 +238,7 @@
     <string name="send_encrypted_message">Отправить зашифрованное сообщение</string>
     <string name="wake_contact">Разбудить</string>
     <string name="wake_contact_waiting">Ожидание</string>
+    <string name="wake_signal_sending">Будим получателя...</string>
     <string name="wake_signal_sent">Сигнал пробуждения отправлен</string>
     <string name="decrypt_message">Расшифровать</string>
     <string name="decrypted_message">Расшифрованное сообщение</string>

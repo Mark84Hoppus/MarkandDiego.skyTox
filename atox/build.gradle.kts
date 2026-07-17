@@ -5,6 +5,25 @@ plugins {
 }
 
 val skytoxUniversal = providers.gradleProperty("skytoxUniversal").map(String::toBoolean).getOrElse(false)
+val skytoxReleaseKeystore = rootProject.file("release-signing/skytox-release.jks")
+val skytoxReleaseSigningInfoFile = rootProject.file("release-signing/skytox-release-keystore-info.txt")
+val skytoxReleaseSigningInfo = if (skytoxReleaseSigningInfoFile.exists()) {
+    skytoxReleaseSigningInfoFile.readLines()
+        .mapNotNull { line ->
+            val trimmed = line.trim()
+            if (trimmed.isEmpty() || trimmed.startsWith("#") || !trimmed.contains("=")) {
+                null
+            } else {
+                trimmed.substringBefore("=").trim() to trimmed.substringAfter("=").trim()
+            }
+        }
+        .toMap()
+} else {
+    emptyMap()
+}
+val skytoxReleaseSigningEnabled =
+    skytoxReleaseKeystore.exists() &&
+        (skytoxReleaseSigningInfo["storePassword"] ?: skytoxReleaseSigningInfo["keystore_password"]) != null
 val skytoxServerEnv = rootProject.file("skytoxserver/.env")
 val skytoxPushConfig = if (skytoxServerEnv.exists()) {
     skytoxServerEnv.readLines()
@@ -36,20 +55,11 @@ android {
         applicationId = "markanddiego.skytox"
         minSdk = libs.versions.sdk.min.get().toInt()
         targetSdk = libs.versions.sdk.target.get().toInt()
-        versionCode = 251
-        versionName = "0.8.18"
+        versionCode = 256
+        versionName = "0.8.19"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SKYTOX_PUSH_SERVER_URL", "\"https://push.skytox.uk/push\"")
         buildConfigField("String", "SKYTOX_PUSH_API_KEY", "\"${skytoxPushConfig["SKYTOX_PUSH_API_KEY"].orEmpty()}\"")
-    }
-    buildTypes {
-        getByName("debug") {
-            applicationIdSuffix = ""
-        }
-        getByName("release") {
-            isMinifyEnabled = true
-            proguardFiles("proguard-tox4j.pro", getDefaultProguardFile("proguard-android-optimize.txt"))
-        }
     }
     signingConfigs {
         getByName("debug") {
@@ -57,6 +67,32 @@ android {
             keyPassword = "android"
             storeFile = file("debug.keystore")
             storePassword = "android"
+        }
+        if (skytoxReleaseSigningEnabled) {
+            create("skytoxRelease") {
+                val storePass = skytoxReleaseSigningInfo["storePassword"]
+                    ?: skytoxReleaseSigningInfo["keystore_password"]
+                keyAlias = skytoxReleaseSigningInfo["alias"]
+                    ?: skytoxReleaseSigningInfo["keyAlias"]
+                    ?: skytoxReleaseSigningInfo["key_alias"]
+                keyPassword = skytoxReleaseSigningInfo["keyPassword"]
+                    ?: skytoxReleaseSigningInfo["key_password"]
+                    ?: storePass
+                storeFile = skytoxReleaseKeystore
+                storePassword = storePass
+            }
+        }
+    }
+    buildTypes {
+        getByName("debug") {
+            applicationIdSuffix = ""
+        }
+        getByName("release") {
+            isMinifyEnabled = true
+            if (skytoxReleaseSigningEnabled) {
+                signingConfig = signingConfigs.getByName("skytoxRelease")
+            }
+            proguardFiles("proguard-tox4j.pro", getDefaultProguardFile("proguard-android-optimize.txt"))
         }
     }
     splits {
@@ -84,10 +120,10 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
         val abiVersionCodes = mapOf(
-            "armeabi-v7a" to 252,
-            "arm64-v8a" to 253,
-            "x86" to 254,
-            "x86_64" to 255,
+            "armeabi-v7a" to 257,
+            "arm64-v8a" to 258,
+            "x86" to 259,
+            "x86_64" to 260,
         )
         variant.outputs.forEach { output ->
             val abi = output.filters

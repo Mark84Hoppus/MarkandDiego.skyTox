@@ -167,6 +167,12 @@ class ChatViewModel @Inject constructor(
 
     fun exportFt(id: Int, dest: Uri) = scope.launch {
         fileTransferManager.get(id).take(1).collect { ft ->
+            if (ft == null) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, R.string.export_file_failure, Toast.LENGTH_LONG).show()
+                }
+                return@collect
+            }
             launch(Dispatchers.IO) {
                 try {
                     FileInputStream(File(ft.destination.toUri().path!!)).use { ins ->

@@ -110,6 +110,11 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private var autoWakeOpenAttempts = 0
     private var pendingMessageWakeActive = false
 
+    companion object {
+        private val autoWakeOpenAttemptsByContact = mutableMapOf<String, Int>()
+        private val lastWakeSignalAtMsByContact = mutableMapOf<String, Long>()
+    }
+
     private val requestRecordAudioLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -407,12 +412,13 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                 toggleMessageSelection(adapter.messages[position], adapter)
                 return@setOnItemClickListener
             }
+            val message = adapter.messages[position]
             when (view.id) {
                 R.id.accept -> viewModel.acceptFt(adapter.messages[position].correlationId)
                 R.id.reject, R.id.cancel -> viewModel.rejectFt(adapter.messages[position].correlationId)
                 R.id.audioPlay -> toggleAudioPlayback(adapter.messages[position].correlationId)
-                R.id.fileTransfer -> {
-                    val id = adapter.messages[position].correlationId
+                else -> if (message.type == MessageType.FileTransfer) {
+                    val id = message.correlationId
                     val ft = adapter.fileTransfers.find { it.id == id } ?: return@setOnItemClickListener
                     openFileTransfer(ft)
                 }
@@ -819,6 +825,9 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                 getString(R.string.mimetype_handler_not_found, contentType),
                 Toast.LENGTH_LONG,
             ).show()
+        } catch (e: IllegalArgumentException) {
+            Log.e(TAG, "Unable to open file transfer ${ft.id}\n$e")
+            Toast.makeText(requireContext(), R.string.file_not_found, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -1013,7 +1022,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         viewModel.hasWakeToken() && wakeCooldownRemainingMs() <= 0L
 
     private fun wakeCooldownRemainingMs(): Long =
-        WAKE_CONTACT_COOLDOWN_MS - (System.currentTimeMillis() - lastWakeSignalAtMs)
+        WAKE_CONTACT_COOLDOWN_MS - (System.currentTimeMillis() - lastWakeSignalAtMsByContact[contactPubKey].orZero())
 
     private fun updateWakeContactMenuItem() {
         val item = binding.toolbar.menu.findItem(R.id.wake_contact) ?: return
@@ -1032,19 +1041,31 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private fun updateAutoWakeForContact() {
         if (viewModel.contactOnline) {
             autoWakeOpenAttempts = 0
+            autoWakeOpenAttemptsByContact.remove(contactPubKey)
             pendingMessageWakeActive = false
             wakeTimer.removeCallbacksAndMessages(null)
             return
         }
+        autoWakeOpenAttempts = autoWakeOpenAttemptsByContact[contactPubKey] ?: 0
         if (autoWakeOpenAttempts == 0) {
             scheduleOpenAutoWake()
         }
     }
 
     private fun scheduleOpenAutoWake() {
+        autoWakeOpenAttempts = autoWakeOpenAttemptsByContact[contactPubKey] ?: 0
         if (viewModel.contactOnline || autoWakeOpenAttempts >= AUTO_WAKE_OPEN_ATTEMPTS) return
+
+        val remainingMs = wakeCooldownRemainingMs()
+        if (remainingMs > 0L) {
+            wakeTimer.postDelayed({ scheduleOpenAutoWake() }, remainingMs)
+            return
+        }
+
+        Toast.makeText(requireContext(), R.string.wake_signal_sending, Toast.LENGTH_SHORT).show()
         if (sendWakeSignal("auto_chat_open")) {
             autoWakeOpenAttempts++
+            autoWakeOpenAttemptsByContact[contactPubKey] = autoWakeOpenAttempts
         }
         if (autoWakeOpenAttempts < AUTO_WAKE_OPEN_ATTEMPTS) {
             wakeTimer.postDelayed({ scheduleOpenAutoWake() }, AUTO_WAKE_INTERVAL_MS)
@@ -1069,7 +1090,9 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
 
     private fun sendWakeSignal(reason: String): Boolean {
         if (!viewModel.hasWakeToken()) return false
-        lastWakeSignalAtMs = System.currentTimeMillis()
+        val now = System.currentTimeMillis()
+        lastWakeSignalAtMs = now
+        lastWakeSignalAtMsByContact[contactPubKey] = now
         return viewModel.wakeContact(reason)
     }
 
@@ -1090,3 +1113,5 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         binding.toolbar.menu.findItem(R.id.video_call)?.icon?.mutate()?.setTint(color)
     }
 }
+
+private fun Long?.orZero(): Long = this ?: 0L

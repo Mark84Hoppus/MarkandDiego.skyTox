@@ -18,7 +18,7 @@ class FileTransferRepository @Inject internal constructor(private val dao: FileT
 
     fun get(publicKey: String): Flow<List<FileTransfer>> = dao.load(publicKey)
 
-    fun get(id: Int): Flow<FileTransfer> = dao.load(id)
+    fun get(id: Int): Flow<FileTransfer?> = dao.load(id)
 
     fun getInterruptedIncoming(publicKey: String, fileId: String, fileName: String, fileSize: Long): FileTransfer? =
         dao.loadInterruptedIncoming(publicKey, fileId, fileName, fileSize)
