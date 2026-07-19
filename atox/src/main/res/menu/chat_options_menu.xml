@@ -13,6 +13,7 @@
             app:showAsAction="always"/>
     <item android:id="@+id/wake_contact" android:title="@string/wake_contact"/>
     <item android:id="@+id/send_encrypted_message" android:title="@string/send_encrypted_message"/>
+    <item android:id="@+id/send_code_message" android:title="@string/send_code_message"/>
     <item android:id="@+id/backup_history" android:title="@string/export_history"/>
     <item android:id="@+id/import_history" android:title="@string/import_history"/>
     <item android:id="@+id/clear_history" android:title="@string/clear_history"/>

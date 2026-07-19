@@ -26,8 +26,10 @@ import android.view.ContextMenu
 import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.EditText
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -61,6 +63,7 @@ import ltd.evilcorp.atox.requireStringArg
 import ltd.evilcorp.atox.truncated
 import ltd.evilcorp.atox.ui.BaseFragment
 import ltd.evilcorp.atox.ui.call.REQUEST_VIDEO_CALL
+import ltd.evilcorp.atox.ui.texteditor.SkyToxTextEditorActivity
 import ltd.evilcorp.atox.vmFactory
 import ltd.evilcorp.core.vo.ConnectionStatus
 import ltd.evilcorp.core.vo.Contact
@@ -106,6 +109,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private val wakeTimer = Handler(Looper.getMainLooper())
     private var startAfterMicPermission = false
     private var pendingEncryptedMessage: String? = null
+    private val expandedTextMessageIds = mutableSetOf<Long>()
     private var lastWakeSignalAtMs = 0L
     private var autoWakeOpenAttempts = 0
     private var pendingMessageWakeActive = false
@@ -297,6 +301,10 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                     }
                     true
                 }
+                R.id.send_code_message -> {
+                    showSendCodeDialog()
+                    true
+                }
                 else -> super.onOptionsItemSelected(item)
             }
         }
@@ -389,6 +397,19 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
 
         val adapter = ChatAdapter(layoutInflater, resources)
         updateSelectionUi(adapter)
+        adapter.expandedTextMessageIds = expandedTextMessageIds.toSet()
+        adapter.onLongTextToggle = { messageId ->
+            if (messageId in expandedTextMessageIds) {
+                expandedTextMessageIds.remove(messageId)
+            } else {
+                expandedTextMessageIds.add(messageId)
+            }
+            adapter.expandedTextMessageIds = expandedTextMessageIds.toSet()
+            adapter.notifyDataSetChanged()
+        }
+        adapter.onCodePreviewClick = { message ->
+            SkyToxCodeMessage.decode(message.message)?.let { showCodeViewerDialog(it) }
+        }
         adapter.onFileTransferLongClick = { anchor, position ->
             showMessageContextMenu(anchor, adapter.messages[position], adapter)
         }
@@ -657,6 +678,55 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             .show()
     }
 
+    private fun showSendCodeDialog() {
+        val input = EditText(requireContext()).apply {
+            minLines = 6
+            setSingleLine(false)
+            setPadding(32, 16, 32, 0)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.send_code_message)
+            .setView(input)
+            .setPositiveButton(R.string.send) { _, _ ->
+                val code = input.text.toString()
+                if (code.isNotBlank()) {
+                    viewModel.send(SkyToxCodeMessage.encode(code), MessageType.Normal)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showCodeViewerDialog(code: String) {
+        val textView = TextView(requireContext()).apply {
+            text = code
+            setTextIsSelectable(true)
+            typeface = android.graphics.Typeface.MONOSPACE
+            setPadding(32, 16, 32, 0)
+        }
+        val scrollView = ScrollView(requireContext()).apply {
+            isVerticalScrollBarEnabled = true
+            scrollBarStyle = View.SCROLLBARS_INSIDE_INSET
+            addView(
+                textView,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.code_message)
+            .setView(scrollView)
+            .setPositiveButton(R.string.copy_all) { _, _ ->
+                val clipboard = requireActivity().getSystemService<ClipboardManager>()!!
+                clipboard.setPrimaryClip(ClipData.newPlainText(getString(R.string.code_message), code))
+                Toast.makeText(requireContext(), R.string.copied, Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton(R.string.close, null)
+            .show()
+    }
+
     private fun decryptEncryptedMessage(encrypted: String) {
         if (!viewModel.appProtectionEnabled()) {
             Toast.makeText(requireContext(), R.string.app_lock_not_set, Toast.LENGTH_SHORT).show()
@@ -811,6 +881,21 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         }
 
         val contentType = URLConnection.guessContentTypeFromName(ft.fileName) ?: "*/*"
+        if (isEditableTextFile(ft.fileName, contentType)) {
+            val intent = Intent(requireContext(), SkyToxTextEditorActivity::class.java).apply {
+                putExtra("uri", uri.toString())
+                putExtra("name", ft.fileName)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            }
+            try {
+                startActivity(intent)
+            } catch (e: Exception) {
+                Log.e(TAG, "Unable to open text editor for ft ${ft.id}\n$e")
+                Toast.makeText(requireContext(), R.string.file_not_found, Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+
         val openIntent = Intent(Intent.ACTION_VIEW).apply {
             putExtra(Intent.EXTRA_TITLE, ft.fileName)
             setDataAndType(uri, contentType)
@@ -828,7 +913,43 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         } catch (e: IllegalArgumentException) {
             Log.e(TAG, "Unable to open file transfer ${ft.id}\n$e")
             Toast.makeText(requireContext(), R.string.file_not_found, Toast.LENGTH_SHORT).show()
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Unable to open file transfer ${ft.id}: permission lost\n$e")
+            Toast.makeText(requireContext(), R.string.file_not_found, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun isEditableTextFile(fileName: String, contentType: String): Boolean {
+        if (contentType.startsWith("text/")) return true
+        return fileName.substringAfterLast('.', "").lowercase(Locale.US) in setOf(
+            "txt",
+            "json",
+            "md",
+            "markdown",
+            "html",
+            "htm",
+            "xml",
+            "csv",
+            "log",
+            "ini",
+            "conf",
+            "cfg",
+            "yml",
+            "yaml",
+            "kt",
+            "java",
+            "js",
+            "ts",
+            "css",
+            "sh",
+            "bat",
+            "ps1",
+            "py",
+            "c",
+            "cpp",
+            "h",
+            "hpp",
+        )
     }
 
     private fun startVoiceRecording() {

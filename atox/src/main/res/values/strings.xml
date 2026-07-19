@@ -11,7 +11,6 @@
     <string name="contact_typing">Typing…</string>
     <string name="copied">Copied</string>
     <string name="copy_atox">Copy</string>
-    <string name="copy_all">Copy all</string>
     <string name="copy_part">Copy part</string>
     <string name="select_message">Select</string>
     <string name="forward_message">Forward</string>
@@ -321,4 +320,20 @@ skyTox validates the JSON structure before importing. An all-chats backup cannot
     <string name="decrypt_message">Decrypt</string>
     <string name="decrypted_message">Decrypted message</string>
     <string name="encrypted_message_read_failed">Could not read</string>
+    <string name="send_code_message">Insert code</string>
+    <string name="code_message">Code</string>
+    <string name="copy_all">Copy all</string>
+    <string name="close">Close</string>
+    <string name="text_editor">Text editor</string>
+    <string name="reader_mode">Reader mode</string>
+    <string name="save_as_and_send">Save as and send</string>
+    <string name="save_to_file">Save</string>
+    <string name="invalid_file_name">Invalid file name</string>
+    <string name="file_too_large">File is too large</string>
+    <string name="document_not_saved">Document was not saved</string>
+    <string name="open_reader_mode">Open reader mode</string>
+    <string name="font_size">Font size</string>
+    <string name="go_to_page">Go to page</string>
+    <string name="page_number">Page number</string>
+    <string name="sent">Sent</string>
 </resources>

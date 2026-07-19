@@ -6,6 +6,7 @@ package ltd.evilcorp.atox.ui.chat
 
 import android.content.res.Resources
 import android.graphics.Color
+import android.graphics.Typeface
 import android.media.MediaMetadataRetriever
 import android.text.format.Formatter
 import android.util.Log
@@ -119,7 +120,10 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
     var playingAudioId: Int = Int.MIN_VALUE
     var playingAudioProgress: Float = 0f
     var selectedMessageIds: Set<Long> = emptySet()
+    var expandedTextMessageIds: Set<Long> = emptySet()
     var onFileTransferLongClick: ((View, Int) -> Unit)? = null
+    var onLongTextToggle: ((Long) -> Unit)? = null
+    var onCodePreviewClick: ((Message) -> Unit)? = null
 
     override fun getCount(): Int = messages.size
     override fun getItem(position: Int): Any = messages[position]
@@ -162,7 +166,35 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
 
                 val unsent = message.timestamp == 0L || SkyToxChatMarkers.isUndelivered(message)
                 view.setBackgroundColor(if (message.id in selectedMessageIds) SELECTED_MESSAGE_COLOR else Color.TRANSPARENT)
-                SkyToxMarkdown.render(vh.message, message.message)
+
+                vh.message.setOnClickListener(null)
+                vh.message.typeface = Typeface.DEFAULT
+                vh.message.setPadding(dp(8), dp(8), dp(8), dp(8))
+                vh.message.setBackgroundResource(
+                    if (type == ChatItemType.SentMessage || type == ChatItemType.SentAction) {
+                        R.drawable.sent_message_bubble
+                    } else {
+                        R.drawable.received_message_bubble
+                    },
+                )
+
+                if (SkyToxCodeMessage.isCode(message.message)) {
+                    val code = SkyToxCodeMessage.decode(message.message).orEmpty()
+                    vh.message.typeface = Typeface.create(Typeface.MONOSPACE, Typeface.ITALIC)
+                    vh.message.setPadding(dp(10), dp(8), dp(10), dp(8))
+                    vh.message.text = foldedPlainText(code, 5, expanded = false, forceFold = true).text
+                    vh.message.setOnClickListener { onCodePreviewClick?.invoke(message) }
+                } else {
+                    val folded = foldedPlainText(
+                        message.message,
+                        maxLines = 10,
+                        expanded = message.id in expandedTextMessageIds,
+                    )
+                    SkyToxMarkdown.render(vh.message, folded.text)
+                    if (folded.foldable) {
+                        vh.message.setOnClickListener { onLongTextToggle?.invoke(message.id) }
+                    }
+                }
                 vh.timestamp.text = if (!unsent) {
                     timeFormatter.format(message.timestamp)
                 } else {
@@ -345,5 +377,25 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
 
         val seconds = (durationMs / 1000).coerceAtLeast(0)
         return "%02d:%02d".format(seconds / 60, seconds % 60)
+    }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).roundToInt()
+
+    private data class FoldedText(val text: String, val foldable: Boolean)
+
+    private fun foldedPlainText(text: String, maxLines: Int, expanded: Boolean, forceFold: Boolean = false): FoldedText {
+        val lines = text.lines()
+        val approximateLineLimit = maxLines * 56
+        val foldable = forceFold || lines.size > maxLines || text.length > approximateLineLimit
+        if (!foldable) return FoldedText(text, false)
+        if (expanded) return FoldedText("$text\n\u25B2", true)
+
+        val byLines = lines.take(maxLines).joinToString("\n")
+        val clipped = if (byLines.length > approximateLineLimit) {
+            byLines.take(approximateLineLimit).trimEnd()
+        } else {
+            byLines
+        }
+        return FoldedText("$clipped\n\u25BC", true)
     }
 }

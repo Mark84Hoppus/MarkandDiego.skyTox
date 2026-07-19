@@ -385,8 +385,13 @@ class FileTransferManager @Inject constructor(
             return
         }
 
+        val source = prepareOutgoingSource(file, name) ?: run {
+            SkyToxCrashLogger.fileTransfer("outgoing create failed_prepare_source contact=${pk.string().fingerprint()} uri=$file")
+            return
+        }
+
         val fileId = Random.nextBytes(TOX_FILE_ID_BYTES).bytesToHex()
-        SkyToxCrashLogger.fileTransfer("outgoing create contact=${pk.string().fingerprint()} size=$size name=$name uri=$file")
+        SkyToxCrashLogger.fileTransfer("outgoing create contact=${pk.string().fingerprint()} size=$size name=$name uri=$source")
         val ft = FileTransfer(
             pk.string(),
             tox.sendFile(pk, FileKind.Data, size, name, fileId.hexToBytes()),
@@ -395,20 +400,20 @@ class FileTransferManager @Inject constructor(
             name,
             true,
             FT_NOT_STARTED,
-            file.toString(),
+            source.toString(),
             fileId,
         )
 
         removeStaleActiveTransfer(ft.publicKey, ft.fileNumber)
         fileTransfers.add(ft)
-        outgoingFiles[Pair(ft.publicKey, ft.fileNumber)] = OutgoingFile(file, mutableListOf())
+        outgoingFiles[Pair(ft.publicKey, ft.fileNumber)] = OutgoingFile(source, mutableListOf())
 
         val id = fileTransferRepository.add(ft).toInt()
         ft.id = id
         messageRepository.add(
             Message(ft.publicKey, ft.fileName, Sender.Sent, MessageType.FileTransfer, id, Date().time),
         )
-        val thumbnail = createThumbnail(ft, file)
+        val thumbnail = createThumbnail(ft, source)
         if (thumbnail != null) {
             ft.thumbnail = thumbnail.toString()
             fileTransferRepository.setThumbnail(id, ft.thumbnail)
@@ -546,7 +551,23 @@ class FileTransferManager @Inject constructor(
             ft.progress = FT_STARTED
         } else if (fileStatus == ToxFileControl.CANCEL) {
             Log.i(TAG, "Friend canceled ft ${pk.fingerprint()} $fileNo")
-            reject(ft)
+            markCancelledByPeer(ft)
+        }
+    }
+
+    private fun markCancelledByPeer(ft: FileTransfer) {
+        SkyToxCrashLogger.fileTransfer(
+            "peer_cancel ft=${ft.id} contact=${ft.publicKey.fingerprint()} fileNo=${ft.fileNumber} outgoing=${ft.outgoing}",
+        )
+        fileTransfers.removeAll { it.id == ft.id }
+        setProgress(ft, FT_REJECTED)
+        val uri = ft.destination.toUri()
+        if (ft.outgoing) {
+            outgoingFiles.remove(Pair(ft.publicKey, ft.fileNumber))
+            deleteOutgoingCacheFile(uri)
+            releaseFilePermission(uri)
+        } else {
+            deleteStoredFile(uri)
         }
     }
 
@@ -602,6 +623,33 @@ class FileTransferManager @Inject constructor(
             val name = cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME))
             Pair(name, fileSize)
         }
+    }
+
+    private fun prepareOutgoingSource(uri: Uri, fileName: String): Uri? {
+        if (uri.scheme == ContentResolver.SCHEME_FILE) return uri
+
+        return try {
+            val target = storage.outgoingCopyFor(fileName)
+            resolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(target).use { output -> input.copyTo(output) }
+            } ?: return null
+            releaseFilePermission(uri)
+            Uri.fromFile(target)
+        } catch (e: Exception) {
+            Log.e(TAG, "Unable to prepare outgoing source $uri\n$e")
+            null
+        }
+    }
+
+    private fun uniqueCacheFile(dir: File, fileName: String): File {
+        val sanitized = fileName.replace(Regex("""[\\/:*?"<>|]"""), "_").ifEmpty { "file" }
+        val base = sanitized.substringBeforeLast('.', sanitized)
+        val ext = sanitized.substringAfterLast('.', "")
+        var candidate = File(dir, "${randomName(10)}-$sanitized")
+        while (candidate.exists()) {
+            candidate = File(dir, "${randomName(10)}-$base${if (ext.isEmpty()) "" else ".$ext"}")
+        }
+        return candidate
     }
 
     private fun deleteOutgoingCacheFile(uri: Uri) {
@@ -795,6 +843,17 @@ class FileTransferManager @Inject constructor(
             return uniqueFile(recorderDir, "voice-message-$stamp.m4a")
         }
 
+        fun outgoingCopyFor(fileName: String): File {
+            ensureDirectories()
+            val dir = when (fileClass(fileName)) {
+                FileClass.Image -> imageDir
+                FileClass.Video -> videoDir
+                FileClass.Recorder -> recorderDir
+                FileClass.Document -> documentDir
+            }
+            return uniqueFile(dir, fileName)
+        }
+
         fun fileClass(fileName: String): FileClass {
             val mime = guessMime(fileName)
             return when {
@@ -845,6 +904,15 @@ class FileTransferManager @Inject constructor(
             "jpg", "jpeg", "png", "gif", "webp", "bmp" -> "image/*"
             else -> "application/octet-stream"
         }
+
+    private fun randomName(length: Int): String {
+        val chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        return buildString(length) {
+            repeat(length) {
+                append(chars[Random.nextInt(chars.length)])
+            }
+        }
+    }
 
     private fun wipAvatar(name: String): File = File(File(context.filesDir, "avatar"), "$name.wip")
     private fun avatar(name: String): File = File(File(context.filesDir, "avatar"), name)

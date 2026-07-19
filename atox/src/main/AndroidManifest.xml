@@ -67,6 +67,10 @@
                 android:theme="@style/AppTheme.IncomingCall"
                 android:turnScreenOn="true" />
 
+        <activity
+                android:name=".ui.texteditor.SkyToxTextEditorActivity"
+                android:exported="false" />
+
         <provider
                 android:name="androidx.core.content.FileProvider"
                 android:authorities="${applicationId}.fileprovider"
