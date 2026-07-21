@@ -121,6 +121,7 @@
     <string name="pref_push_mode">Push mode</string>
     <string name="pref_push_mode_default">Keep awake</string>
     <string name="pref_push_mode_google_wake">Wake app</string>
+    <string name="restart_app_title">Restart app</string>
     <string name="push_mode_restart_required">Restart skyTox to fully apply this Push mode</string>
     <string-array name="pref_push_mode_options">
         <item>@string/pref_push_mode_default</item>
@@ -336,4 +337,5 @@ skyTox validates the JSON structure before importing. An all-chats backup cannot
     <string name="go_to_page">Go to page</string>
     <string name="page_number">Page number</string>
     <string name="sent">Sent</string>
+    <string name="import_text_chats_no_backups">No exported chats found</string>
 </resources>

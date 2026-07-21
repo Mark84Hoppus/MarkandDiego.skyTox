@@ -230,18 +230,11 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.backup_history -> {
-                    exportBackupLauncher.launch(
-                        "skytox-user-chat_${contactPubKey}_${
-                            SimpleDateFormat(
-                                """yyyy-MM-dd'T'HH-mm-ss""",
-                                Locale.getDefault(),
-                            ).format(Date())
-                        }.json",
-                    )
+                    viewModel.exportSingleTextChatToDefault(contactPubKey)
                     true
                 }
                 R.id.import_history -> {
-                    importBackupLauncher.launch(arrayOf("application/json"))
+                    showSingleTextChatImportPicker()
                     true
                 }
                 R.id.clear_history -> {
@@ -346,7 +339,11 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
 
             updateActions()
             updateWakeContactMenuItem()
-            updateAutoWakeForContact()
+            if (viewModel.contactOnline) {
+                viewModel.stopWakeLoops(contactPubKey)
+            } else {
+                viewModel.startOpenWakeLoop(contactPubKey)
+            }
         }
 
         viewModel.callState.observe(viewLifecycleOwner) { state ->
@@ -851,9 +848,30 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         viewModel.clearDraft()
         viewModel.send(outgoingMessage.text.toString(), type)
         if (!viewModel.contactOnline) {
-            startPendingMessageWakeLoop()
+            viewModel.startMessageWakeLoop(contactPubKey)
         }
         outgoingMessage.text.clear()
+    }
+
+    private fun showSingleTextChatImportPicker() {
+        val files = viewModel.listSingleTextChatBackups(contactPubKey)
+        if (files.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.import_text_chats_no_backups, Toast.LENGTH_LONG).show()
+            return
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.import_history)
+            .setItems(files.map { it.name }.toTypedArray()) { _, which ->
+                AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.import_history)
+                    .setMessage(R.string.import_text_chat_confirm)
+                    .setPositiveButton(R.string.continue_import) { _, _ ->
+                        viewModel.importHistory(contactPubKey, files[which])
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
+            .show()
     }
 
     private fun openFileTransfer(ft: FileTransfer) {

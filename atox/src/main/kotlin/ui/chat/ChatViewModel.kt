@@ -17,12 +17,18 @@ import androidx.lifecycle.asLiveData
 import com.squareup.picasso.Picasso
 import java.io.File
 import java.io.FileInputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
@@ -45,8 +51,12 @@ import ltd.evilcorp.domain.feature.ContactManager
 import ltd.evilcorp.domain.feature.ExportManager
 import ltd.evilcorp.domain.feature.FileTransferManager
 import ltd.evilcorp.domain.feature.TextChatImportResult
+import ltd.evilcorp.domain.feature.UserManager
+import ltd.evilcorp.domain.tox.Tox
 
 private const val TAG = "ChatViewModel"
+private const val WAKE_AUTO_INTERVAL_MS = 3 * 60 * 1000L
+private const val WAKE_WAIT_OWN_ONLINE_MS = 10_000L
 
 enum class CallAvailability {
     Unavailable,
@@ -66,6 +76,8 @@ class ChatViewModel @Inject constructor(
     private val scope: CoroutineScope,
     private val settings: Settings,
     private val pushManager: SkyToxPushManager,
+    private val userManager: UserManager,
+    private val tox: Tox,
 ) : ViewModel() {
     private var publicKey = PublicKey("")
     private var sentTyping = false
@@ -99,6 +111,11 @@ class ChatViewModel @Inject constructor(
         }.asLiveData()
 
     var contactOnline = false
+
+    companion object {
+        private val openWakeJobs = mutableMapOf<String, Job>()
+        private val messageWakeJobs = mutableMapOf<String, Job>()
+    }
 
     fun send(message: String, type: MessageType) = chatManager.sendMessage(publicKey, message, type)
     fun forwardText(publicKey: String, message: String) = chatManager.sendMessage(PublicKey(publicKey), message, MessageType.Normal)
@@ -140,7 +157,7 @@ class ChatViewModel @Inject constructor(
         fileTransferManager.reject(id)
     }
 
-    fun createFt(file: Uri) = scope.launch {
+    fun createFt(file: Uri) = scope.launch(Dispatchers.IO) {
         // Make sure there's no stale cached image in Picasso.
         // This happens if the user sends 2 different files with the same path (e.g. by overwriting one with the other.)
         Picasso.get().invalidate(file)
@@ -231,6 +248,96 @@ class ChatViewModel @Inject constructor(
         showImportResult(result)
     }
 
+    fun exportSingleTextChatToDefault(publicKey: String) = scope.launch(Dispatchers.IO) {
+        try {
+            val dir = ltd.evilcorp.domain.feature.SkyToxPublicFolders.userChatDir
+            ltd.evilcorp.domain.feature.SkyToxPublicFolders.ensureDirectories()
+            val file = uniqueFile(dir, "skytox-user-chat_${publicKey}_${timestamp()}.json")
+            file.writeText(exportManager.generateExportMessagesJString(publicKey), Charsets.UTF_8)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, R.string.export_history_success, Toast.LENGTH_LONG).show()
+            }
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, context.getString(R.string.export_history_failure, e.message), Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    fun listSingleTextChatBackups(publicKey: String): List<java.io.File> {
+        ltd.evilcorp.domain.feature.SkyToxPublicFolders.ensureDirectories()
+        return ltd.evilcorp.domain.feature.SkyToxPublicFolders.userChatDir
+            .listFiles { file -> file.isFile && file.extension.equals("json", true) && file.name.contains(publicKey) }
+            ?.sortedByDescending { it.lastModified() }
+            .orEmpty()
+    }
+
+    fun importHistory(publicKey: String, source: java.io.File) = scope.launch(Dispatchers.IO) {
+        val result = try {
+            exportManager.importSingleTextChat(publicKey, source.readText(Charsets.UTF_8))
+        } catch (_: Exception) {
+            TextChatImportResult.InvalidJson
+        }
+        showImportResult(result)
+    }
+
+    fun startOpenWakeLoop(contactPublicKey: String) {
+        if (openWakeJobs[contactPublicKey]?.isActive == true || messageWakeJobs[contactPublicKey]?.isActive == true) return
+        openWakeJobs[contactPublicKey] = scope.launch(Dispatchers.Default) {
+            repeat(3) {
+                waitUntilOwnOnline()
+                if (isContactOnline(contactPublicKey) || !pushManager.hasFriendToken(PublicKey(contactPublicKey))) return@launch
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, R.string.wake_signal_sending, Toast.LENGTH_SHORT).show()
+                }
+                pushManager.sendWakeSignal(PublicKey(contactPublicKey), "auto_chat_open")
+                waitIntervalOrContactOnline(contactPublicKey)
+                if (isContactOnline(contactPublicKey)) return@launch
+            }
+        }
+    }
+
+    fun startMessageWakeLoop(contactPublicKey: String) {
+        openWakeJobs.remove(contactPublicKey)?.cancel()
+        if (messageWakeJobs[contactPublicKey]?.isActive == true) return
+        messageWakeJobs[contactPublicKey] = scope.launch(Dispatchers.Default) {
+            repeat(10) {
+                waitUntilOwnOnline()
+                if (isContactOnline(contactPublicKey) || !pushManager.hasFriendToken(PublicKey(contactPublicKey))) return@launch
+                pushManager.sendWakeSignal(PublicKey(contactPublicKey), "auto_pending_message")
+                waitIntervalOrContactOnline(contactPublicKey)
+                if (isContactOnline(contactPublicKey)) return@launch
+            }
+        }
+    }
+
+    fun stopWakeLoops(contactPublicKey: String) {
+        openWakeJobs.remove(contactPublicKey)?.cancel()
+        messageWakeJobs.remove(contactPublicKey)?.cancel()
+    }
+
+    private suspend fun waitUntilOwnOnline() {
+        while (!isOwnOnline()) delay(WAKE_WAIT_OWN_ONLINE_MS)
+    }
+
+    private suspend fun waitIntervalOrContactOnline(contactPublicKey: String) {
+        val slices = (WAKE_AUTO_INTERVAL_MS / WAKE_WAIT_OWN_ONLINE_MS).toInt().coerceAtLeast(1)
+        repeat(slices) {
+            delay(WAKE_WAIT_OWN_ONLINE_MS)
+            if (isContactOnline(contactPublicKey)) return
+        }
+    }
+
+    private suspend fun isOwnOnline(): Boolean =
+        if (!tox.started) {
+            false
+        } else {
+            userManager.get(tox.publicKey).firstOrNull()?.connectionStatus != ConnectionStatus.None
+        }
+
+    private suspend fun isContactOnline(contactPublicKey: String): Boolean =
+        contactManager.get(PublicKey(contactPublicKey)).firstOrNull()?.connectionStatus != ConnectionStatus.None
+
     private suspend fun showImportResult(result: TextChatImportResult) = withContext(Dispatchers.Main) {
         val message = when (result) {
             TextChatImportResult.Ok -> R.string.import_text_chat_success
@@ -248,5 +355,21 @@ class ChatViewModel @Inject constructor(
     fun onEndCall() {
         callManager.endCall(publicKey)
         notificationHelper.dismissCallNotification(publicKey)
+    }
+
+    private fun timestamp(): String =
+        SimpleDateFormat("""yyyy-MM-dd'T'HH-mm-ss""", Locale.getDefault()).format(Date())
+
+    private fun uniqueFile(dir: File, name: String): File {
+        dir.mkdirs()
+        val base = name.substringBeforeLast('.', name)
+        val ext = name.substringAfterLast('.', "")
+        var file = File(dir, name)
+        var counter = 1
+        while (file.exists()) {
+            file = File(dir, if (ext.isBlank()) "$base-$counter" else "$base-$counter.$ext")
+            counter++
+        }
+        return file
     }
 }

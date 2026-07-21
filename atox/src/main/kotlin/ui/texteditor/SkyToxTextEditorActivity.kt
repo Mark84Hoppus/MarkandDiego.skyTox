@@ -263,8 +263,13 @@ class SkyToxTextEditorActivity : AppCompatActivity() {
                     AlertDialog.Builder(this@SkyToxTextEditorActivity)
                         .setTitle(R.string.forward_to)
                         .setItems(names) { _, which ->
-                            fileTransferManager.create(PublicKey(candidates[which].publicKey), file.toUri())
-                            Toast.makeText(this@SkyToxTextEditorActivity, R.string.sent, Toast.LENGTH_SHORT).show()
+                            val publicKey = PublicKey(candidates[which].publicKey)
+                            scope.launch(Dispatchers.IO) {
+                                fileTransferManager.create(publicKey, file.toUri())
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(this@SkyToxTextEditorActivity, R.string.sent, Toast.LENGTH_SHORT).show()
+                                }
+                            }
                         }
                         .show()
                 }

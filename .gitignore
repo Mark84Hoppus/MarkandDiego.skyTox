@@ -25,6 +25,10 @@ skytoxserver/serviceAccount.json
 skytoxserver/google-services.json
 skytoxserver/node_modules/
 skytoxserver/*.log
+vpn-profiles/
+*.ovpn
+cloudflared.exe
+cloudflared-service.log
 
 # gradle-from-source build
 _build

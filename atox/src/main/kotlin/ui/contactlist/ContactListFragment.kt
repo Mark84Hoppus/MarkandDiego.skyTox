@@ -122,6 +122,10 @@ class ContactListFragment :
             if (!requireContext().hasPermission(Manifest.permission.POST_NOTIFICATIONS)) {
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
+        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            if (!requireContext().hasPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(view) { _, compat ->
@@ -379,9 +383,9 @@ class ContactListFragment :
             }
             R.id.add_contact -> findNavController().navigate(R.id.action_contactListFragment_to_addContactFragment)
             R.id.settings -> findNavController().navigate(R.id.action_contactListFragment_to_settingsFragment)
-            R.id.export_tox_save -> exportToxSaveLauncher.launch(backupFileNameHint)
-            R.id.export_text_chats -> exportAllTextChatsLauncher.launch(allTextChatsFileNameHint())
-            R.id.import_text_chats -> importAllTextChatsLauncher.launch(arrayOf("application/json"))
+            R.id.export_tox_save -> viewModel.saveToxBackupToDefault(backupFileNameHint)
+            R.id.export_text_chats -> viewModel.exportAllTextChatsToDefault()
+            R.id.import_text_chats -> showAllTextChatsImportPicker()
             R.id.import_export_instructions ->
                 findNavController().navigate(R.id.action_contactListFragment_to_importExportInstructionsFragment)
             R.id.quit_tox -> {
@@ -409,6 +413,27 @@ class ContactListFragment :
         "skytox-all-text-chats_${
             SimpleDateFormat("""yyyy-MM-dd'T'HH-mm-ss""", Locale.getDefault()).format(Date())
         }.json"
+
+    private fun showAllTextChatsImportPicker() {
+        val files = viewModel.listAllTextChatBackups()
+        if (files.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.import_text_chats_no_backups, Toast.LENGTH_LONG).show()
+            return
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.import_text_chats)
+            .setItems(files.map { it.name }.toTypedArray()) { _, which ->
+                AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.import_text_chats)
+                    .setMessage(R.string.import_text_chats_confirm)
+                    .setPositiveButton(R.string.continue_import) { _, _ ->
+                        viewModel.importAllTextChats(files[which])
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
+            .show()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

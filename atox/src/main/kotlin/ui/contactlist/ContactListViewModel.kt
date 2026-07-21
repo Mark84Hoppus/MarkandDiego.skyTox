@@ -15,6 +15,9 @@ import androidx.lifecycle.asLiveData
 import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +41,7 @@ import ltd.evilcorp.domain.feature.ContactManager
 import ltd.evilcorp.domain.feature.ExportManager
 import ltd.evilcorp.domain.feature.FileTransferManager
 import ltd.evilcorp.domain.feature.FriendRequestManager
+import ltd.evilcorp.domain.feature.SkyToxPublicFolders
 import ltd.evilcorp.domain.feature.TextChatImportResult
 import ltd.evilcorp.domain.feature.UserManager
 import ltd.evilcorp.domain.feature.avatar.SkyToxAvatarManager
@@ -135,6 +139,30 @@ class ContactListViewModel @Inject constructor(
         }
     }
 
+    fun saveToxBackupToDefault(fileName: String) = scope.launch(Dispatchers.IO) {
+        try {
+            SkyToxPublicFolders.ensureDirectories()
+            val file = uniqueFile(SkyToxPublicFolders.profileDir, fileName.ifBlank { "skytox-profile.tox" })
+            file.writeBytes(tox.getSaveData())
+            val save = SaveOptions(file.readBytes(), true, ProxyType.None, "", 0)
+            val toast = when (val status = testToxSave(save, tox.password)) {
+                ToxSaveStatus.Ok -> context.getText(R.string.tox_save_exported)
+                else -> context.getString(R.string.tox_save_export_failure, status.name)
+            }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, toast, Toast.LENGTH_LONG).show()
+            }
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.tox_save_export_failure, e.message ?: ""),
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+    }
+
     fun exportAllTextChats(uri: Uri) = scope.launch(Dispatchers.IO) {
         try {
             val content = exportManager.generateAllTextChatsJString()
@@ -142,6 +170,25 @@ class ContactListViewModel @Inject constructor(
                 os ?: throw FileNotFoundException()
                 content.byteInputStream().copyTo(os)
             }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, R.string.export_text_chats_success, Toast.LENGTH_LONG).show()
+            }
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.export_text_chats_failure, e.message),
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+    }
+
+    fun exportAllTextChatsToDefault() = scope.launch(Dispatchers.IO) {
+        try {
+            SkyToxPublicFolders.ensureDirectories()
+            val file = uniqueFile(SkyToxPublicFolders.allChatDir, "skytox-all-text-chats_${timestamp()}.json")
+            file.writeText(exportManager.generateAllTextChatsJString(), Charsets.UTF_8)
             withContext(Dispatchers.Main) {
                 Toast.makeText(context, R.string.export_text_chats_success, Toast.LENGTH_LONG).show()
             }
@@ -167,6 +214,23 @@ class ContactListViewModel @Inject constructor(
         showImportResult(result)
     }
 
+    fun listAllTextChatBackups(): List<java.io.File> {
+        SkyToxPublicFolders.ensureDirectories()
+        return SkyToxPublicFolders.allChatDir
+            .listFiles { file -> file.isFile && file.extension.equals("json", true) }
+            ?.sortedByDescending { it.lastModified() }
+            .orEmpty()
+    }
+
+    fun importAllTextChats(file: java.io.File) = scope.launch(Dispatchers.IO) {
+        val result = try {
+            exportManager.importAllTextChats(file.readText(Charsets.UTF_8))
+        } catch (_: Exception) {
+            TextChatImportResult.InvalidJson
+        }
+        showImportResult(result)
+    }
+
     private suspend fun showImportResult(result: TextChatImportResult) = withContext(Dispatchers.Main) {
         val message = when (result) {
             TextChatImportResult.Ok -> R.string.import_text_chats_success
@@ -180,11 +244,27 @@ class ContactListViewModel @Inject constructor(
 
     fun onShareText(what: String, to: Contact) = chatManager.sendMessage(PublicKey(to.publicKey), what)
 
-    fun onShareFiles(files: List<Uri>, to: Contact) = scope.launch {
+    fun onShareFiles(files: List<Uri>, to: Contact) = scope.launch(Dispatchers.IO) {
         files.forEach { fileTransferManager.create(PublicKey(to.publicKey), it) }
     }
 
     suspend fun searchChats(query: String) = chatSearch.search(query)
 
     fun ownAvatarUri(): Uri? = avatarManager.ownAvatarUri()
+
+    private fun timestamp(): String =
+        SimpleDateFormat("""yyyy-MM-dd'T'HH-mm-ss""", Locale.getDefault()).format(Date())
+
+    private fun uniqueFile(dir: java.io.File, name: String): java.io.File {
+        dir.mkdirs()
+        val base = name.substringBeforeLast('.', name)
+        val ext = name.substringAfterLast('.', "")
+        var file = java.io.File(dir, name)
+        var counter = 1
+        while (file.exists()) {
+            file = java.io.File(dir, if (ext.isBlank()) "$base-$counter" else "$base-$counter.$ext")
+            counter++
+        }
+        return file
+    }
 }

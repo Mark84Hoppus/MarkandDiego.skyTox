@@ -65,13 +65,13 @@ class ImportExportMenuFragment : BaseFragment<FragmentImportExportMenuBinding>(F
         }
 
         exportToxSave.setOnClickListener {
-            exportToxSaveLauncher.launch(backupFileNameHint)
+            viewModel.saveToxBackupToDefault(backupFileNameHint)
         }
         exportTextChats.setOnClickListener {
-            exportAllTextChatsLauncher.launch(allTextChatsFileNameHint())
+            viewModel.exportAllTextChatsToDefault()
         }
         importTextChats.setOnClickListener {
-            importAllTextChatsLauncher.launch(arrayOf("application/json"))
+            showAllTextChatsImportPicker()
         }
         importExportInstructions.setOnClickListener {
             findNavController().navigate(R.id.action_importExportMenuFragment_to_importExportInstructionsFragment)
@@ -82,4 +82,26 @@ class ImportExportMenuFragment : BaseFragment<FragmentImportExportMenuBinding>(F
         "skytox-all-text-chats_${
             SimpleDateFormat("""yyyy-MM-dd'T'HH-mm-ss""", Locale.getDefault()).format(Date())
         }.json"
+
+    private fun showAllTextChatsImportPicker() {
+        val files = viewModel.listAllTextChatBackups()
+        if (files.isEmpty()) {
+            android.widget.Toast.makeText(requireContext(), R.string.import_text_chats_no_backups, android.widget.Toast.LENGTH_LONG)
+                .show()
+            return
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.import_text_chats)
+            .setItems(files.map { it.name }.toTypedArray()) { _, which ->
+                AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.import_text_chats)
+                    .setMessage(R.string.import_text_chats_confirm)
+                    .setPositiveButton(R.string.continue_import) { _, _ ->
+                        viewModel.importAllTextChats(files[which])
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
+            .show()
+    }
 }

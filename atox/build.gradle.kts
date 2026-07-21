@@ -39,8 +39,8 @@ android {
         applicationId = "markanddiego.skytox"
         minSdk = libs.versions.sdk.min.get().toInt()
         targetSdk = libs.versions.sdk.target.get().toInt()
-        versionCode = 266
-        versionName = "0.8.21"
+        versionCode = 267
+        versionName = "0.8.22"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SKYTOX_PUSH_SERVER_URL", "\"https://push.skytox.uk/push\"")
     }

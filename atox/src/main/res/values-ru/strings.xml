@@ -196,6 +196,7 @@
     <string name="pref_push_mode">Режим Push</string>
     <string name="pref_push_mode_default">Не засыпать</string>
     <string name="pref_push_mode_google_wake">Разбудить приложение</string>
+    <string name="restart_app_title">Перезапустить приложение</string>
     <string name="push_mode_restart_required">Перезапустите skyTox, чтобы полностью применить этот режим Push</string>
     <string-array name="pref_push_mode_options">
         <item>@string/pref_push_mode_default</item>
@@ -258,4 +259,5 @@
     <string name="go_to_page">&#1055;&#1077;&#1088;&#1077;&#1081;&#1090;&#1080;</string>
     <string name="page_number">&#1053;&#1086;&#1084;&#1077;&#1088; &#1089;&#1090;&#1088;&#1072;&#1085;&#1080;&#1094;&#1099;</string>
     <string name="sent">&#1054;&#1090;&#1087;&#1088;&#1072;&#1074;&#1083;&#1077;&#1085;&#1086;</string>
+    <string name="import_text_chats_no_backups">Экспортированные чаты не найдены</string>
 </resources>

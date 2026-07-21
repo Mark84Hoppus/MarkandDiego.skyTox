@@ -113,7 +113,7 @@ class ExportManager @Inject constructor(
                 val chat = chats.getJSONObject(i)
                 val publicKey = chat.getString("contact_public_key")
                 validatePublicKey(publicKey)
-                if (!contactRepository.exists(publicKey)) return TextChatImportResult.MissingContact
+                if (!contactRepository.exists(publicKey)) continue
                 pending[publicKey] = parseEntries(publicKey, chat.getJSONArray("entries"))
             }
 

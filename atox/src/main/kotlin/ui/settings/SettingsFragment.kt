@@ -6,13 +6,16 @@
 package ltd.evilcorp.atox.ui.settings
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.os.Process
 import android.view.View
 import android.view.WindowManager
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Spinner
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
@@ -54,6 +57,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
     private val vm: SettingsViewModel by viewModels { vmFactory }
     private val scope = CoroutineScope(Dispatchers.Default)
     private var updateJob: Job? = null
+    private var suppressPushModeChange = false
     private val blockBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
             Toast.makeText(requireContext(), getString(R.string.warn_proxy_broken), Toast.LENGTH_LONG).show()
@@ -131,9 +135,11 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
 
         settingPushMode.setSelection(vm.getPushMode().ordinal)
         settingPushMode.onItemSelectedListener {
-            if (vm.setPushMode(PushMode.entries[it])) {
-                Toast.makeText(requireContext(), R.string.push_mode_restart_required, Toast.LENGTH_LONG).show()
-            }
+            if (suppressPushModeChange) return@onItemSelectedListener
+            val oldMode = vm.getPushMode()
+            val newMode = PushMode.entries[it]
+            if (oldMode == newMode) return@onItemSelectedListener
+            if (vm.setPushMode(newMode)) showPushModeRestartDialog(oldMode)
         }
 
         settingRunAtStartup.isChecked = vm.getRunAtStartup()
@@ -335,6 +341,32 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
         }
 
         version.text = getString(R.string.version_display, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)
+    }
+
+    private fun showPushModeRestartDialog(oldMode: PushMode) {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.restart_app_title)
+            .setMessage(R.string.push_mode_restart_required)
+            .setNegativeButton(android.R.string.cancel) { _, _ ->
+                vm.setPushMode(oldMode)
+                suppressPushModeChange = true
+                binding.settingPushMode.setSelection(oldMode.ordinal)
+                suppressPushModeChange = false
+            }
+            .setPositiveButton(android.R.string.ok) { _, _ -> restartAppNow() }
+            .show()
+    }
+
+    private fun restartAppNow() {
+        val context = requireContext().applicationContext
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        }
+        requireActivity().finishAffinity()
+        if (launchIntent != null) {
+            context.startActivity(launchIntent)
+        }
+        Process.killProcess(Process.myPid())
     }
 
     private fun updateSkyTox() {
