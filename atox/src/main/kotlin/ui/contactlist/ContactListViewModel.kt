@@ -32,6 +32,7 @@ import ltd.evilcorp.atox.tox.ToxStarter
 import ltd.evilcorp.atox.ui.NotificationHelper
 import ltd.evilcorp.core.repository.MessageRepository
 import ltd.evilcorp.core.vo.Contact
+import ltd.evilcorp.core.vo.ConnectionStatus
 import ltd.evilcorp.core.vo.FriendRequest
 import ltd.evilcorp.core.vo.PublicKey
 import ltd.evilcorp.core.vo.User
@@ -42,6 +43,7 @@ import ltd.evilcorp.domain.feature.ExportManager
 import ltd.evilcorp.domain.feature.FileTransferManager
 import ltd.evilcorp.domain.feature.FriendRequestManager
 import ltd.evilcorp.domain.feature.SkyToxPublicFolders
+import ltd.evilcorp.domain.feature.SKYTOX_SELF_CHAT_PUBLIC_KEY
 import ltd.evilcorp.domain.feature.TextChatImportResult
 import ltd.evilcorp.domain.feature.UserManager
 import ltd.evilcorp.domain.feature.avatar.SkyToxAvatarManager
@@ -76,9 +78,20 @@ class ContactListViewModel @Inject constructor(
 
     val user: LiveData<User> by lazy { userManager.get(publicKey).asLiveData() }
     val contacts: LiveData<List<Contact>> = contactManager.getAll().asLiveData()
+    val selfChatContact: LiveData<Contact> = messageRepository.get(SKYTOX_SELF_CHAT_PUBLIC_KEY).map { messages ->
+        Contact(
+            publicKey = SKYTOX_SELF_CHAT_PUBLIC_KEY,
+            name = context.getString(R.string.my_skytox),
+            statusMessage = context.getString(R.string.self_chat_status),
+            lastMessage = messages.maxOfOrNull { it.timestamp } ?: 0L,
+            connectionStatus = ConnectionStatus.UDP,
+        )
+    }.asLiveData()
     val friendRequests: LiveData<List<FriendRequest>> = friendRequestManager.getAll().asLiveData()
     val pendingMessageContacts: LiveData<Set<String>> =
-        messageRepository.getAll().map(SkyToxChatMarkers::pendingConversationKeys).asLiveData()
+        messageRepository.getAll().map { messages ->
+            SkyToxChatMarkers.pendingConversationKeys(messages) - SKYTOX_SELF_CHAT_PUBLIC_KEY
+        }.asLiveData()
 
     fun isToxRunning() = tox.started
     fun tryLoadTox(password: String?): ToxSaveStatus = toxStarter.tryLoadTox(password)
@@ -238,6 +251,7 @@ class ContactListViewModel @Inject constructor(
             TextChatImportResult.WrongScope -> R.string.import_text_chats_wrong_scope
             TextChatImportResult.WrongContact -> R.string.import_text_chat_wrong_contact
             TextChatImportResult.MissingContact -> R.string.import_text_chat_missing_contact
+            TextChatImportResult.WrongOwner -> R.string.import_text_chat_wrong_owner
         }
         Toast.makeText(context, message, Toast.LENGTH_LONG).show()
     }
@@ -245,7 +259,14 @@ class ContactListViewModel @Inject constructor(
     fun onShareText(what: String, to: Contact) = chatManager.sendMessage(PublicKey(to.publicKey), what)
 
     fun onShareFiles(files: List<Uri>, to: Contact) = scope.launch(Dispatchers.IO) {
-        files.forEach { fileTransferManager.create(PublicKey(to.publicKey), it) }
+        files.forEach {
+            fileTransferManager.create(
+                PublicKey(to.publicKey),
+                it,
+                settings.pendingFileRetention.millis,
+                settings.pendingQueueLimit.bytes,
+            )
+        }
     }
 
     suspend fun searchChats(query: String) = chatSearch.search(query)

@@ -60,8 +60,8 @@
     </style>
 
     <style name="SkyToxStartMenuIcon">
-        <item name="android:layout_width">28dp</item>
-        <item name="android:layout_height">28dp</item>
+        <item name="android:layout_width">24dp</item>
+        <item name="android:layout_height">24dp</item>
     </style>
 
     <style name="SkyToxStartMenuLabel">
@@ -71,7 +71,7 @@
         <item name="android:gravity">center</item>
         <item name="android:maxLines">1</item>
         <item name="android:textColor">@color/startMenuText</item>
-        <item name="android:textSize">11sp</item>
+        <item name="android:textSize">10sp</item>
     </style>
 
     <style name="DialogAnimation">

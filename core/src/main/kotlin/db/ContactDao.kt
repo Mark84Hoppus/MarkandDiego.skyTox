@@ -64,4 +64,7 @@ interface ContactDao {
 
     @Query("UPDATE contacts SET draft_message = :draft WHERE public_key = :publicKey")
     fun setDraftMessage(publicKey: String, draft: String)
+
+    @Query("DELETE FROM contacts")
+    fun deleteAll()
 }

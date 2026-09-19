@@ -17,6 +17,7 @@ import ltd.evilcorp.core.repository.MessageRepository
 import ltd.evilcorp.core.vo.Message
 import ltd.evilcorp.core.vo.MessageType
 import ltd.evilcorp.core.vo.Sender
+import ltd.evilcorp.domain.tox.Tox
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -32,11 +33,13 @@ enum class TextChatImportResult {
     WrongScope,
     WrongContact,
     MissingContact,
+    WrongOwner,
 }
 
 class ExportManager @Inject constructor(
     private val messageRepository: MessageRepository,
     private val contactRepository: ContactRepository,
+    private val tox: Tox,
 ) {
     fun generateExportMessagesJString(publicKey: String): String {
         SkyToxPublicFolders.ensureDirectories()
@@ -47,6 +50,7 @@ class ExportManager @Inject constructor(
         root.put("format", FORMAT)
         root.put("version", VERSION)
         root.put("scope", SCOPE_SINGLE)
+        root.put("owner_public_key", tox.publicKey.string())
         root.put("exported_at", dateFormat.format(Date()))
         root.put("contact_public_key", publicKey)
         root.put("contains", "text-only")
@@ -66,16 +70,18 @@ class ExportManager @Inject constructor(
         root.put("format", FORMAT)
         root.put("version", VERSION)
         root.put("scope", SCOPE_ALL)
+        root.put("owner_public_key", tox.publicKey.string())
         root.put("exported_at", dateFormat.format(Date()))
         root.put("contains", "text-only")
 
         val chats = JSONArray()
-        for (contact in contacts) {
-            val messages = runBlocking { messageRepository.get(contact.publicKey).first() }.textOnly()
+        val exportTargets = contacts.map { it.publicKey to it.name } + (SKYTOX_SELF_CHAT_PUBLIC_KEY to "My skyTox")
+        for ((publicKey, name) in exportTargets) {
+            val messages = runBlocking { messageRepository.get(publicKey).first() }.textOnly()
             if (messages.isEmpty()) continue
             val chat = JSONObject()
-            chat.put("contact_public_key", contact.publicKey)
-            chat.put("contact_name", contact.name)
+            chat.put("contact_public_key", publicKey)
+            chat.put("contact_name", name)
             val entries = JSONArray()
             for (message in messages) entries.put(message.toJson(dateFormat))
             chat.put("entries", entries)
@@ -89,13 +95,18 @@ class ExportManager @Inject constructor(
         return try {
             SkyToxPublicFolders.ensureDirectories()
             val root = parseRoot(jsonString, SCOPE_SINGLE) ?: return TextChatImportResult.WrongScope
+            if (!belongsToCurrentOwner(root)) return TextChatImportResult.WrongOwner
             if (root.getString("contact_public_key") != publicKey) return TextChatImportResult.WrongContact
-            if (!contactRepository.exists(publicKey)) return TextChatImportResult.MissingContact
+            if (!isSkyToxSelfChat(publicKey) && !contactRepository.exists(publicKey)) {
+                return TextChatImportResult.MissingContact
+            }
 
             val messages = parseEntries(publicKey, root.getJSONArray("entries"))
             messageRepository.delete(publicKey)
-            messages.forEach(messageRepository::add)
-            contactRepository.setLastMessage(publicKey, messages.maxOfOrNull { it.timestamp } ?: 0)
+            messages.forEach(messageRepository::addLocal)
+            if (!isSkyToxSelfChat(publicKey)) {
+                contactRepository.setLastMessage(publicKey, messages.maxOfOrNull { it.timestamp } ?: 0)
+            }
             TextChatImportResult.Ok
         } catch (_: Exception) {
             TextChatImportResult.InvalidJson
@@ -106,6 +117,7 @@ class ExportManager @Inject constructor(
         return try {
             SkyToxPublicFolders.ensureDirectories()
             val root = parseRoot(jsonString, SCOPE_ALL) ?: return TextChatImportResult.WrongScope
+            if (!belongsToCurrentOwner(root)) return TextChatImportResult.WrongOwner
             val chats = root.getJSONArray("chats")
             val pending = mutableMapOf<String, List<Message>>()
 
@@ -113,7 +125,7 @@ class ExportManager @Inject constructor(
                 val chat = chats.getJSONObject(i)
                 val publicKey = chat.getString("contact_public_key")
                 validatePublicKey(publicKey)
-                if (!contactRepository.exists(publicKey)) continue
+                if (!isSkyToxSelfChat(publicKey) && !contactRepository.exists(publicKey)) continue
                 pending[publicKey] = parseEntries(publicKey, chat.getJSONArray("entries"))
             }
 
@@ -121,8 +133,10 @@ class ExportManager @Inject constructor(
             messageRepository.deleteAll()
             contacts.forEach { contactRepository.setLastMessage(it.publicKey, 0) }
             pending.forEach { (publicKey, messages) ->
-                messages.forEach(messageRepository::add)
-                contactRepository.setLastMessage(publicKey, messages.maxOfOrNull { it.timestamp } ?: 0)
+                messages.forEach(messageRepository::addLocal)
+                if (!isSkyToxSelfChat(publicKey)) {
+                    contactRepository.setLastMessage(publicKey, messages.maxOfOrNull { it.timestamp } ?: 0)
+                }
             }
             TextChatImportResult.Ok
         } catch (_: Exception) {
@@ -142,6 +156,9 @@ class ExportManager @Inject constructor(
         if (root.optString("contains") != "text-only") throw IllegalArgumentException("Unexpected content")
         return root
     }
+
+    private fun belongsToCurrentOwner(root: JSONObject): Boolean =
+        root.optString("owner_public_key").equals(tox.publicKey.string(), ignoreCase = true)
 
     private fun parseEntries(publicKey: String, entries: JSONArray): List<Message> {
         validatePublicKey(publicKey)

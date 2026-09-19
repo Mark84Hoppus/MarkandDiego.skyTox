@@ -24,6 +24,8 @@ import ltd.evilcorp.atox.push.SkyToxPushManager
 import ltd.evilcorp.atox.ToxKeepAliveScheduler
 import ltd.evilcorp.atox.settings.BootstrapNodeSource
 import ltd.evilcorp.atox.settings.FtAutoAccept
+import ltd.evilcorp.atox.settings.PendingFileRetention
+import ltd.evilcorp.atox.settings.PendingQueueLimit
 import ltd.evilcorp.atox.settings.PushMode
 import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.atox.tox.ToxStarter
@@ -94,6 +96,16 @@ class SettingsViewModel @Inject constructor(
     fun getFtAutoAccept(): FtAutoAccept = settings.ftAutoAccept
     fun setFtAutoAccept(autoAccept: FtAutoAccept) {
         settings.ftAutoAccept = autoAccept
+    }
+
+    fun getPendingFileRetention(): PendingFileRetention = settings.pendingFileRetention
+    fun setPendingFileRetention(retention: PendingFileRetention) {
+        settings.pendingFileRetention = retention
+    }
+
+    fun getPendingQueueLimit(): PendingQueueLimit = settings.pendingQueueLimit
+    fun setPendingQueueLimit(limit: PendingQueueLimit) {
+        settings.pendingQueueLimit = limit
     }
 
     fun getPushMode(): PushMode = settings.pushMode

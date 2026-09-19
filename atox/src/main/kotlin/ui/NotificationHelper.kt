@@ -53,6 +53,7 @@ import ltd.evilcorp.core.vo.Contact
 import ltd.evilcorp.core.vo.FriendRequest
 import ltd.evilcorp.core.vo.PublicKey
 import ltd.evilcorp.core.vo.UserStatus
+import ltd.evilcorp.domain.feature.SKYTOX_SELF_CHAT_PUBLIC_KEY
 
 private const val TAG = "NotificationHelper"
 
@@ -110,6 +111,19 @@ class NotificationHelper @Inject constructor(private val context: Context) {
     }
 
     fun dismissNotifications(publicKey: PublicKey) = notifier.cancel(publicKey.string().hashCode())
+
+    fun showSelfChatNotification(message: String) {
+        showMessageNotification(
+            Contact(
+                publicKey = SKYTOX_SELF_CHAT_PUBLIC_KEY,
+                name = context.getString(R.string.my_skytox),
+                statusMessage = "",
+            ),
+            message,
+            outgoing = false,
+            silent = false,
+        )
+    }
 
     private val circleTransform = object : Transformation {
         override fun transform(bitmap: Bitmap): Bitmap {

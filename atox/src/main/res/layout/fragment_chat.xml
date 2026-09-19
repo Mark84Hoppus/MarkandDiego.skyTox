@@ -113,6 +113,23 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/appBarLayout"/>
 
+    <ImageButton
+            android:id="@+id/scrollToBottom"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/chat_scroll_to_bottom_background"
+            android:contentDescription="@string/scroll_to_bottom"
+            android:elevation="10dp"
+            android:padding="10dp"
+            android:src="@drawable/ic_keyboard_arrow_down"
+            android:tint="@android:color/white"
+            android:visibility="gone"
+            app:layout_constraintBottom_toTopOf="@id/bottomBar"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:tint="@android:color/white"/>
+
     <LinearLayout android:id="@+id/bottomBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

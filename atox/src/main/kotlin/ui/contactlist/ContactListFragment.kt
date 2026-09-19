@@ -60,6 +60,8 @@ import ltd.evilcorp.core.vo.PublicKey
 import ltd.evilcorp.core.vo.User
 import ltd.evilcorp.domain.tox.ToxID
 import ltd.evilcorp.domain.tox.ToxSaveStatus
+import ltd.evilcorp.domain.feature.SKYTOX_SELF_CHAT_PUBLIC_KEY
+import ltd.evilcorp.domain.feature.isSkyToxSelfChat
 
 const val ARG_ADD_CONTACT = "add_contact"
 const val ARG_SHARE = "share"
@@ -75,7 +77,6 @@ class ContactListFragment :
     private val viewModel: ContactListViewModel by viewModels { vmFactory }
 
     private var navHeader: NavHeaderContactListBinding? = null
-    private var startMenuModule: SkyToxStartMenuModule? = null
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -84,6 +85,8 @@ class ContactListFragment :
     private var backupFileNameHint = "something_is_broken.tox"
 
     private var passwordDialog: AlertDialog? = null
+    private var selfChatContact: Contact? = null
+    private var normalContacts: List<Contact> = emptyList()
 
     private val exportToxSaveLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument("*/*")) { dest ->
@@ -143,15 +146,20 @@ class ContactListFragment :
         updateHeaderConnectionLogo(false)
         toolbar.inflateMenu(R.menu.contact_list_toolbar)
         toolbar.setOnMenuItemClickListener {
-            if (it.itemId == R.id.search_chats) {
-                SkyToxChatSearchDialog(
-                    this@ContactListFragment,
-                    search = viewModel::searchChats,
-                    openChat = ::openChat,
-                ).show()
-                true
-            } else {
-                false
+            when (it.itemId) {
+                R.id.open_games -> {
+                    findNavController().navigate(R.id.action_contactListFragment_to_gamesFragment)
+                    true
+                }
+                R.id.search_chats -> {
+                    SkyToxChatSearchDialog(
+                        this@ContactListFragment,
+                        search = viewModel::searchChats,
+                        openChat = ::openChat,
+                    ).show()
+                    true
+                }
+                else -> false
             }
         }
 
@@ -174,27 +182,10 @@ class ContactListFragment :
             toolbar.title = ""
             toolbar.subtitle = ""
             updateHeaderConnectionLogo(user.online())
-            startMenuModule?.renderUser(user)
         }
 
         navView.setNavigationItemSelectedListener(this@ContactListFragment)
         drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
-        startMenuModule = SkyToxStartMenuModule(
-            binding = this,
-            openChats = {
-                findNavController().navigate(R.id.action_contactListFragment_to_importExportMenuFragment)
-            },
-            openAddContact = {
-                findNavController().navigate(R.id.action_contactListFragment_to_addContactFragment)
-            },
-            openSettings = {
-                findNavController().navigate(R.id.action_contactListFragment_to_settingsFragment)
-            },
-            openProfile = {
-                findNavController().navigate(R.id.action_contactListFragment_to_userProfileFragment)
-            },
-            ownAvatarUri = viewModel::ownAvatarUri,
-        ).also { it.attach() }
 
         val contactAdapter = ContactAdapter(layoutInflater, requireContext())
         contactList.adapter = contactAdapter
@@ -212,14 +203,13 @@ class ContactListFragment :
         }
 
         viewModel.contacts.observe(viewLifecycleOwner) { contacts ->
-            contactAdapter.contacts = contacts.sortedByDescending(::contactListSorter)
-            contactAdapter.notifyDataSetChanged()
+            normalContacts = contacts
+            updateContactAdapter(contactAdapter)
+        }
 
-            noContactsCallToAction.visibility = if (contactAdapter.isEmpty) {
-                View.VISIBLE
-            } else {
-                View.GONE
-            }
+        viewModel.selfChatContact.observe(viewLifecycleOwner) { contact ->
+            selfChatContact = contact
+            updateContactAdapter(contactAdapter)
         }
 
         viewModel.pendingMessageContacts.observe(viewLifecycleOwner) { contacts ->
@@ -288,14 +278,12 @@ class ContactListFragment :
     }
 
     override fun onDestroyView() {
-        startMenuModule = null
         navHeader = null
         super.onDestroyView()
     }
 
     override fun onResume() {
         super.onResume()
-        startMenuModule?.renderAvatar()
     }
 
     private fun updateHeaderConnectionLogo(connected: Boolean) = binding.toolbar.run {
@@ -324,6 +312,8 @@ class ContactListFragment :
                 inflater.inflate(R.menu.friend_request_context_menu, menu)
             }
             ContactListItemType.Contact.ordinal -> {
+                val contact = binding.contactList.adapter.getItem(info.position) as Contact
+                if (isSkyToxSelfChat(contact.publicKey)) return
                 val c = ContactListViewItemBinding.bind(info.targetView)
                 menu.setHeaderTitle(c.name.text)
                 inflater.inflate(R.menu.contact_list_context_menu, menu)
@@ -351,10 +341,12 @@ class ContactListFragment :
                 when (item.itemId) {
                     R.id.profile -> {
                         val contact = binding.contactList.adapter.getItem(info.position) as Contact
+                        if (isSkyToxSelfChat(contact.publicKey)) return true
                         openProfile(contact)
                     }
                     R.id.delete -> {
                         val contact = binding.contactList.adapter.getItem(info.position) as Contact
+                        if (isSkyToxSelfChat(contact.publicKey)) return true
 
                         AlertDialog.Builder(requireContext())
                             .setTitle(R.string.delete_contact)
@@ -525,4 +517,10 @@ class ContactListFragment :
         R.id.action_contactListFragment_to_contactProfileFragment,
         bundleOf(CONTACT_PUBLIC_KEY to contact.publicKey),
     )
+
+    private fun updateContactAdapter(adapter: ContactAdapter) = binding.run {
+        adapter.contacts = listOfNotNull(selfChatContact) + normalContacts.sortedByDescending(::contactListSorter)
+        adapter.notifyDataSetChanged()
+        noContactsCallToAction.visibility = if (adapter.isEmpty) View.VISIBLE else View.GONE
+    }
 }

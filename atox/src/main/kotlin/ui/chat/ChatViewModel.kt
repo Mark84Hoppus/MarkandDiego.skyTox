@@ -12,14 +12,20 @@ import android.util.Log
 import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
+import androidx.work.Data
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.squareup.picasso.Picasso
 import java.io.File
 import java.io.FileInputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,11 +35,16 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ltd.evilcorp.atox.R
+import ltd.evilcorp.atox.SELF_CHAT_INPUT_MESSAGE
+import ltd.evilcorp.atox.SELF_CHAT_INPUT_PENDING_ID
+import ltd.evilcorp.atox.SELF_CHAT_WORK_PREFIX
+import ltd.evilcorp.atox.SkyToxSelfChatScheduledMessageWorker
 import ltd.evilcorp.atox.push.SkyToxPushManager
 import ltd.evilcorp.atox.settings.AppLockMode
 import ltd.evilcorp.atox.settings.Settings
@@ -44,14 +55,18 @@ import ltd.evilcorp.core.vo.FileTransfer
 import ltd.evilcorp.core.vo.Message
 import ltd.evilcorp.core.vo.MessageType
 import ltd.evilcorp.core.vo.PublicKey
+import ltd.evilcorp.core.vo.Sender
+import ltd.evilcorp.core.repository.MessageRepository
 import ltd.evilcorp.domain.feature.CallManager
 import ltd.evilcorp.domain.feature.CallState
 import ltd.evilcorp.domain.feature.ChatManager
 import ltd.evilcorp.domain.feature.ContactManager
 import ltd.evilcorp.domain.feature.ExportManager
 import ltd.evilcorp.domain.feature.FileTransferManager
+import ltd.evilcorp.domain.feature.SKYTOX_SELF_CHAT_PUBLIC_KEY
 import ltd.evilcorp.domain.feature.TextChatImportResult
 import ltd.evilcorp.domain.feature.UserManager
+import ltd.evilcorp.domain.feature.isSkyToxSelfChat
 import ltd.evilcorp.domain.tox.Tox
 
 private const val TAG = "ChatViewModel"
@@ -77,23 +92,32 @@ class ChatViewModel @Inject constructor(
     private val settings: Settings,
     private val pushManager: SkyToxPushManager,
     private val userManager: UserManager,
+    private val messageRepository: MessageRepository,
     private val tox: Tox,
 ) : ViewModel() {
     private var publicKey = PublicKey("")
     private var sentTyping = false
+    private val localContact = MutableLiveData<Contact>()
 
-    val contact: LiveData<Contact> by lazy { contactManager.get(publicKey).asLiveData() }
+    val contact: LiveData<Contact> by lazy {
+        if (isSelfChat()) localContact else contactManager.get(publicKey).asLiveData()
+    }
     val contacts: LiveData<List<Contact>> by lazy { contactManager.getAll().asLiveData() }
     val messages: LiveData<List<Message>> by lazy {
         chatManager.messagesFor(publicKey).distinctUntilChanged().asLiveData()
     }
-    val fileTransfers: LiveData<List<FileTransfer>> by lazy { fileTransferManager.transfersFor(publicKey).asLiveData() }
+    val fileTransfers: LiveData<List<FileTransfer>> by lazy {
+        if (isSelfChat()) flowOf(emptyList<FileTransfer>()).asLiveData() else fileTransferManager.transfersFor(publicKey).asLiveData()
+    }
 
     fun callingNeedsConfirmation(): Boolean = settings.confirmCalling
     fun appProtectionEnabled(): Boolean = settings.appLockMode != AppLockMode.None
     val ongoingCall = callManager.inCall.asLiveData()
 
-    val callState get() = contactManager.get(publicKey)
+    val callState get() = if (isSelfChat()) {
+        MutableLiveData(CallAvailability.Unavailable)
+    } else {
+        contactManager.get(publicKey)
         .filterNotNull()
         .transform { emit(it.connectionStatus != ConnectionStatus.None) }
         .combine(callManager.inCall) { contactOnline, callState ->
@@ -109,6 +133,7 @@ class ChatViewModel @Inject constructor(
                 }
             }
         }.asLiveData()
+    }
 
     var contactOnline = false
 
@@ -118,14 +143,64 @@ class ChatViewModel @Inject constructor(
     }
 
     fun send(message: String, type: MessageType) = chatManager.sendMessage(publicKey, message, type)
+    fun sendSelfNow(message: String) {
+        if (!isSelfChat() || message.isBlank()) return
+        val now = System.currentTimeMillis()
+        scope.launch(Dispatchers.IO) {
+            messageRepository.addLocal(
+                Message(
+                    publicKey = SKYTOX_SELF_CHAT_PUBLIC_KEY,
+                    message = message,
+                    sender = Sender.Sent,
+                    type = MessageType.Normal,
+                    correlationId = 0,
+                    timestamp = now,
+                ),
+            )
+        }
+    }
+
+    fun scheduleSelfMessage(message: String, dueAt: Long, formattedDueAt: String) {
+        if (!isSelfChat() || message.isBlank()) return
+        val delayMs = (dueAt - System.currentTimeMillis()).coerceAtLeast(0L)
+        scope.launch(Dispatchers.IO) {
+            val pendingId = messageRepository.addLocal(
+                Message(
+                    publicKey = SKYTOX_SELF_CHAT_PUBLIC_KEY,
+                    message = context.getString(R.string.self_chat_scheduled_prefix, formattedDueAt) + "\n" + message,
+                    sender = Sender.Sent,
+                    type = MessageType.Normal,
+                    correlationId = Int.MIN_VALUE,
+                    timestamp = System.currentTimeMillis(),
+                ),
+            )
+            val data = Data.Builder()
+                .putString(SELF_CHAT_INPUT_MESSAGE, message)
+                .putLong(SELF_CHAT_INPUT_PENDING_ID, pendingId)
+                .build()
+            val request = OneTimeWorkRequestBuilder<SkyToxSelfChatScheduledMessageWorker>()
+                .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
+                .setInputData(data)
+                .build()
+            WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(
+                SELF_CHAT_WORK_PREFIX + pendingId,
+                ExistingWorkPolicy.REPLACE,
+                request,
+            )
+        }
+    }
     fun forwardText(publicKey: String, message: String) = chatManager.sendMessage(PublicKey(publicKey), message, MessageType.Normal)
     fun hasWakeToken(): Boolean = pushManager.hasFriendToken(publicKey)
     fun wakeContact(): Boolean = pushManager.sendManualWake(publicKey)
     fun wakeContact(reason: String): Boolean = pushManager.sendWakeSignal(publicKey, reason)
 
     fun clearHistory() = scope.launch {
-        chatManager.clearHistory(publicKey)
-        fileTransferManager.deleteAll(publicKey)
+        if (isSelfChat()) {
+            messageRepository.delete(SKYTOX_SELF_CHAT_PUBLIC_KEY)
+        } else {
+            chatManager.clearHistory(publicKey)
+            fileTransferManager.deleteAll(publicKey)
+        }
     }
 
     fun setActiveChat(pk: PublicKey) {
@@ -139,10 +214,18 @@ class ChatViewModel @Inject constructor(
         publicKey = pk
         notificationHelper.dismissNotifications(publicKey)
         chatManager.activeChat = publicKey.string()
+        if (isSelfChat()) {
+            localContact.value = Contact(
+                publicKey = SKYTOX_SELF_CHAT_PUBLIC_KEY,
+                name = context.getString(R.string.my_skytox),
+                statusMessage = context.getString(R.string.self_chat_status),
+                connectionStatus = ConnectionStatus.UDP,
+            )
+        }
     }
 
     fun setTyping(typing: Boolean) {
-        if (publicKey.string().isEmpty()) return
+        if (publicKey.string().isEmpty() || isSelfChat()) return
         if (sentTyping != typing) {
             chatManager.setTyping(publicKey, typing)
             sentTyping = typing
@@ -158,16 +241,34 @@ class ChatViewModel @Inject constructor(
     }
 
     fun createFt(file: Uri) = scope.launch(Dispatchers.IO) {
+        if (isSelfChat()) return@launch
         // Make sure there's no stale cached image in Picasso.
         // This happens if the user sends 2 different files with the same path (e.g. by overwriting one with the other.)
         Picasso.get().invalidate(file)
-        fileTransferManager.create(publicKey, file)
+        val queuedOrStarted = fileTransferManager.create(
+            publicKey,
+            file,
+            settings.pendingFileRetention.millis,
+            settings.pendingQueueLimit.bytes,
+        )
+        if (!queuedOrStarted) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, R.string.pending_queue_full, Toast.LENGTH_LONG).show()
+            }
+            return@launch
+        }
+        if (!contactOnline) {
+            startMessageWakeLoop(publicKey.string())
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, R.string.pending_file_queued, Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     fun voiceMessageFile(): File = fileTransferManager.voiceMessageFile()
 
     fun delete(msg: Message) = scope.launch {
-        if (msg.type == MessageType.FileTransfer) {
+        if (!isSelfChat() && msg.type == MessageType.FileTransfer) {
             fileTransferManager.delete(msg.correlationId)
         }
         chatManager.deleteMessage(msg.id)
@@ -175,7 +276,7 @@ class ChatViewModel @Inject constructor(
 
     fun delete(messages: List<Message>) = scope.launch {
         messages.forEach { msg ->
-            if (msg.type == MessageType.FileTransfer) {
+            if (!isSelfChat() && msg.type == MessageType.FileTransfer) {
                 fileTransferManager.delete(msg.correlationId)
             }
             chatManager.deleteMessage(msg.id)
@@ -345,6 +446,7 @@ class ChatViewModel @Inject constructor(
             TextChatImportResult.WrongScope -> R.string.import_text_chat_wrong_scope
             TextChatImportResult.WrongContact -> R.string.import_text_chat_wrong_contact
             TextChatImportResult.MissingContact -> R.string.import_text_chat_missing_contact
+            TextChatImportResult.WrongOwner -> R.string.import_text_chat_wrong_owner
         }
         Toast.makeText(context, message, Toast.LENGTH_LONG).show()
     }
@@ -353,9 +455,12 @@ class ChatViewModel @Inject constructor(
     fun clearDraft() = setDraft("")
 
     fun onEndCall() {
+        if (isSelfChat()) return
         callManager.endCall(publicKey)
         notificationHelper.dismissCallNotification(publicKey)
     }
+
+    fun isSelfChat(): Boolean = isSkyToxSelfChat(publicKey.string())
 
     private fun timestamp(): String =
         SimpleDateFormat("""yyyy-MM-dd'T'HH-mm-ss""", Locale.getDefault()).format(Date())

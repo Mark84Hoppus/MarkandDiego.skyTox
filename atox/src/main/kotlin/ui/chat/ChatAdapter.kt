@@ -37,7 +37,9 @@ import ltd.evilcorp.core.vo.Message
 import ltd.evilcorp.core.vo.MessageType
 import ltd.evilcorp.core.vo.Sender
 import ltd.evilcorp.core.vo.isComplete
+import ltd.evilcorp.core.vo.isExpired
 import ltd.evilcorp.core.vo.isInterrupted
+import ltd.evilcorp.core.vo.isQueued
 import ltd.evilcorp.core.vo.isRejected
 import ltd.evilcorp.core.vo.isStarted
 import ltd.evilcorp.core.vo.transferredBytes
@@ -308,7 +310,12 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                 vh.audioDuration.text = audioDurationText(fileTransfer)
 
                 vh.state.visibility = View.GONE
-                if (fileTransfer.isRejected() || fileTransfer.isComplete() || fileTransfer.isInterrupted()) {
+                if (fileTransfer.isQueued()) {
+                    vh.acceptLayout.visibility = View.GONE
+                    vh.cancelLayout.visibility = View.VISIBLE
+                    vh.progress.visibility = View.GONE
+                    vh.state.visibility = View.VISIBLE
+                } else if (fileTransfer.isRejected() || fileTransfer.isComplete() || fileTransfer.isInterrupted()) {
                     vh.acceptLayout.visibility = View.GONE
                     vh.cancelLayout.visibility = View.GONE
                     vh.progress.visibility = if (fileTransfer.isInterrupted()) View.VISIBLE else View.GONE
@@ -332,9 +339,11 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
 
                 vh.fileName.text = fileTransfer.fileName
                 vh.fileSize.text = Formatter.formatFileSize(inflater.context, fileTransfer.fileSize)
-                vh.progress.max = fileTransfer.fileSize.toInt()
-                vh.progress.progress = fileTransfer.transferredBytes().toInt()
+                vh.progress.max = fileTransfer.fileSize.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                vh.progress.progress = fileTransfer.transferredBytes().coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
                 val stateId = when {
+                    fileTransfer.isQueued() -> R.string.queued
+                    fileTransfer.isExpired() -> R.string.expired
                     fileTransfer.isRejected() -> R.string.cancelled
                     fileTransfer.isInterrupted() -> R.string.interrupted
                     else -> R.string.completed

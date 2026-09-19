@@ -11,6 +11,7 @@ import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 import ltd.evilcorp.core.vo.FT_INTERRUPTED_BASE
 import ltd.evilcorp.core.vo.FT_NOT_STARTED
+import ltd.evilcorp.core.vo.FT_QUEUED
 import ltd.evilcorp.core.vo.FT_REJECTED
 import ltd.evilcorp.core.vo.FileTransfer
 
@@ -27,6 +28,9 @@ interface FileTransferDao {
 
     @Query("SELECT * FROM file_transfers WHERE id == :id")
     fun load(id: Int): Flow<FileTransfer?>
+
+    @Query("SELECT * FROM file_transfers WHERE id == :id")
+    fun loadNow(id: Int): FileTransfer?
 
     @Query(
         """
@@ -60,9 +64,20 @@ interface FileTransferDao {
         WHERE public_key == :publicKey
             AND outgoing == 1
             AND progress <= :interruptedBase
+            AND progress != :queued
         """,
     )
-    fun loadInterruptedOutgoing(publicKey: String, interruptedBase: Long = FT_INTERRUPTED_BASE): List<FileTransfer>
+    fun loadInterruptedOutgoing(
+        publicKey: String,
+        interruptedBase: Long = FT_INTERRUPTED_BASE,
+        queued: Long = FT_QUEUED,
+    ): List<FileTransfer>
+
+    @Query("SELECT * FROM file_transfers WHERE outgoing == 1 AND progress == :queued")
+    fun loadQueuedOutgoing(queued: Long = FT_QUEUED): List<FileTransfer>
+
+    @Query("SELECT * FROM file_transfers WHERE public_key == :publicKey AND outgoing == 1 AND progress == :queued")
+    fun loadQueuedOutgoingForContact(publicKey: String, queued: Long = FT_QUEUED): List<FileTransfer>
 
     @Query("UPDATE file_transfers SET progress = :progress WHERE id == :id AND progress != :rejected")
     fun updateProgress(id: Int, progress: Long, rejected: Long = FT_REJECTED)
@@ -89,4 +104,7 @@ interface FileTransferDao {
         notStarted: Long = FT_NOT_STARTED,
         rejected: Long = FT_REJECTED,
     )
+
+    @Query("DELETE FROM file_transfers")
+    fun deleteAll()
 }

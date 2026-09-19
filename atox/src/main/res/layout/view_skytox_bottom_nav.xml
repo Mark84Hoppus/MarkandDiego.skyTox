@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/skytoxBottomNav"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/skytox_start_menu_background"
+        android:elevation="8dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp">
+
+    <LinearLayout
+            android:id="@+id/bottomNavChats"
+            style="@style/SkyToxStartMenuItem">
+        <ImageView
+                style="@style/SkyToxStartMenuIcon"
+                android:contentDescription="@string/chats"
+                android:src="@drawable/ic_home_chats"/>
+        <TextView
+                style="@style/SkyToxStartMenuLabel"
+                android:text="@string/chats"/>
+    </LinearLayout>
+
+    <LinearLayout
+            android:id="@+id/bottomNavAdd"
+            style="@style/SkyToxStartMenuItem">
+        <ImageView
+                style="@style/SkyToxStartMenuIcon"
+                android:contentDescription="@string/add_contact"
+                android:src="@drawable/ic_home_add"/>
+        <TextView
+                style="@style/SkyToxStartMenuLabel"
+                android:text="@string/add_contact_short"/>
+    </LinearLayout>
+
+    <LinearLayout
+            android:id="@+id/bottomNavSettings"
+            style="@style/SkyToxStartMenuItem">
+        <ImageView
+                style="@style/SkyToxStartMenuIcon"
+                android:contentDescription="@string/settings"
+                android:src="@drawable/ic_home_settings"/>
+        <TextView
+                style="@style/SkyToxStartMenuLabel"
+                android:text="@string/settings"/>
+    </LinearLayout>
+
+    <LinearLayout
+            android:id="@+id/bottomNavExport"
+            style="@style/SkyToxStartMenuItem">
+        <ImageView
+                style="@style/SkyToxStartMenuIcon"
+                android:contentDescription="@string/import_export_menu"
+                android:src="@drawable/ic_home_export"/>
+        <TextView
+                style="@style/SkyToxStartMenuLabel"
+                android:text="@string/export_short"/>
+    </LinearLayout>
+
+    <LinearLayout
+            android:id="@+id/bottomNavProfile"
+            style="@style/SkyToxStartMenuItem">
+        <ImageView
+                style="@style/SkyToxStartMenuIcon"
+                android:contentDescription="@string/profile"
+                android:src="@drawable/ic_home_profile"/>
+        <TextView
+                style="@style/SkyToxStartMenuLabel"
+                android:text="@string/profile"/>
+    </LinearLayout>
+</LinearLayout>

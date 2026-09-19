@@ -38,6 +38,8 @@ import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.databinding.FragmentSettingsBinding
 import ltd.evilcorp.atox.settings.BootstrapNodeSource
 import ltd.evilcorp.atox.settings.FtAutoAccept
+import ltd.evilcorp.atox.settings.PendingFileRetention
+import ltd.evilcorp.atox.settings.PendingQueueLimit
 import ltd.evilcorp.atox.settings.PushMode
 import ltd.evilcorp.atox.ui.BaseFragment
 import ltd.evilcorp.atox.ui.updater.SkyToxUpdater
@@ -171,6 +173,26 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
 
         settingFtAutoAccept.onItemSelectedListener {
             vm.setFtAutoAccept(FtAutoAccept.entries[it])
+        }
+
+        settingPendingFileRetention.adapter = ArrayAdapter.createFromResource(
+            requireContext(),
+            R.array.pref_pending_file_retention_options,
+            android.R.layout.simple_spinner_item,
+        ).apply { setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        settingPendingFileRetention.setSelection(vm.getPendingFileRetention().ordinal)
+        settingPendingFileRetention.onItemSelectedListener {
+            vm.setPendingFileRetention(PendingFileRetention.entries[it])
+        }
+
+        settingPendingQueueLimit.adapter = ArrayAdapter.createFromResource(
+            requireContext(),
+            R.array.pref_pending_queue_limit_options,
+            android.R.layout.simple_spinner_item,
+        ).apply { setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        settingPendingQueueLimit.setSelection(vm.getPendingQueueLimit().ordinal)
+        settingPendingQueueLimit.onItemSelectedListener {
+            vm.setPendingQueueLimit(PendingQueueLimit.entries[it])
         }
 
         settingConfirmCalling.isChecked = vm.getConfirmCalling()

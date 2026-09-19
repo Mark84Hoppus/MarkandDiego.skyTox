@@ -145,6 +145,8 @@ class Tox @Inject constructor(
     fun stop() = scope.launch {
         running = false
         while (started) delay(10)
+        contactRepository.resetTransientData()
+        userRepository.updateConnection(publicKey.string(), ConnectionStatus.None)
         save().join()
         tox.stop()
         passkey = null

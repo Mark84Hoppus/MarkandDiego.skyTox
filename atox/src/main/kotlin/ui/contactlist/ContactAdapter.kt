@@ -21,6 +21,7 @@ import ltd.evilcorp.atox.ui.AvatarImageView
 import ltd.evilcorp.core.vo.ConnectionStatus
 import ltd.evilcorp.core.vo.Contact
 import ltd.evilcorp.core.vo.FriendRequest
+import ltd.evilcorp.domain.feature.isSkyToxSelfChat
 
 enum class ContactListItemType {
     FriendRequest,
@@ -84,7 +85,11 @@ class ContactAdapter(private val inflater: LayoutInflater, private val context: 
                     name = name.ifEmpty { context.getString(R.string.contact_default_name) }
 
                     val shortId = publicKey.take(8)
-                    vh.publicKey.text = String.format("%s %s", shortId.take(4), shortId.takeLast(4))
+                    vh.publicKey.text = if (isSkyToxSelfChat(publicKey)) {
+                        ""
+                    } else {
+                        String.format("%s %s", shortId.take(4), shortId.takeLast(4))
+                    }
                     vh.name.text = name
                     vh.name.setTextColor(
                         if (connectionStatus == ConnectionStatus.None) {

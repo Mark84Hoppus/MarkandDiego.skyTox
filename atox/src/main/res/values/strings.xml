@@ -82,6 +82,26 @@
         <item>@string/pref_ft_auto_accept_images</item>
         <item>@string/pref_ft_auto_accept_all</item>
     </string-array>
+    <string name="pref_pending_file_retention">Keep pending files</string>
+    <string name="pref_pending_file_retention_1d">1 day</string>
+    <string name="pref_pending_file_retention_3d">3 days</string>
+    <string name="pref_pending_file_retention_7d">7 days</string>
+    <string name="pref_pending_file_retention_30d">30 days</string>
+    <string-array name="pref_pending_file_retention_options">
+        <item>@string/pref_pending_file_retention_1d</item>
+        <item>@string/pref_pending_file_retention_3d</item>
+        <item>@string/pref_pending_file_retention_7d</item>
+        <item>@string/pref_pending_file_retention_30d</item>
+    </string-array>
+    <string name="pref_pending_queue_limit">Maximum queue</string>
+    <string name="pref_pending_queue_limit_512mb">512 MB</string>
+    <string name="pref_pending_queue_limit_1gb">1 GB</string>
+    <string name="pref_pending_queue_limit_2gb">2 GB</string>
+    <string-array name="pref_pending_queue_limit_options">
+        <item>@string/pref_pending_queue_limit_512mb</item>
+        <item>@string/pref_pending_queue_limit_1gb</item>
+        <item>@string/pref_pending_queue_limit_2gb</item>
+    </string-array>
     <string name="pref_heading_type">Type</string>
     <string name="pref_proxy_type_none">None</string>
     <string name="pref_proxy_type_http">HTTP</string>
@@ -108,6 +128,9 @@
     <string name="profile_nickname">Change your nickname</string>
     <string name="profile_status_message">Change your status message</string>
     <string name="profile_status">Change your status</string>
+    <string name="profile_logout">Log out</string>
+    <string name="profile_logout_confirm">All chats and the user profile will be exported, and the app will be cleared.</string>
+    <string name="profile_logout_failed">Could not log out: %1$s</string>
     <string name="profile">Profile</string>
     <string name="tox_id_error_already_exists">A contact with that Tox ID already exists</string>
     <string name="tox_service_running">skyTox is running…</string>
@@ -155,6 +178,10 @@
     <string name="cancelled">Cancelled</string>
     <string name="completed">Completed</string>
     <string name="interrupted">Interrupted</string>
+    <string name="queued">Waiting</string>
+    <string name="expired">Expired</string>
+    <string name="pending_file_queued">File queued until the contact is online</string>
+    <string name="pending_queue_full">Pending file queue is full</string>
     <string name="save_as">Save as…</string>
     <string name="export_file_success">File exported</string>
     <string name="export_file_failure">Something went wrong exporting that. Pre-0.5.1 transfers were exported by default.</string>
@@ -240,6 +267,7 @@
     <string name="import_text_chat_wrong_scope">Import failed: this is an all-chats backup, not a single-chat backup</string>
     <string name="import_text_chat_wrong_contact">Import failed: this backup belongs to another contact</string>
     <string name="import_text_chat_missing_contact">Import failed: one or more contacts from the backup are missing</string>
+    <string name="import_text_chat_wrong_owner">Import failed. These chats belong to another user.</string>
     <string name="import_export_instructions">Export/import guide</string>
     <string name="import_export_menu">Export/import</string>
     <!-- @@@ RUS_START @@@ -->
@@ -292,6 +320,21 @@ skyTox validates the JSON structure before importing. An all-chats backup cannot
     <string name="search_chats">Search chats</string>
     <string name="search_chats_hint">Message text</string>
     <string name="search_chats_no_results">No results</string>
+    <string name="skytox_games">Games</string>
+    <string name="skytox_games_not_found">Games not found</string>
+    <string name="skytox_games_folder_hint">Put .nes files into skyTox games</string>
+    <string name="skytox_games_start_failed">Could not start game</string>
+    <string name="skytox_games_unsupported_device">NES emulator is not available on this device</string>
+    <string name="skytox_games_emulator_thanks">Huge thanks to the Multiness developers for the excellent .nes retro game emulator and multiplayer groundwork. Wishing the project steady growth: https://github.com/kakashidinho/Multiness_public</string>
+    <string name="skytox_games_start_server">Start server</string>
+    <string name="skytox_games_stop_server">Stop server</string>
+    <string name="skytox_games_join">Join</string>
+    <string name="skytox_games_server_running">Running: %1$s</string>
+    <string name="skytox_games_waiting_client">Scan this QR on the second phone, then choose a game on this phone. Address: %1$s</string>
+    <string name="skytox_games_join_manual_title">Server address</string>
+    <string name="skytox_games_join_manual_hint">IP address</string>
+    <string name="skytox_games_join_failed">Could not join game</string>
+    <string name="skytox_games_scanner_missing">QR scanner not found. Enter IP manually.</string>
     <string name="chats">Chats</string>
     <string name="add_contact_short">Add</string>
     <string name="update_skytox">Update skyTox</string>
@@ -338,4 +381,13 @@ skyTox validates the JSON structure before importing. An all-chats backup cannot
     <string name="page_number">Page number</string>
     <string name="sent">Sent</string>
     <string name="import_text_chats_no_backups">No exported chats found</string>
+    <string name="export_short">Export</string>
+    <string name="my_skytox">My skyTox</string>
+    <string name="self_chat_status">Saved locally on this device</string>
+    <string name="self_chat_subtitle">local notes</string>
+    <string name="self_chat_send_now">Now</string>
+    <string name="self_chat_send_later">Later</string>
+    <string name="self_chat_scheduled_prefix">Will send %1$s</string>
+    <string name="self_chat_scheduled_datetime">%1$s at %2$s</string>
+    <string name="scroll_to_bottom">Scroll to latest message</string>
 </resources>

@@ -39,4 +39,7 @@ interface UserDao {
 
     @Query("SELECT * FROM users WHERE public_key = :publicKey")
     fun load(publicKey: String): Flow<User>
+
+    @Query("DELETE FROM users")
+    fun deleteAll()
 }

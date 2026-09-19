@@ -20,10 +20,16 @@ class FileTransferRepository @Inject internal constructor(private val dao: FileT
 
     fun get(id: Int): Flow<FileTransfer?> = dao.load(id)
 
+    fun getNow(id: Int): FileTransfer? = dao.loadNow(id)
+
     fun getInterruptedIncoming(publicKey: String, fileId: String, fileName: String, fileSize: Long): FileTransfer? =
         dao.loadInterruptedIncoming(publicKey, fileId, fileName, fileSize)
 
     fun getInterruptedOutgoing(publicKey: String): List<FileTransfer> = dao.loadInterruptedOutgoing(publicKey)
+
+    fun getQueuedOutgoing(): List<FileTransfer> = dao.loadQueuedOutgoing()
+
+    fun getQueuedOutgoing(publicKey: String): List<FileTransfer> = dao.loadQueuedOutgoingForContact(publicKey)
 
     fun setDestination(id: Int, destination: String) = dao.setDestination(id, destination)
 
@@ -32,4 +38,6 @@ class FileTransferRepository @Inject internal constructor(private val dao: FileT
     fun updateProgress(id: Int, progress: Long) = dao.updateProgress(id, progress)
 
     fun resetTransientData() = dao.resetTransientData()
+
+    fun deleteAll() = dao.deleteAll()
 }

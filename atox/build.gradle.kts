@@ -39,8 +39,13 @@ android {
         applicationId = "markanddiego.skytox"
         minSdk = libs.versions.sdk.min.get().toInt()
         targetSdk = libs.versions.sdk.target.get().toInt()
-        versionCode = 267
-        versionName = "0.8.22"
+        versionCode = 293
+        versionName = "0.8.25"
+        if (skytoxUniversal) {
+            ndk {
+                abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+            }
+        }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SKYTOX_PUSH_SERVER_URL", "\"https://push.skytox.uk/push\"")
     }
@@ -82,7 +87,7 @@ android {
         abi {
             isEnable = !skytoxUniversal
             reset()
-            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            include("armeabi-v7a", "arm64-v8a")
             isUniversalApk = false
         }
     }
@@ -103,10 +108,10 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
         val abiVersionCodes = mapOf(
-            "armeabi-v7a" to 267,
-            "arm64-v8a" to 268,
-            "x86" to 269,
-            "x86_64" to 270,
+            "armeabi-v7a" to 293,
+            "arm64-v8a" to 294,
+            "x86" to 295,
+            "x86_64" to 296,
         )
         variant.outputs.forEach { output ->
             val abi = output.filters
@@ -153,7 +158,7 @@ dependencies {
     ksp(libs.google.dagger.compiler)
 
     implementation(libs.nayuki.qrcodegen)
-
+    implementation(libs.zxing.android.embedded)
     implementation(libs.square.picasso)
 
     debugImplementation(libs.square.leakcanary)

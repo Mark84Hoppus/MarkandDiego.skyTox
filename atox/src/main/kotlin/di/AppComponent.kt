@@ -14,6 +14,7 @@ import ltd.evilcorp.atox.MainActivity
 import ltd.evilcorp.atox.push.SkyToxFirebaseMessagingService
 import ltd.evilcorp.atox.ToxService
 import ltd.evilcorp.atox.ToxKeepAliveWorker
+import ltd.evilcorp.atox.SkyToxSelfChatScheduledMessageWorker
 import ltd.evilcorp.atox.ui.call.IncomingCallActivity
 import ltd.evilcorp.atox.ui.texteditor.SkyToxTextEditorActivity
 
@@ -38,6 +39,7 @@ interface AppComponent {
     fun inject(activity: SkyToxTextEditorActivity)
     fun inject(service: ToxService)
     fun inject(worker: ToxKeepAliveWorker)
+    fun inject(worker: SkyToxSelfChatScheduledMessageWorker)
     fun inject(receiver: BootReceiver)
     fun inject(receiver: ActionReceiver)
     fun inject(service: SkyToxFirebaseMessagingService)

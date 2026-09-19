@@ -8,7 +8,9 @@ package ltd.evilcorp.atox.ui.chat
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.DatePickerDialog
 import android.app.KeyguardManager
+import android.app.TimePickerDialog
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -28,6 +30,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
+import android.widget.AbsListView
 import android.widget.EditText
 import android.widget.ScrollView
 import android.widget.TextView
@@ -53,6 +56,7 @@ import java.io.File
 import java.net.URLConnection
 import java.text.DateFormat
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import ltd.evilcorp.atox.BuildConfig
@@ -72,6 +76,7 @@ import ltd.evilcorp.core.vo.Message
 import ltd.evilcorp.core.vo.MessageType
 import ltd.evilcorp.core.vo.PublicKey
 import ltd.evilcorp.core.vo.isComplete
+import ltd.evilcorp.domain.feature.isSkyToxSelfChat
 import ltd.evilcorp.domain.feature.CallState
 
 private const val TAG = "ChatFragment"
@@ -84,6 +89,12 @@ private const val PERMISSION_RECORD_AUDIO = Manifest.permission.RECORD_AUDIO
 private const val WAKE_CONTACT_COOLDOWN_MS = 30_000L
 private const val AUTO_WAKE_INTERVAL_MS = 3 * 60 * 1000L
 private const val AUTO_WAKE_OPEN_ATTEMPTS = 3
+
+private fun FileTransfer.isAudio() = try {
+    URLConnection.guessContentTypeFromName(fileName).orEmpty().startsWith("audio/")
+} catch (_: Exception) {
+    fileName.endsWith(".m4a", ignoreCase = true)
+}
 
 class OpenMultiplePersistableDocuments : ActivityResultContracts.OpenMultipleDocuments() {
     override fun createIntent(context: Context, input: Array<String>): Intent = super.createIntent(context, input)
@@ -113,6 +124,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private var lastWakeSignalAtMs = 0L
     private var autoWakeOpenAttempts = 0
     private var pendingMessageWakeActive = false
+    private var messageCount = 0
 
     companion object {
         private val autoWakeOpenAttemptsByContact = mutableMapOf<String, Int>()
@@ -227,6 +239,11 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
 
         toolbar.inflateMenu(R.menu.chat_options_menu)
         toolbar.menu.findItem(R.id.wake_contact)?.isVisible = false
+        toolbar.menu.findItem(R.id.call)?.isVisible = !viewModel.isSelfChat()
+        toolbar.menu.findItem(R.id.video_call)?.isVisible = !viewModel.isSelfChat()
+        toolbar.menu.findItem(R.id.import_history)?.isVisible = !viewModel.isSelfChat()
+        toolbar.menu.findItem(R.id.send_encrypted_message)?.isVisible = !viewModel.isSelfChat()
+        toolbar.menu.findItem(R.id.send_code_message)?.isVisible = !viewModel.isSelfChat()
         toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.backup_history -> {
@@ -303,6 +320,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         }
 
         contactHeader.setOnClickListener {
+            if (viewModel.isSelfChat()) return@setOnClickListener
             WindowInsetsControllerCompat(requireActivity().window, view).hide(WindowInsetsCompat.Type.ime())
             findNavController().navigate(
                 R.id.action_chatFragment_to_contactProfileFragment,
@@ -320,15 +338,19 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
 
             contactName = it.name
             ongoingCall.info.text = getString(R.string.in_call_with, contactName)
-            viewModel.contactOnline = it.connectionStatus != ConnectionStatus.None
+            viewModel.contactOnline = it.connectionStatus != ConnectionStatus.None && !viewModel.isSelfChat()
 
             title.text = contactName
             // TODO(robinlinden): Replace last message with last seen.
-            subtitle.text = when {
+            subtitle.text = if (viewModel.isSelfChat()) {
+                getString(R.string.self_chat_subtitle)
+            } else {
+                when {
                 it.typing -> getString(R.string.contact_typing)
                 it.lastMessage == 0L -> getString(R.string.never)
                 else -> DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(it.lastMessage)
-            }.lowercase(Locale.getDefault())
+                }.lowercase(Locale.getDefault())
+            }
 
             avatarImageView.setFrom(it)
 
@@ -339,7 +361,9 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
 
             updateActions()
             updateWakeContactMenuItem()
-            if (viewModel.contactOnline) {
+            if (viewModel.isSelfChat()) {
+                viewModel.stopWakeLoops(contactPubKey)
+            } else if (viewModel.contactOnline) {
                 viewModel.stopWakeLoops(contactPubKey)
             } else {
                 viewModel.startOpenWakeLoop(contactPubKey)
@@ -412,8 +436,14 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         }
         messages.adapter = adapter
         viewModel.messages.observe(viewLifecycleOwner) {
+            val wasAtBottom = isMessagesAtBottom()
             adapter.messages = it
+            messageCount = it.size
             adapter.notifyDataSetChanged()
+            if (wasAtBottom) {
+                messages.post { messages.setSelection(adapter.count - 1) }
+            }
+            updateScrollToBottomButton()
         }
 
         viewModel.fileTransfers.observe(viewLifecycleOwner) {
@@ -438,7 +468,11 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                 else -> if (message.type == MessageType.FileTransfer) {
                     val id = message.correlationId
                     val ft = adapter.fileTransfers.find { it.id == id } ?: return@setOnItemClickListener
-                    openFileTransfer(ft)
+                    if (ft.isAudio()) {
+                        toggleAudioPlayback(id)
+                    } else {
+                        openFileTransfer(ft)
+                    }
                 }
             }
         }
@@ -447,9 +481,35 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             showMessageContextMenu(view, adapter.messages[position], adapter)
             true
         }
+        messages.setOnScrollListener(
+            object : AbsListView.OnScrollListener {
+                override fun onScrollStateChanged(view: AbsListView?, scrollState: Int) = Unit
 
-        registerForContextMenu(send)
-        send.setOnClickListener { send(MessageType.Normal) }
+                override fun onScroll(
+                    view: AbsListView?,
+                    firstVisibleItem: Int,
+                    visibleItemCount: Int,
+                    totalItemCount: Int,
+                ) {
+                    updateScrollToBottomButton()
+                }
+            },
+        )
+        scrollToBottom.setOnClickListener {
+            messages.smoothScrollToPosition(messages.count - 1)
+            messages.postDelayed({ messages.setSelection(messages.count - 1) }, 250)
+        }
+
+        if (!viewModel.isSelfChat()) {
+            registerForContextMenu(send)
+        }
+        send.setOnClickListener {
+            if (viewModel.isSelfChat()) {
+                showSelfChatSendChoice()
+            } else {
+                send(MessageType.Normal)
+            }
+        }
 
         attach.setOnClickListener {
             WindowInsetsControllerCompat(requireActivity().window, view).hide(WindowInsetsCompat.Type.ime())
@@ -458,6 +518,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
 
         voiceMessage.setOnClickListener {
             WindowInsetsControllerCompat(requireActivity().window, view).hide(WindowInsetsCompat.Type.ime())
+            if (viewModel.isSelfChat()) return@setOnClickListener
             if (voiceRecorder == null) {
                 startVoiceRecording()
             } else {
@@ -853,6 +914,77 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         outgoingMessage.text.clear()
     }
 
+    private fun isMessagesAtBottom(): Boolean = binding.messages.run {
+        count == 0 || lastVisiblePosition >= count - 1
+    }
+
+    private fun updateScrollToBottomButton() = binding.run {
+        val show = messageCount > 0 && messages.lastVisiblePosition < messages.count - 1
+        scrollToBottom.visibility = if (show) View.VISIBLE else View.GONE
+    }
+
+    private fun showSelfChatSendChoice() = binding.run {
+        val text = outgoingMessage.text.toString()
+        if (text.isBlank()) return@run
+        AlertDialog.Builder(requireContext())
+            .setItems(
+                arrayOf(
+                    getString(R.string.self_chat_send_now),
+                    getString(R.string.self_chat_send_later),
+                ),
+            ) { _, which ->
+                when (which) {
+                    0 -> {
+                        viewModel.clearDraft()
+                        viewModel.sendSelfNow(text)
+                        outgoingMessage.text.clear()
+                    }
+                    1 -> showSelfChatDatePicker(text)
+                }
+            }
+            .show()
+    }
+
+    private fun showSelfChatDatePicker(message: String) {
+        val now = Calendar.getInstance()
+        DatePickerDialog(
+            requireContext(),
+            { _, year, month, dayOfMonth ->
+                val selected = Calendar.getInstance().apply {
+                    set(Calendar.YEAR, year)
+                    set(Calendar.MONTH, month)
+                    set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                }
+                showSelfChatTimePicker(message, selected)
+            },
+            now.get(Calendar.YEAR),
+            now.get(Calendar.MONTH),
+            now.get(Calendar.DAY_OF_MONTH),
+        ).show()
+    }
+
+    private fun showSelfChatTimePicker(message: String, selected: Calendar) {
+        val now = Calendar.getInstance()
+        TimePickerDialog(
+            requireContext(),
+            { _, hourOfDay, minute ->
+                selected.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                selected.set(Calendar.MINUTE, minute)
+                selected.set(Calendar.SECOND, 0)
+                selected.set(Calendar.MILLISECOND, 0)
+                val date = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(selected.time)
+                val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(selected.time)
+                val formatted = getString(R.string.self_chat_scheduled_datetime, date, time)
+                viewModel.clearDraft()
+                viewModel.scheduleSelfMessage(message, selected.timeInMillis, formatted)
+                binding.outgoingMessage.text.clear()
+            },
+            now.get(Calendar.HOUR_OF_DAY),
+            now.get(Calendar.MINUTE),
+            true,
+        ).show()
+    }
+
     private fun showSingleTextChatImportPicker() {
         val files = viewModel.listSingleTextChatBackups(contactPubKey)
         if (files.isEmpty()) {
@@ -972,7 +1104,6 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
 
     private fun startVoiceRecording() {
         if (voiceRecorder != null) return
-        if (!viewModel.contactOnline) return
         if (!requireContext().hasPermission(PERMISSION_RECORD_AUDIO)) {
             startAfterMicPermission = true
             requestRecordAudioLauncher.launch(PERMISSION_RECORD_AUDIO)
@@ -1042,9 +1173,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         recorder.release()
         stopVoiceTimer()
 
-        if (send && stopped && duration >= MIN_VOICE_MESSAGE_DURATION_MS && file != null && file.length() > 0L &&
-            viewModel.contactOnline
-        ) {
+        if (send && stopped && duration >= MIN_VOICE_MESSAGE_DURATION_MS && file != null && file.length() > 0L) {
             viewModel.createFt(file.toUri())
         } else {
             file?.delete()
@@ -1135,10 +1264,10 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
 
     private fun updateActions() = binding.run {
         send.visibility = if (outgoingMessage.text.isEmpty()) View.GONE else View.VISIBLE
-        attach.visibility = if (send.isVisible) View.GONE else View.VISIBLE
-        voiceMessage.visibility = if (send.isVisible) View.GONE else View.VISIBLE
-        attach.isEnabled = viewModel.contactOnline
-        voiceMessage.isEnabled = viewModel.contactOnline
+        attach.visibility = if (viewModel.isSelfChat() || send.isVisible) View.GONE else View.VISIBLE
+        voiceMessage.visibility = if (viewModel.isSelfChat() || send.isVisible) View.GONE else View.VISIBLE
+        attach.isEnabled = !viewModel.isSelfChat()
+        voiceMessage.isEnabled = !viewModel.isSelfChat()
         attach.setColorFilter(
             ContextCompat.getColor(
                 requireContext(),

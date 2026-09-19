@@ -215,6 +215,11 @@
     <string name="search_chats">Поиск по чатам</string>
     <string name="search_chats_hint">Текст сообщения</string>
     <string name="search_chats_no_results">Ничего не найдено</string>
+    <string name="skytox_games">Игры</string>
+    <string name="skytox_games_not_found">Игры не найдены</string>
+    <string name="skytox_games_folder_hint">Поместите файлы .nes в папку skyTox games</string>
+    <string name="skytox_games_start_failed">Не удалось запустить игру</string>
+    <string name="skytox_games_unsupported_device">Эмулятор NES недоступен на этом устройстве</string>
     <string name="chats">Чаты</string>
     <string name="add_contact_short">Добавить</string>
     <string name="update_skytox">Обновить skyTox</string>
@@ -260,4 +265,51 @@
     <string name="page_number">&#1053;&#1086;&#1084;&#1077;&#1088; &#1089;&#1090;&#1088;&#1072;&#1085;&#1080;&#1094;&#1099;</string>
     <string name="sent">&#1054;&#1090;&#1087;&#1088;&#1072;&#1074;&#1083;&#1077;&#1085;&#1086;</string>
     <string name="import_text_chats_no_backups">Экспортированные чаты не найдены</string>
+    <string name="export_short">Экспорт</string>
+    <string name="my_skytox">Мой skyTox</string>
+    <string name="self_chat_status">Сохранено локально на этом устройстве</string>
+    <string name="self_chat_subtitle">локальные заметки</string>
+    <string name="self_chat_send_now">Сейчас</string>
+    <string name="self_chat_send_later">Потом</string>
+    <string name="self_chat_scheduled_prefix">Отправим %1$s</string>
+    <string name="self_chat_scheduled_datetime">%1$s в %2$s</string>
+    <string name="scroll_to_bottom">К последнему сообщению</string>
+    <string name="pref_pending_file_retention">&#1061;&#1088;&#1072;&#1085;&#1080;&#1090;&#1100; &#1086;&#1078;&#1080;&#1076;&#1072;&#1102;&#1097;&#1080;&#1077; &#1092;&#1072;&#1081;&#1083;&#1099;</string>
+    <string name="pref_pending_file_retention_1d">1 &#1076;&#1077;&#1085;&#1100;</string>
+    <string name="pref_pending_file_retention_3d">3 &#1076;&#1085;&#1103;</string>
+    <string name="pref_pending_file_retention_7d">7 &#1076;&#1085;&#1077;&#1081;</string>
+    <string name="pref_pending_file_retention_30d">30 &#1076;&#1085;&#1077;&#1081;</string>
+    <string-array name="pref_pending_file_retention_options">
+        <item>@string/pref_pending_file_retention_1d</item>
+        <item>@string/pref_pending_file_retention_3d</item>
+        <item>@string/pref_pending_file_retention_7d</item>
+        <item>@string/pref_pending_file_retention_30d</item>
+    </string-array>
+    <string name="pref_pending_queue_limit">&#1052;&#1072;&#1082;&#1089;&#1080;&#1084;&#1091;&#1084; &#1086;&#1095;&#1077;&#1088;&#1077;&#1076;&#1080;</string>
+    <string name="pref_pending_queue_limit_512mb">512 &#1052;&#1041;</string>
+    <string name="pref_pending_queue_limit_1gb">1 &#1043;&#1041;</string>
+    <string name="pref_pending_queue_limit_2gb">2 &#1043;&#1041;</string>
+    <string-array name="pref_pending_queue_limit_options">
+        <item>@string/pref_pending_queue_limit_512mb</item>
+        <item>@string/pref_pending_queue_limit_1gb</item>
+        <item>@string/pref_pending_queue_limit_2gb</item>
+    </string-array>
+    <string name="queued">&#1054;&#1078;&#1080;&#1076;&#1072;&#1077;&#1090;</string>
+    <string name="expired">&#1057;&#1088;&#1086;&#1082; &#1080;&#1089;&#1090;&#1077;&#1082;</string>
+    <string name="pending_file_queued">&#1060;&#1072;&#1081;&#1083; &#1086;&#1078;&#1080;&#1076;&#1072;&#1077;&#1090;, &#1087;&#1086;&#1082;&#1072; &#1082;&#1086;&#1085;&#1090;&#1072;&#1082;&#1090; &#1073;&#1091;&#1076;&#1077;&#1090; &#1074; &#1089;&#1077;&#1090;&#1080;</string>
+    <string name="pending_queue_full">&#1054;&#1095;&#1077;&#1088;&#1077;&#1076;&#1100; &#1086;&#1078;&#1080;&#1076;&#1072;&#1102;&#1097;&#1080;&#1093; &#1092;&#1072;&#1081;&#1083;&#1086;&#1074; &#1079;&#1072;&#1087;&#1086;&#1083;&#1085;&#1077;&#1085;&#1072;</string>
+    <string name="import_text_chat_wrong_owner">&#1053;&#1077; &#1091;&#1076;&#1072;&#1083;&#1086;&#1089;&#1100;. &#1101;&#1090;&#1086; &#1095;&#1072;&#1090;&#1099; &#1076;&#1088;&#1091;&#1075;&#1086;&#1075;&#1086; &#1087;&#1086;&#1083;&#1100;&#1079;&#1086;&#1074;&#1072;&#1090;&#1077;&#1083;&#1103;.</string>
+    <string name="profile_logout">&#1042;&#1099;&#1093;&#1086;&#1076;</string>
+    <string name="profile_logout_confirm">&#1042;&#1089;&#1077; &#1095;&#1072;&#1090;&#1099; &#1080; &#1087;&#1088;&#1086;&#1092;&#1080;&#1083;&#1100; &#1087;&#1086;&#1083;&#1100;&#1079;&#1086;&#1074;&#1072;&#1090;&#1077;&#1083;&#1103; &#1073;&#1091;&#1076;&#1091;&#1090; &#1101;&#1082;&#1089;&#1087;&#1086;&#1088;&#1090;&#1080;&#1088;&#1086;&#1074;&#1072;&#1085;&#1099;, &#1072; &#1087;&#1088;&#1080;&#1083;&#1086;&#1078;&#1077;&#1085;&#1080;&#1077; &#1086;&#1095;&#1080;&#1097;&#1077;&#1085;&#1086;.</string>
+    <string name="profile_logout_failed">&#1053;&#1077; &#1091;&#1076;&#1072;&#1083;&#1086;&#1089;&#1100; &#1074;&#1099;&#1081;&#1090;&#1080;: %1$s</string>
+    <string name="skytox_games_emulator_thanks">&#1054;&#1075;&#1088;&#1086;&#1084;&#1085;&#1072;&#1103; &#1073;&#1083;&#1072;&#1075;&#1086;&#1076;&#1072;&#1088;&#1085;&#1086;&#1089;&#1090;&#1100; &#1088;&#1072;&#1079;&#1088;&#1072;&#1073;&#1086;&#1090;&#1095;&#1080;&#1082;&#1072;&#1084; Multiness &#1079;&#1072; &#1079;&#1072;&#1084;&#1077;&#1095;&#1072;&#1090;&#1077;&#1083;&#1100;&#1085;&#1099;&#1081; &#1101;&#1084;&#1091;&#1083;&#1103;&#1090;&#1086;&#1088; .nes &#1088;&#1077;&#1090;&#1088;&#1086;-&#1080;&#1075;&#1088; &#1080; &#1086;&#1089;&#1085;&#1086;&#1074;&#1091; &#1084;&#1091;&#1083;&#1100;&#1090;&#1080;&#1087;&#1083;&#1077;&#1077;&#1088;&#1072;. &#1046;&#1077;&#1083;&#1072;&#1102; &#1087;&#1088;&#1086;&#1077;&#1082;&#1090;&#1091; &#1088;&#1072;&#1079;&#1074;&#1080;&#1090;&#1080;&#1103;: https://github.com/kakashidinho/Multiness_public</string>
+    <string name="skytox_games_start_server">&#1047;&#1072;&#1087;&#1091;&#1089;&#1082; &#1089;&#1077;&#1088;&#1074;&#1077;&#1088;&#1072;</string>
+    <string name="skytox_games_stop_server">&#1054;&#1089;&#1090;&#1072;&#1085;&#1086;&#1074;&#1080;&#1090;&#1100; &#1089;&#1077;&#1088;&#1074;&#1077;&#1088;</string>
+    <string name="skytox_games_join">&#1055;&#1088;&#1080;&#1089;&#1086;&#1077;&#1076;&#1080;&#1085;&#1080;&#1090;&#1100;&#1089;&#1103;</string>
+    <string name="skytox_games_server_running">&#1047;&#1072;&#1087;&#1091;&#1097;&#1077;&#1085;&#1086;: %1$s</string>
+    <string name="skytox_games_waiting_client">&#1054;&#1090;&#1089;&#1082;&#1072;&#1085;&#1080;&#1088;&#1091;&#1081;&#1090;&#1077; &#1101;&#1090;&#1086;&#1090; QR &#1085;&#1072; &#1074;&#1090;&#1086;&#1088;&#1086;&#1084; &#1090;&#1077;&#1083;&#1077;&#1092;&#1086;&#1085;&#1077;, &#1079;&#1072;&#1090;&#1077;&#1084; &#1074;&#1099;&#1073;&#1077;&#1088;&#1080;&#1090;&#1077; &#1080;&#1075;&#1088;&#1091; &#1085;&#1072; &#1101;&#1090;&#1086;&#1084; &#1090;&#1077;&#1083;&#1077;&#1092;&#1086;&#1085;&#1077;. &#1040;&#1076;&#1088;&#1077;&#1089;: %1$s</string>
+    <string name="skytox_games_join_manual_title">&#1040;&#1076;&#1088;&#1077;&#1089; &#1089;&#1077;&#1088;&#1074;&#1077;&#1088;&#1072;</string>
+    <string name="skytox_games_join_manual_hint">IP-&#1072;&#1076;&#1088;&#1077;&#1089;</string>
+    <string name="skytox_games_join_failed">&#1053;&#1077; &#1091;&#1076;&#1072;&#1083;&#1086;&#1089;&#1100; &#1087;&#1088;&#1080;&#1089;&#1086;&#1077;&#1076;&#1080;&#1085;&#1080;&#1090;&#1100;&#1089;&#1103;</string>
+    <string name="skytox_games_scanner_missing">QR-&#1089;&#1082;&#1072;&#1085;&#1077;&#1088; &#1085;&#1077; &#1085;&#1072;&#1081;&#1076;&#1077;&#1085;. &#1042;&#1074;&#1077;&#1076;&#1080;&#1090;&#1077; IP &#1074;&#1088;&#1091;&#1095;&#1085;&#1091;&#1102;.</string>
 </resources>

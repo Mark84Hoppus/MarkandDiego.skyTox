@@ -71,6 +71,16 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/profile_status"/>
+            <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/dividerColor"/>
+            <TextView
+                    android:id="@+id/profile_logout"
+                    style="@style/OptionItemText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/profile_logout"/>
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

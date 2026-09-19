@@ -22,6 +22,19 @@ enum class FtAutoAccept {
     All,
 }
 
+enum class PendingFileRetention(val millis: Long) {
+    OneDay(24L * 60L * 60L * 1000L),
+    ThreeDays(3L * 24L * 60L * 60L * 1000L),
+    SevenDays(7L * 24L * 60L * 60L * 1000L),
+    ThirtyDays(30L * 24L * 60L * 60L * 1000L),
+}
+
+enum class PendingQueueLimit(val bytes: Long) {
+    Mb512(512L * 1024L * 1024L),
+    Gb1(1024L * 1024L * 1024L),
+    Gb2(2L * 1024L * 1024L * 1024L),
+}
+
 enum class BootstrapNodeSource {
     BuiltIn,
     UserProvided,
@@ -48,7 +61,7 @@ class Settings @Inject constructor(private val ctx: Context) {
         }
 
     var appLanguage: String
-        get() = preferences.getString("app_language", null) ?: "en"
+        get() = preferences.getString("app_language", null) ?: "ru"
         set(language) {
             preferences.edit { putString("app_language", language) }
             AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(language))
@@ -59,7 +72,7 @@ class Settings @Inject constructor(private val ctx: Context) {
         set(enabled) = preferences.edit { putBoolean("udp_enabled", enabled) }
 
     var pushMode: PushMode
-        get() = PushMode.entries[preferences.getInt("push_mode", PushMode.Default.ordinal)]
+        get() = PushMode.entries[preferences.getInt("push_mode", PushMode.GoogleWakeOnly.ordinal)]
         set(mode) = preferences.edit { putInt("push_mode", mode.ordinal) }
 
     val googleWakePushEnabled: Boolean
@@ -116,6 +129,16 @@ class Settings @Inject constructor(private val ctx: Context) {
     var ftAutoAccept: FtAutoAccept
         get() = FtAutoAccept.entries[preferences.getInt("ft_auto_accept", FtAutoAccept.All.ordinal)]
         set(autoAccept) = preferences.edit { putInt("ft_auto_accept", autoAccept.ordinal) }
+
+    var pendingFileRetention: PendingFileRetention
+        get() = PendingFileRetention.entries[
+            preferences.getInt("pending_file_retention", PendingFileRetention.SevenDays.ordinal),
+        ]
+        set(retention) = preferences.edit { putInt("pending_file_retention", retention.ordinal) }
+
+    var pendingQueueLimit: PendingQueueLimit
+        get() = PendingQueueLimit.entries[preferences.getInt("pending_queue_limit", PendingQueueLimit.Gb2.ordinal)]
+        set(limit) = preferences.edit { putInt("pending_queue_limit", limit.ordinal) }
 
     var bootstrapNodeSource: BootstrapNodeSource
         get() = BootstrapNodeSource.entries[preferences.getInt("bootstrap_node_source", 0)]

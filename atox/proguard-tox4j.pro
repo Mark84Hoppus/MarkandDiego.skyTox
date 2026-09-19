@@ -10,6 +10,14 @@
     *;
 }
 
+-keep class com.hqgame.networknes.** {
+    *;
+}
+
+-keepclasseswithmembers class com.hqgame.networknes.** {
+    native <methods>;
+}
+
 -dontwarn javax.script.ScriptEngineFactory
 -dontwarn org.conscrypt.Conscrypt
 -dontwarn org.conscrypt.OpenSSLProvider

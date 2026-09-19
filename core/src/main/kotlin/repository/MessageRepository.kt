@@ -16,9 +16,14 @@ class MessageRepository @Inject internal constructor(
     private val messageDao: MessageDao,
     private val contactRepository: ContactRepository,
 ) {
-    fun add(message: Message) {
-        messageDao.save(message)
+    fun add(message: Message): Long {
+        val id = messageDao.save(message)
         contactRepository.setLastMessage(message.publicKey, Date().time)
+        return id
+    }
+
+    fun addLocal(message: Message): Long {
+        return messageDao.save(message)
     }
 
     fun get(conversation: String): Flow<List<Message>> = messageDao.load(conversation)

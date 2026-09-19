@@ -53,7 +53,11 @@ class ImportExportMenuFragment : BaseFragment<FragmentImportExportMenuBinding>(F
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, compat ->
             val insets = compat.getInsets(WindowInsetsCompat.Type.systemBars())
             toolbar.updatePadding(top = insets.top)
-            v.updatePadding(left = insets.left, right = insets.right, bottom = insets.bottom)
+            v.updatePadding(
+                left = insets.left,
+                right = insets.right,
+                bottom = insets.bottom + resources.getDimensionPixelSize(R.dimen.skytox_start_menu_list_bottom_padding),
+            )
             compat
         }
 

@@ -14,6 +14,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.net.Uri
 import android.os.Bundle
+import android.os.Process
 import android.text.InputFilter
 import android.view.ContextMenu
 import android.view.MenuItem
@@ -161,6 +162,26 @@ class UserProfileFragment : BaseFragment<FragmentUserProfileBinding>(FragmentUse
             StatusDialog(requireContext(), currentStatus) { status -> vm.setStatus(status) }.show()
         }
 
+        profileOptions.profileLogout.setOnClickListener {
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.profile_logout)
+                .setMessage(R.string.profile_logout_confirm)
+                .setPositiveButton(R.string.profile_logout) { _, _ ->
+                    vm.logoutAndReset()
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+
+        vm.logoutComplete.observe(viewLifecycleOwner) { complete ->
+            if (complete == true) restartAppNow()
+        }
+        vm.logoutError.observe(viewLifecycleOwner) { error ->
+            if (!error.isNullOrBlank()) {
+                Toast.makeText(requireContext(), getString(R.string.profile_logout_failed, error), Toast.LENGTH_LONG).show()
+            }
+        }
+
         // TODO(robinlinden): Remove hack. It's used to make sure we can scroll to the settings
         //  further down when in landscape orientation. This is only needed if the view is recreated
         //  while we're on this screen as Android changes the size of the contents of the NestedScrollView
@@ -272,5 +293,17 @@ class UserProfileFragment : BaseFragment<FragmentUserProfileBinding>(FragmentUse
     private suspend fun getQrForSharing(): Uri = withContext(Dispatchers.IO) {
         val bmp = asQr(vm.toxId, qrCodeSharedImageSize, qrCodeSharedImagePadding)
         saveQrForSharing(bmp)
+    }
+
+    private fun restartAppNow() {
+        val context = requireContext().applicationContext
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        }
+        requireActivity().finishAffinity()
+        if (launchIntent != null) {
+            context.startActivity(launchIntent)
+        }
+        Process.killProcess(Process.myPid())
     }
 }

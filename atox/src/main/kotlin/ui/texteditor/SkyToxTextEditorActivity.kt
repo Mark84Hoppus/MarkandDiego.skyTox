@@ -31,6 +31,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ltd.evilcorp.atox.App
 import ltd.evilcorp.atox.R
+import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.core.repository.ContactRepository
 import ltd.evilcorp.core.vo.Contact
 import ltd.evilcorp.core.vo.PublicKey
@@ -47,6 +48,9 @@ class SkyToxTextEditorActivity : AppCompatActivity() {
 
     @Inject
     lateinit var fileTransferManager: FileTransferManager
+
+    @Inject
+    lateinit var settings: Settings
 
     @Inject
     lateinit var scope: CoroutineScope
@@ -265,7 +269,12 @@ class SkyToxTextEditorActivity : AppCompatActivity() {
                         .setItems(names) { _, which ->
                             val publicKey = PublicKey(candidates[which].publicKey)
                             scope.launch(Dispatchers.IO) {
-                                fileTransferManager.create(publicKey, file.toUri())
+                                fileTransferManager.create(
+                                    publicKey,
+                                    file.toUri(),
+                                    settings.pendingFileRetention.millis,
+                                    settings.pendingQueueLimit.bytes,
+                                )
                                 withContext(Dispatchers.Main) {
                                     Toast.makeText(this@SkyToxTextEditorActivity, R.string.sent, Toast.LENGTH_SHORT).show()
                                 }

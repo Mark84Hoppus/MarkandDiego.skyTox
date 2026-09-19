@@ -105,7 +105,11 @@ class EventListenerCallbacks @Inject constructor(
         friendConnectionStatusHandler = { publicKey, status ->
             contactRepository.setConnectionStatus(publicKey, status)
             if (status != ConnectionStatus.None) {
-                fileTransferManager.resumeOutgoingForContact(publicKey)
+                fileTransferManager.resumeOutgoingForContact(
+                    publicKey,
+                    settings.pendingFileRetention.millis,
+                    settings.pendingQueueLimit.bytes,
+                )
                 avatarManager.syncWith(publicKey)
                 pushManager.shareOwnToken(PublicKey(publicKey))
                 scope.launch {

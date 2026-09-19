@@ -15,6 +15,7 @@ import android.os.Environment
 import android.provider.Settings as AndroidSettings
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,8 +25,12 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.os.LocaleListCompat
 import androidx.core.os.bundleOf
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.navigation.fragment.findNavController
+import androidx.navigation.NavController
+import androidx.navigation.NavOptions
 import javax.inject.Inject
 import ltd.evilcorp.atox.di.ViewModelFactory
 import ltd.evilcorp.atox.settings.AppLockMode
@@ -33,6 +38,7 @@ import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.atox.ui.contactlist.ARG_ADD_CONTACT
 import ltd.evilcorp.atox.ui.contactlist.ARG_SHARE
 import ltd.evilcorp.atox.ui.contactlist.ARG_SHARE_FILES
+import ltd.evilcorp.atox.tox.ToxStarter
 
 private const val TAG = "MainActivity"
 private const val SCHEME = "tox:"
@@ -48,6 +54,9 @@ class MainActivity : AppCompatActivity() {
 
     @Inject
     lateinit var settings: Settings
+
+    @Inject
+    lateinit var toxStarter: ToxStarter
 
     private var lockPromptActive = false
     private var lockAccepted = false
@@ -78,6 +87,7 @@ class MainActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContentView(R.layout.activity_main)
+        setupBottomNavigation()
         requestLegacyStorageAccessIfNeeded()
         requestAllFilesAccessIfNeeded()
         requestOverlayAccessForLegacyIncomingCallsIfNeeded()
@@ -103,7 +113,82 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         autoAway.onForeground()
+        if (settings.appLockMode == AppLockMode.None || lockAccepted) {
+            findViewById<View>(R.id.app_lock_scrim)?.visibility = View.GONE
+        }
+        if (!lockPromptActive) {
+            toxStarter.ensureToxServiceRunning()
+        }
         maybePromptAppLock()
+    }
+
+    private fun setupBottomNavigation() {
+        val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) ?: return
+        val navController = navHost.findNavController()
+        val bottomNav = findViewById<View>(R.id.mainBottomNav) ?: return
+        val baseBottomMargin = (bottomNav.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin ?: 0
+
+        ViewCompat.setOnApplyWindowInsetsListener(bottomNav) { view, compat ->
+            val insets = compat.getInsets(WindowInsetsCompat.Type.systemBars())
+            (view.layoutParams as? ViewGroup.MarginLayoutParams)?.let {
+                it.bottomMargin = baseBottomMargin + insets.bottom
+                view.layoutParams = it
+            }
+            compat
+        }
+
+        findViewById<View>(R.id.bottomNavChats).setOnClickListener {
+            navController.openTopLevel(R.id.contactListFragment)
+        }
+        findViewById<View>(R.id.bottomNavAdd).setOnClickListener {
+            navController.openTopLevel(R.id.addContactFragment)
+        }
+        findViewById<View>(R.id.bottomNavSettings).setOnClickListener {
+            navController.openTopLevel(R.id.settingsFragment)
+        }
+        findViewById<View>(R.id.bottomNavExport).setOnClickListener {
+            navController.openTopLevel(R.id.importExportMenuFragment)
+        }
+        findViewById<View>(R.id.bottomNavProfile).setOnClickListener {
+            navController.openTopLevel(R.id.userProfileFragment)
+        }
+
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            val visible = destination.id in bottomNavigationDestinations
+            bottomNav.visibility = if (visible) View.VISIBLE else View.GONE
+            highlightBottomNavigation(destination.id)
+        }
+    }
+
+    private fun NavController.openTopLevel(destinationId: Int) {
+        if (currentDestination?.id == destinationId) return
+        navigate(
+            destinationId,
+            null,
+            NavOptions.Builder()
+                .setLaunchSingleTop(true)
+                .setPopUpTo(R.id.contactListFragment, false)
+                .build(),
+        )
+    }
+
+    private fun highlightBottomNavigation(destinationId: Int) {
+        val items = mapOf(
+            R.id.bottomNavChats to R.id.contactListFragment,
+            R.id.bottomNavAdd to R.id.addContactFragment,
+            R.id.bottomNavSettings to R.id.settingsFragment,
+            R.id.bottomNavExport to R.id.importExportMenuFragment,
+            R.id.bottomNavProfile to R.id.userProfileFragment,
+        )
+        items.forEach { (viewId, targetId) ->
+            findViewById<View>(viewId)?.setBackgroundResource(
+                if (destinationId == targetId) {
+                    R.drawable.skytox_start_menu_selected_background
+                } else {
+                    0
+                },
+            )
+        }
     }
 
     private fun maybePromptAppLock() {
@@ -240,5 +325,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         Log.e(TAG, "Got unsupported share type ${intent.type}")
+    }
+
+    companion object {
+        private val bottomNavigationDestinations = setOf(
+            R.id.contactListFragment,
+            R.id.addContactFragment,
+            R.id.settingsFragment,
+            R.id.importExportMenuFragment,
+            R.id.userProfileFragment,
+        )
     }
 }

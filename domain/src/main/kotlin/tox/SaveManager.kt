@@ -18,6 +18,7 @@ interface SaveManager {
     fun list(): List<String>
     fun save(pk: PublicKey, saveData: ByteArray)
     fun load(pk: PublicKey): ByteArray?
+    fun deleteAll()
 }
 
 class AndroidSaveManager @Inject constructor(val context: Context) : SaveManager {
@@ -37,6 +38,12 @@ class AndroidSaveManager @Inject constructor(val context: Context) : SaveManager
         } else {
             null
         }
+    }
+
+    override fun deleteAll() {
+        saveDir.listFiles()
+            ?.filter { it.extension == "tox" }
+            ?.forEach { it.delete() }
     }
 
     private fun fileFor(pk: PublicKey) = File("$saveDir/${pk.string()}.tox")

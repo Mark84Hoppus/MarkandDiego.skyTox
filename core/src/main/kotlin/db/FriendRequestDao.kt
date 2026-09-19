@@ -28,4 +28,7 @@ interface FriendRequestDao {
 
     @Query("SELECT COUNT(public_key) FROM friend_requests")
     fun count(): Int
+
+    @Query("DELETE FROM friend_requests")
+    fun deleteAll()
 }

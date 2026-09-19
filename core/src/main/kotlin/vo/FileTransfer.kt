@@ -18,6 +18,8 @@ const val FT_STARTED = 0L
 const val FT_NOT_STARTED = -1L
 const val FT_REJECTED = -2L
 const val FT_INTERRUPTED_BASE = -3L
+const val FT_QUEUED = -4L
+const val FT_EXPIRED = -5L
 
 @Entity(tableName = "file_transfers")
 data class FileTransfer(
@@ -56,9 +58,11 @@ data class FileTransfer(
     var id: Int = 0
 }
 
-fun FileTransfer.isInterrupted() = progress <= FT_INTERRUPTED_BASE
+fun FileTransfer.isQueued() = progress == FT_QUEUED
+fun FileTransfer.isExpired() = progress == FT_EXPIRED
+fun FileTransfer.isInterrupted() = progress <= FT_INTERRUPTED_BASE && !isQueued() && !isExpired()
 fun FileTransfer.transferredBytes() = if (isInterrupted()) FT_INTERRUPTED_BASE - progress else progress
 fun FileTransfer.interruptedProgress() = FT_INTERRUPTED_BASE - progress.coerceAtLeast(FT_STARTED)
 fun FileTransfer.isComplete() = !isInterrupted() && progress >= fileSize
 fun FileTransfer.isStarted() = progress >= FT_STARTED || isInterrupted()
-fun FileTransfer.isRejected() = progress == FT_REJECTED
+fun FileTransfer.isRejected() = progress == FT_REJECTED || isExpired()

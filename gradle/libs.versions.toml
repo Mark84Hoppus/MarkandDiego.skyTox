@@ -63,7 +63,7 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 
 nayuki-qrcodegen = "io.nayuki:qrcodegen:1.8.0"
-
+zxing-android-embedded = "com.journeyapps:zxing-android-embedded:4.3.0"
 square-leakcanary = "com.squareup.leakcanary:leakcanary-android:2.14"
 square-picasso = "com.squareup.picasso:picasso:2.8"
 

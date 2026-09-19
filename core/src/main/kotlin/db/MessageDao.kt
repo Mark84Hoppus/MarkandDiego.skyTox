@@ -15,7 +15,7 @@ import ltd.evilcorp.core.vo.Sender
 @Dao
 interface MessageDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun save(message: Message)
+    fun save(message: Message): Long
 
     @Query("SELECT * FROM messages WHERE conversation == :conversation")
     fun load(conversation: String): Flow<List<Message>>
