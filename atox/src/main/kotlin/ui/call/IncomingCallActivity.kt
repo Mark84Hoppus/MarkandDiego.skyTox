@@ -15,9 +15,7 @@ import android.os.PowerManager
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.os.bundleOf
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.NavDeepLinkBuilder
 import javax.inject.Inject
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -25,7 +23,6 @@ import ltd.evilcorp.atox.App
 import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.databinding.ActivityIncomingCallBinding
 import ltd.evilcorp.atox.hasPermission
-import ltd.evilcorp.atox.ui.chat.CONTACT_PUBLIC_KEY
 import ltd.evilcorp.core.repository.ContactRepository
 import ltd.evilcorp.core.vo.Contact
 import ltd.evilcorp.core.vo.PublicKey
@@ -108,12 +105,7 @@ class IncomingCallActivity : AppCompatActivity() {
     }
 
     private fun openCallScreen() {
-        NavDeepLinkBuilder(this)
-            .setGraph(R.navigation.nav_graph)
-            .setDestination(R.id.callFragment)
-            .setArguments(bundleOf(CONTACT_PUBLIC_KEY to publicKey.string()))
-            .createPendingIntent()
-            .send()
+        openCallScreen(this, publicKey)
         finish()
     }
 

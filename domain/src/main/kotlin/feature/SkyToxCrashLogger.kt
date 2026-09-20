@@ -79,6 +79,17 @@ object SkyToxCrashLogger {
         }
     }
 
+    fun av(message: String) {
+        val line = "${humanTime()} AV $message"
+        synchronized(lock) {
+            remember(line)
+            val dir = logsDir ?: return
+            val file = File(dir, "av-diagnostics.log")
+            trimDiagnosticLog(file)
+            appendLine(file, line)
+        }
+    }
+
     private fun writeCrash(
         thread: Thread,
         throwable: Throwable,

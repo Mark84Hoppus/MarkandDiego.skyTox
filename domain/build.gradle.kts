@@ -13,9 +13,15 @@ kotlin {
 android {
     namespace = "ltd.evilcorp.domain"
     compileSdk = libs.versions.sdk.target.get().toInt()
+    ndkVersion = "25.2.9519653"
     defaultConfig {
         minSdk = libs.versions.sdk.min.get().toInt()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        externalNativeBuild {
+            cmake {
+                cppFlags += "-std=c++17"
+            }
+        }
     }
     buildTypes {
         getByName("release") {
@@ -27,6 +33,11 @@ android {
         // Work around scala-compiler and scala-library (via tox4j) trying to place files in the
         // same place.
         resources.excludes.add("rootdoc.txt")
+    }
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+        }
     }
 }
 

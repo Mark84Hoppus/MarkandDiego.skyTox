@@ -30,6 +30,8 @@ import ltd.evilcorp.domain.feature.ContactNameCache
 
 private const val TAG = "Tox"
 private const val SLOW_ITERATION_LIMIT_MS = 10
+private const val MIN_AV_ITERATION_INTERVAL_MS = 1L
+private const val CALL_AV_ITERATION_INTERVAL_MS = 10L
 
 @Singleton
 class Tox @Inject constructor(
@@ -106,7 +108,7 @@ class Tox @Inject constructor(
             toxAvRunning = true
             while (running) {
                 tox.iterateAv()
-                delay(tox.iterationIntervalAv())
+                delay(tox.iterationIntervalAv().coerceIn(MIN_AV_ITERATION_INTERVAL_MS, CALL_AV_ITERATION_INTERVAL_MS))
             }
             toxAvRunning = false
         }

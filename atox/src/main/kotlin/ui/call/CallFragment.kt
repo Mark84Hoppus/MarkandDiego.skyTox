@@ -8,7 +8,6 @@ package ltd.evilcorp.atox.ui.call
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.graphics.ImageFormat
 import android.graphics.PixelFormat
 import android.hardware.Camera
@@ -42,6 +41,7 @@ import ltd.evilcorp.atox.vmFactory
 import ltd.evilcorp.core.vo.PublicKey
 import ltd.evilcorp.domain.feature.CallState
 import ltd.evilcorp.domain.feature.SkyToxCrashLogger
+import ltd.evilcorp.domain.av.VideoFrameConverter
 import kotlin.math.abs
 
 private const val AUDIO_PERMISSION = Manifest.permission.RECORD_AUDIO
@@ -112,21 +112,15 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
                 return@observe
             }
             if (frame?.publicKey != PublicKey(requireStringArg(CONTACT_PUBLIC_KEY))) {
+                remoteVideo.clear()
                 remoteVideo.visibility = View.GONE
                 avatarImageView.visibility = View.VISIBLE
                 return@observe
             }
 
-            runCatching {
-                Bitmap.createBitmap(frame.pixels, frame.width, frame.height, Bitmap.Config.ARGB_8888)
-            }.onSuccess { bitmap ->
-                remoteVideo.setImageBitmap(bitmap)
-                remoteVideo.visibility = View.VISIBLE
-                avatarImageView.visibility = View.GONE
-            }.onFailure {
-                remoteVideo.visibility = View.GONE
-                avatarImageView.visibility = View.VISIBLE
-            }
+            remoteVideo.setFrame(frame)
+            remoteVideo.visibility = View.VISIBLE
+            avatarImageView.visibility = View.GONE
         }
 
         vm.localVideoEnabled.asLiveData().observe(viewLifecycleOwner) { enabled ->
@@ -237,7 +231,22 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
         callClosing = true
         stopOutgoingRingback()
         stopLocalVideo()
+        binding.remoteVideo.clear()
         super.onDestroyView()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (view != null) {
+            binding.remoteVideo.onResume()
+        }
+    }
+
+    override fun onPause() {
+        if (view != null) {
+            binding.remoteVideo.onPause()
+        }
+        super.onPause()
     }
 
     private fun updateSpeakerphoneIcon() {
@@ -420,6 +429,8 @@ private class SkyToxVideoCapture(
     private var previewWidth = 0
     private var previewHeight = 0
     private var frameRotation = 0
+    private var previewBufferSize = 0
+    private var reusableYuvFrame: YuvFrame? = null
     @Volatile private var stopped = false
 
     fun start() {
@@ -481,22 +492,38 @@ private class SkyToxVideoCapture(
             return
         }
         val frame = data ?: return
-        if (previewWidth <= 0 || previewHeight <= 0) {
-            return
-        }
-        runCatching {
-            nv21ToI420(frame, previewWidth, previewHeight, frameRotation)
-        }.onSuccess { converted ->
-            if (!stopped && shouldSendFrame()) {
-                runCatching {
-                    onFrame(converted.width, converted.height, converted.y, converted.u, converted.v)
-                }.onFailure {
-                    SkyToxCrashLogger.error("camera.frame callback failed", it)
-                    stopped = true
-                }
+        try {
+            if (previewWidth <= 0 || previewHeight <= 0) {
+                return
             }
-        }.onFailure {
-            SkyToxCrashLogger.error("camera.frame convert failed", it)
+            runCatching {
+                val converted = nextYuvFrame(previewWidth, previewHeight, frameRotation)
+                VideoFrameConverter.nv21ToI420(
+                    data = frame,
+                    width = previewWidth,
+                    height = previewHeight,
+                    rotation = frameRotation,
+                    y = converted.y,
+                    u = converted.u,
+                    v = converted.v,
+                )
+                converted
+            }.onSuccess { converted ->
+                if (!stopped && shouldSendFrame()) {
+                    runCatching {
+                        onFrame(converted.width, converted.height, converted.y, converted.u, converted.v)
+                    }.onFailure {
+                        SkyToxCrashLogger.error("camera.frame callback failed", it)
+                        stopped = true
+                    }
+                }
+            }.onFailure {
+                SkyToxCrashLogger.error("camera.frame convert failed", it)
+            }
+        } finally {
+            if (!stopped && previewBufferSize > 0) {
+                runCatching { camera?.addCallbackBuffer(frame) }
+            }
         }
     }
 
@@ -514,12 +541,22 @@ private class SkyToxVideoCapture(
             previewWidth = size.width
             previewHeight = size.height
             params.setPreviewSize(previewWidth, previewHeight)
-            choosePreviewFps(params.supportedPreviewFpsRange)?.let { params.setPreviewFpsRange(it[0], it[1]) }
+            choosePreviewFps(params.supportedPreviewFpsRange)?.let {
+                params.setPreviewFpsRange(it[0], it[1])
+                SkyToxCrashLogger.av(
+                    "camera fps selected=${it[0]}..${it[1]} supported=" +
+                        params.supportedPreviewFpsRange.joinToString { range -> "${range[0]}..${range[1]}" },
+                )
+            }
             opened.parameters = params
             opened.setDisplayOrientation(displayOrientation(preview.context, cameraId))
             frameRotation = frameRotation(preview.context, cameraId)
             opened.setPreviewDisplay(preview.holder)
-            opened.setPreviewCallback(this)
+            previewBufferSize = previewWidth * previewHeight * ImageFormat.getBitsPerPixel(ImageFormat.NV21) / 8
+            repeat(PREVIEW_BUFFER_COUNT) {
+                opened.addCallbackBuffer(ByteArray(previewBufferSize))
+            }
+            opened.setPreviewCallbackWithBuffer(this)
             opened.startPreview()
             camera = opened
             SkyToxCrashLogger.event("camera.opened id=$cameraId preview=${previewWidth}x$previewHeight rotation=$frameRotation")
@@ -531,10 +568,36 @@ private class SkyToxVideoCapture(
 
     private fun closeCamera() {
         SkyToxCrashLogger.event("camera.close hasCamera=${camera != null}")
-        runCatching { camera?.setPreviewCallback(null) }
+        runCatching { camera?.setPreviewCallbackWithBuffer(null) }
         runCatching { camera?.stopPreview() }
         runCatching { camera?.release() }
         camera = null
+        previewBufferSize = 0
+        reusableYuvFrame = null
+    }
+
+    private fun nextYuvFrame(width: Int, height: Int, rotation: Int): YuvFrame {
+        val normalizedRotation = ((rotation % 360) + 360) % 360
+        val outWidth = if (normalizedRotation == 90 || normalizedRotation == 270) height else width
+        val outHeight = if (normalizedRotation == 90 || normalizedRotation == 270) width else height
+        val current = reusableYuvFrame
+        if (
+            current == null ||
+            current.width != outWidth ||
+            current.height != outHeight ||
+            current.y.size != outWidth * outHeight ||
+            current.u.size != outWidth * outHeight / 4 ||
+            current.v.size != outWidth * outHeight / 4
+        ) {
+            return YuvFrame(
+                width = outWidth,
+                height = outHeight,
+                y = ByteArray(outWidth * outHeight),
+                u = ByteArray(outWidth * outHeight / 4),
+                v = ByteArray(outWidth * outHeight / 4),
+            ).also { reusableYuvFrame = it }
+        }
+        return current
     }
 
     private fun currentFacing(): Int {
@@ -551,9 +614,18 @@ private class SkyToxVideoCapture(
             ?: sizes.first()
 
     private fun choosePreviewFps(ranges: List<IntArray>): IntArray? =
-        ranges.minByOrNull { abs(it[1] - 15_000) + abs(it[0] - 15_000) }
+        ranges
+            .filter { it[0] <= TARGET_PREVIEW_FPS && it[1] >= TARGET_PREVIEW_FPS }
+            .minByOrNull { abs(it[1] - TARGET_PREVIEW_FPS) + abs(it[0] - TARGET_PREVIEW_FPS) / 4 }
+            ?: ranges
+                .filter { it[1] >= TARGET_PREVIEW_FPS }
+                .minByOrNull { abs(it[1] - TARGET_PREVIEW_FPS) }
+            ?: ranges.maxByOrNull { it[1] }
 
     private companion object {
+        private const val PREVIEW_BUFFER_COUNT = 3
+        private const val TARGET_PREVIEW_FPS = 20_000
+
         fun findCamera(facing: Int): Int {
             val info = Camera.CameraInfo()
             for (i in 0 until Camera.getNumberOfCameras()) {
@@ -601,42 +673,6 @@ private class SkyToxVideoCapture(
             }
         }
 
-        fun nv21ToI420(data: ByteArray, width: Int, height: Int, rotation: Int): YuvFrame {
-            val normalizedRotation = ((rotation % 360) + 360) % 360
-            val outWidth = if (normalizedRotation == 90 || normalizedRotation == 270) height else width
-            val outHeight = if (normalizedRotation == 90 || normalizedRotation == 270) width else height
-            val y = ByteArray(outWidth * outHeight)
-            val u = ByteArray(outWidth * outHeight / 4)
-            val v = ByteArray(outWidth * outHeight / 4)
-            val frameSize = width * height
-
-            for (outY in 0 until outHeight) {
-                for (outX in 0 until outWidth) {
-                    val input = mapRotatedPoint(outX, outY, width, height, normalizedRotation)
-                    y[outY * outWidth + outX] = data[input.second * width + input.first]
-                }
-            }
-
-            for (outY in 0 until outHeight / 2) {
-                for (outX in 0 until outWidth / 2) {
-                    val input = mapRotatedPoint(outX * 2, outY * 2, width, height, normalizedRotation)
-                    val chromaIndex = frameSize + (input.second / 2) * width + (input.first / 2) * 2
-                    val outIndex = outY * (outWidth / 2) + outX
-                    v[outIndex] = data.getOrElse(chromaIndex) { 128.toByte() }
-                    u[outIndex] = data.getOrElse(chromaIndex + 1) { 128.toByte() }
-                }
-            }
-
-            return YuvFrame(outWidth, outHeight, y, u, v)
-        }
-
-        fun mapRotatedPoint(outX: Int, outY: Int, width: Int, height: Int, rotation: Int): Pair<Int, Int> =
-            when (rotation) {
-                90 -> Pair(outY.coerceIn(0, width - 1), (height - 1 - outX).coerceIn(0, height - 1))
-                180 -> Pair((width - 1 - outX).coerceIn(0, width - 1), (height - 1 - outY).coerceIn(0, height - 1))
-                270 -> Pair((width - 1 - outY).coerceIn(0, width - 1), outX.coerceIn(0, height - 1))
-                else -> Pair(outX.coerceIn(0, width - 1), outY.coerceIn(0, height - 1))
-            }
     }
 }
 

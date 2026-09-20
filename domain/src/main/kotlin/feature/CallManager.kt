@@ -34,34 +34,33 @@ private const val TAG = "CallManager"
 private const val AUDIO_CHANNELS = 1
 private const val AUDIO_SAMPLING_RATE_HZ = 48_000
 private const val AUDIO_SEND_INTERVAL_MS = 20
-private const val VIDEO_FRAME_INTERVAL_MS = 100L
+private const val INCOMING_VIDEO_FRAME_INTERVAL_MS = 50L
+private const val OUTGOING_VIDEO_FRAME_INTERVAL_MS = 50L
 private const val VIDEO_QUALITY_CHANGE_INTERVAL_MS = 20_000L
 private const val VIDEO_UPGRADE_SUCCESS_FRAMES = 180
 private const val VIDEO_DOWNGRADE_FAILURES = 3
-private val VIDEO_HEIGHT_LADDER = listOf(144, 240, 360, 480, 720)
-private const val DEFAULT_VIDEO_HEIGHT_INDEX = 2
+private val VIDEO_HEIGHT_LADDER = listOf(144, 240, 360, 480)
+private const val DEFAULT_VIDEO_HEIGHT_INDEX = 3
+private const val INCOMING_VIDEO_YUV_BUFFER_COUNT = 4
 
 data class IncomingVideoFrame(
     val publicKey: PublicKey,
     val width: Int,
     val height: Int,
-    val pixels: IntArray,
-) {
-    override fun equals(other: Any?): Boolean =
-        other is IncomingVideoFrame &&
-            publicKey == other.publicKey &&
-            width == other.width &&
-            height == other.height &&
-            pixels.contentEquals(other.pixels)
+    val y: ByteArray,
+    val u: ByteArray,
+    val v: ByteArray,
+)
 
-    override fun hashCode(): Int {
-        var result = publicKey.hashCode()
-        result = 31 * result + width
-        result = 31 * result + height
-        result = 31 * result + pixels.contentHashCode()
-        return result
-    }
-}
+private data class IncomingVideoBuffer(
+    val width: Int,
+    val height: Int,
+    val chromaWidth: Int,
+    val chromaHeight: Int,
+    val y: ByteArray,
+    val u: ByteArray,
+    val v: ByteArray,
+)
 
 @Singleton
 class CallManager @Inject constructor(private val tox: Tox, private val scope: CoroutineScope, context: Context) {
@@ -90,6 +89,17 @@ class CallManager @Inject constructor(private val tox: Tox, private val scope: C
     private var videoSuccessFrames = 0
     private var videoFailureFrames = 0
     private var lastVideoQualityChangeAtMs = 0L
+    private var incomingVideoFramesForLog = 0
+    private var incomingVideoDropsForLog = 0
+    private var outgoingVideoFramesForLog = 0
+    private var outgoingVideoDropsForLog = 0
+    private var incomingVideoConvertMsForLog = 0L
+    private var lastVideoDiagnosticAtMs = 0L
+    private var incomingVideoFrameBudgetMs = INCOMING_VIDEO_FRAME_INTERVAL_MS
+    private var incomingVideoYuvWidth = 0
+    private var incomingVideoYuvHeight = 0
+    private var incomingVideoYuvBufferIndex = 0
+    private var incomingVideoYuvBuffers: Array<IncomingVideoBuffer>? = null
     @Volatile private var videoStopping = false
 
     fun addPendingCall(from: Contact, videoEnabled: Boolean = false) {
@@ -250,20 +260,32 @@ class CallManager @Inject constructor(private val tox: Tox, private val scope: C
         }
 
         val now = SystemClock.elapsedRealtime()
-        if (now - lastVideoFrameAtMs < VIDEO_FRAME_INTERVAL_MS) {
+        if (now - lastVideoFrameAtMs < incomingVideoFrameBudgetMs) {
+            incomingVideoDropsForLog++
+            logVideoDiagnostics(now)
             return
         }
         lastVideoFrameAtMs = now
 
+        val convertStart = SystemClock.elapsedRealtime()
         runCatching {
-            yuv420ToArgb(width, height, y, u, v, yStride, uStride, vStride)
-        }.onSuccess { pixels ->
+            val buffer = nextIncomingYuvBuffer(width, height)
+            copyPlane(y, yStride, width, height, buffer.y)
+            copyPlane(u, uStride, buffer.chromaWidth, buffer.chromaHeight, buffer.u)
+            copyPlane(v, vStride, buffer.chromaWidth, buffer.chromaHeight, buffer.v)
+            buffer
+        }.onSuccess { buffer ->
+            incomingVideoFramesForLog++
+            incomingVideoConvertMsForLog += SystemClock.elapsedRealtime() - convertStart
+            logVideoDiagnostics(SystemClock.elapsedRealtime())
             if (inCall.value is CallState.InCall) {
                 _incomingVideoFrame.value = IncomingVideoFrame(
                     publicKey = publicKey,
                     width = width,
                     height = height,
-                    pixels = pixels,
+                    y = buffer.y,
+                    u = buffer.u,
+                    v = buffer.v,
                 )
             }
         }.onFailure {
@@ -278,13 +300,17 @@ class CallManager @Inject constructor(private val tox: Tox, private val scope: C
         }
 
         val now = SystemClock.elapsedRealtime()
-        if (now - lastOutgoingVideoFrameAtMs < VIDEO_FRAME_INTERVAL_MS) {
+        if (now - lastOutgoingVideoFrameAtMs < OUTGOING_VIDEO_FRAME_INTERVAL_MS) {
+            outgoingVideoDropsForLog++
+            logVideoDiagnostics(now)
             return
         }
         lastOutgoingVideoFrameAtMs = now
 
         try {
             tox.sendVideo(to, width, height, y, u, v)
+            outgoingVideoFramesForLog++
+            logVideoDiagnostics(SystemClock.elapsedRealtime())
             recordVideoSendSuccess(to)
         } catch (e: Exception) {
             if (e.message?.contains("FRIEND_NOT_IN_CALL") == true) {
@@ -332,11 +358,12 @@ class CallManager @Inject constructor(private val tox: Tox, private val scope: C
             _sendingAudio.value = true
             while (inCall.value is CallState.InCall && sendingAudio.value) {
                 val start = System.currentTimeMillis()
-                val audioFrame = recorder.read()
-                try {
-                    tox.sendAudio(to, audioFrame, AUDIO_CHANNELS, AUDIO_SAMPLING_RATE_HZ)
-                } catch (e: Exception) {
-                    Log.e(TAG, e.toString())
+                recorder.read()?.let { audioFrame ->
+                    try {
+                        tox.sendAudio(to, audioFrame, AUDIO_CHANNELS, AUDIO_SAMPLING_RATE_HZ)
+                    } catch (e: Exception) {
+                        Log.e(TAG, e.toString())
+                    }
                 }
                 val elapsed = System.currentTimeMillis() - start
                 if (elapsed < AUDIO_SEND_INTERVAL_MS) {
@@ -426,40 +453,90 @@ class CallManager @Inject constructor(private val tox: Tox, private val scope: C
     private fun videoBitRateForHeight(height: Int) =
         when {
             height <= 144 -> 180
-            height <= 240 -> 350
-            height <= 360 -> 700
-            height <= 480 -> 1200
-            else -> 1800
+            height <= 240 -> 450
+            height <= 360 -> 900
+            else -> 1600
         }
 
-    private fun yuv420ToArgb(
-        width: Int,
-        height: Int,
-        y: ByteArray,
-        u: ByteArray,
-        v: ByteArray,
-        yStride: Int,
-        uStride: Int,
-        vStride: Int,
-    ): IntArray {
-        val pixels = IntArray(width * height)
-        for (row in 0 until height) {
-            val yRow = row * yStride
-            val uRow = (row / 2) * uStride
-            val vRow = (row / 2) * vStride
-            for (col in 0 until width) {
-                val yy = y.getOrElse(yRow + col) { 0 }.toInt() and 0xff
-                val uu = (u.getOrElse(uRow + col / 2) { 128.toByte() }.toInt() and 0xff) - 128
-                val vv = (v.getOrElse(vRow + col / 2) { 128.toByte() }.toInt() and 0xff) - 128
-
-                val r = clamp((yy + 1.402f * vv).toInt())
-                val g = clamp((yy - 0.344136f * uu - 0.714136f * vv).toInt())
-                val b = clamp((yy + 1.772f * uu).toInt())
-                pixels[row * width + col] = (0xff shl 24) or (r shl 16) or (g shl 8) or b
-            }
+    private fun logVideoDiagnostics(now: Long) {
+        if (lastVideoDiagnosticAtMs == 0L) {
+            lastVideoDiagnosticAtMs = now
+            return
         }
-        return pixels
+        val elapsed = now - lastVideoDiagnosticAtMs
+        if (elapsed < 5_000L) {
+            return
+        }
+        val avgConvertMs = if (incomingVideoFramesForLog > 0) {
+            incomingVideoConvertMsForLog / incomingVideoFramesForLog
+        } else {
+            0L
+        }
+        incomingVideoFrameBudgetMs = when {
+            avgConvertMs > 45L -> 100L
+            avgConvertMs > 32L -> 83L
+            avgConvertMs > 20L -> 66L
+            else -> INCOMING_VIDEO_FRAME_INTERVAL_MS
+        }
+        SkyToxCrashLogger.av(
+            "video elapsed=${elapsed}ms in=$incomingVideoFramesForLog inDrop=$incomingVideoDropsForLog " +
+                "out=$outgoingVideoFramesForLog outDrop=$outgoingVideoDropsForLog avgPrepareMs=$avgConvertMs " +
+                "height=${_outgoingVideoHeight.value} renderBudgetMs=$incomingVideoFrameBudgetMs",
+        )
+        incomingVideoFramesForLog = 0
+        incomingVideoDropsForLog = 0
+        outgoingVideoFramesForLog = 0
+        outgoingVideoDropsForLog = 0
+        incomingVideoConvertMsForLog = 0L
+        lastVideoDiagnosticAtMs = now
     }
 
-    private fun clamp(value: Int) = value.coerceIn(0, 255)
+    private fun nextIncomingYuvBuffer(width: Int, height: Int): IncomingVideoBuffer {
+        val chromaWidth = (width + 1) / 2
+        val chromaHeight = (height + 1) / 2
+        val buffers = incomingVideoYuvBuffers
+        if (
+            buffers == null ||
+            incomingVideoYuvWidth != width ||
+            incomingVideoYuvHeight != height ||
+            buffers.any {
+                it.y.size != width * height ||
+                    it.u.size != chromaWidth * chromaHeight ||
+                    it.v.size != chromaWidth * chromaHeight
+            }
+        ) {
+            incomingVideoYuvWidth = width
+            incomingVideoYuvHeight = height
+            incomingVideoYuvBufferIndex = 0
+            return Array(INCOMING_VIDEO_YUV_BUFFER_COUNT) {
+                IncomingVideoBuffer(
+                    width = width,
+                    height = height,
+                    chromaWidth = chromaWidth,
+                    chromaHeight = chromaHeight,
+                    y = ByteArray(width * height),
+                    u = ByteArray(chromaWidth * chromaHeight),
+                    v = ByteArray(chromaWidth * chromaHeight),
+                )
+            }.also { incomingVideoYuvBuffers = it }[0]
+        }
+
+        incomingVideoYuvBufferIndex = (incomingVideoYuvBufferIndex + 1) % buffers.size
+        return buffers[incomingVideoYuvBufferIndex]
+    }
+
+    private fun copyPlane(source: ByteArray, stride: Int, width: Int, height: Int, target: ByteArray) {
+        for (row in 0 until height) {
+            val sourceOffset = row * stride
+            val targetOffset = row * width
+            if (sourceOffset >= source.size || targetOffset >= target.size) {
+                break
+            }
+            val count = minOf(width, source.size - sourceOffset, target.size - targetOffset)
+            if (count > 0) {
+                source.copyInto(target, targetOffset, sourceOffset, sourceOffset + count)
+            }
+        }
+    }
+
 }

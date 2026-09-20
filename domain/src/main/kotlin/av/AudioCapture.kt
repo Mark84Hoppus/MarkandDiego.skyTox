@@ -8,7 +8,11 @@ import android.annotation.SuppressLint
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import android.media.audiofx.AcousticEchoCanceler
+import android.media.audiofx.AutomaticGainControl
+import android.media.audiofx.NoiseSuppressor
 import android.util.Log
+import kotlin.math.max
 
 private const val TAG = "AudioCapture"
 
@@ -26,13 +30,16 @@ private fun findAudioRecord(sampleRate: Int, channels: Int): AudioRecord? {
     val audioFormat = AudioFormat.ENCODING_PCM_16BIT
     val channelConfig = intToChannel(channels)
 
-    val bufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
-    if (bufferSize == AudioRecord.ERROR_BAD_VALUE) {
+    val minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
+    if (minBufferSize <= 0) {
         return null
     }
+    val bufferSize = max(minBufferSize, sampleRate * channels * 2 / 5)
 
-    // Seems like not all Xiaomi phones have a VOICE_COMMUNICATION audio source, so try a few different ones.
+    // TRIfA prefers the low-latency voice recognition preset and falls back to voice communication.
+    // Some Xiaomi phones still reject one of these sources, so keep MIC/DEFAULT as safety nets.
     val audioSources = arrayOf(
+        MediaRecorder.AudioSource.VOICE_RECOGNITION,
         MediaRecorder.AudioSource.VOICE_COMMUNICATION,
         MediaRecorder.AudioSource.MIC,
         MediaRecorder.AudioSource.DEFAULT,
@@ -41,8 +48,10 @@ private fun findAudioRecord(sampleRate: Int, channels: Int): AudioRecord? {
         val recorder = AudioRecord(audioSource, sampleRate, channelConfig, audioFormat, bufferSize)
         if (recorder.state != AudioRecord.STATE_INITIALIZED) {
             Log.w(TAG, "Failed to initialize audio record $audioSource")
+            recorder.release()
             continue
         }
+        Log.i(TAG, "Using audio source $audioSource session=${recorder.audioSessionId} bufferSize=$bufferSize")
         return recorder
     }
 
@@ -55,19 +64,75 @@ class AudioCapture private constructor(
     private val frameLengthMs: Int,
     private val audioRecord: AudioRecord,
 ) {
+    private val audioEffects = AudioEffects.create(audioRecord.audioSessionId)
+
     fun start() = audioRecord.startRecording()
     fun stop() = audioRecord.stop()
-    fun release() = audioRecord.release()
-    fun read(): ShortArray {
-        val bytes = ShortArray((sampleRate * channels * frameLengthMs / 1000.0).toInt())
-        audioRecord.read(bytes, 0, bytes.size)
-        return bytes
+    fun release() {
+        audioEffects.release()
+        audioRecord.release()
+    }
+    fun read(): ShortArray? {
+        val samples = ShortArray((sampleRate * channels * frameLengthMs / 1000.0).toInt())
+        var totalRead = 0
+        while (totalRead < samples.size) {
+            val read = audioRecord.read(samples, totalRead, samples.size - totalRead)
+            if (read <= 0) {
+                Log.w(TAG, "AudioRecord read failed: $read")
+                return null
+            }
+            totalRead += read
+        }
+        return samples
     }
 
     companion object {
         fun create(sampleRate: Int, channels: Int, frameLengthMs: Int): AudioCapture? {
             val audioRecord = findAudioRecord(sampleRate, channels) ?: return null
             return AudioCapture(sampleRate, channels, frameLengthMs, audioRecord)
+        }
+    }
+}
+
+private class AudioEffects private constructor(
+    private val echoCanceler: AcousticEchoCanceler?,
+    private val noiseSuppressor: NoiseSuppressor?,
+    private val gainControl: AutomaticGainControl?,
+) {
+    fun release() {
+        echoCanceler?.release()
+        noiseSuppressor?.release()
+        gainControl?.release()
+    }
+
+    companion object {
+        fun create(audioSessionId: Int): AudioEffects {
+            val echoCanceler = runCatching {
+                if (AcousticEchoCanceler.isAvailable()) {
+                    AcousticEchoCanceler.create(audioSessionId)?.apply { enabled = true }
+                } else {
+                    null
+                }
+            }.getOrNull()
+            val noiseSuppressor = runCatching {
+                if (NoiseSuppressor.isAvailable()) {
+                    NoiseSuppressor.create(audioSessionId)?.apply { enabled = true }
+                } else {
+                    null
+                }
+            }.getOrNull()
+            val gainControl = runCatching {
+                if (AutomaticGainControl.isAvailable()) {
+                    AutomaticGainControl.create(audioSessionId)?.apply { enabled = true }
+                } else {
+                    null
+                }
+            }.getOrNull()
+            Log.i(
+                TAG,
+                "Audio effects: aec=${echoCanceler != null} ns=${noiseSuppressor != null} agc=${gainControl != null}",
+            )
+            return AudioEffects(echoCanceler, noiseSuppressor, gainControl)
         }
     }
 }

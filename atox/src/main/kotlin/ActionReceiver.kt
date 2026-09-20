@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ltd.evilcorp.atox.ui.NotificationHelper
+import ltd.evilcorp.atox.ui.call.openCallScreen
 import ltd.evilcorp.core.repository.ContactRepository
 import ltd.evilcorp.core.vo.Contact
 import ltd.evilcorp.core.vo.PublicKey
@@ -132,6 +133,7 @@ class ActionReceiver : BroadcastReceiver() {
         try {
             callManager.startCall(pk)
             notificationHelper.showOngoingCallNotification(contact)
+            openCallScreen(context, pk)
         } catch (e: ToxavAnswerException) {
             Log.e(TAG, e.toString())
             return

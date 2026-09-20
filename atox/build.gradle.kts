@@ -39,8 +39,8 @@ android {
         applicationId = "markanddiego.skytox"
         minSdk = libs.versions.sdk.min.get().toInt()
         targetSdk = libs.versions.sdk.target.get().toInt()
-        versionCode = 293
-        versionName = "0.8.25"
+        versionCode = 294
+        versionName = "0.8.26"
         if (skytoxUniversal) {
             ndk {
                 abiFilters += listOf("armeabi-v7a", "arm64-v8a")

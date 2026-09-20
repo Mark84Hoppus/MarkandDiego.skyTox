@@ -38,6 +38,8 @@ import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.atox.ui.contactlist.ARG_ADD_CONTACT
 import ltd.evilcorp.atox.ui.contactlist.ARG_SHARE
 import ltd.evilcorp.atox.ui.contactlist.ARG_SHARE_FILES
+import ltd.evilcorp.atox.ui.call.EXTRA_OPEN_CALL_PUBLIC_KEY
+import ltd.evilcorp.atox.ui.chat.CONTACT_PUBLIC_KEY
 import ltd.evilcorp.atox.tox.ToxStarter
 
 private const val TAG = "MainActivity"
@@ -238,10 +240,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleIntent(intent: Intent) {
+        intent.getStringExtra(EXTRA_OPEN_CALL_PUBLIC_KEY)?.let { publicKey ->
+            openCallScreen(publicKey)
+            intent.removeExtra(EXTRA_OPEN_CALL_PUBLIC_KEY)
+            return
+        }
+
         when (intent.action) {
             Intent.ACTION_VIEW -> handleToxLinkIntent(intent)
             Intent.ACTION_SEND -> handleShareIntent(intent)
         }
+    }
+
+    private fun openCallScreen(publicKey: String) {
+        val navController =
+            supportFragmentManager.findFragmentById(R.id.nav_host_fragment)?.findNavController() ?: return
+        navController.navigate(
+            R.id.callFragment,
+            bundleOf(CONTACT_PUBLIC_KEY to publicKey),
+            NavOptions.Builder()
+                .setLaunchSingleTop(true)
+                .build(),
+        )
     }
 
     private fun requestAllFilesAccessIfNeeded() {

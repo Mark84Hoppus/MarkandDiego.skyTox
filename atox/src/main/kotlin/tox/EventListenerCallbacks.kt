@@ -5,6 +5,7 @@
 package ltd.evilcorp.atox.tox
 
 import android.content.Context
+import android.os.SystemClock
 import android.util.Log
 import im.tox.tox4j.av.enums.ToxavFriendCallState
 import im.tox.tox4j.core.enums.ToxFileControl
@@ -79,6 +80,13 @@ class EventListenerCallbacks @Inject constructor(
 ) {
     private var maxFriendRequestsWarningActive = false
     private var audioPlayer: AudioPlayer? = null
+    private var audioFramesForLog = 0
+    private var audioSamplesForLog = 0L
+    private var lastAudioSamplingRate = 0
+    private var lastAudioChannels = 0
+    private var audioPlayerSamplingRate = 0
+    private var audioPlayerChannels = 0
+    private var lastAudioDiagnosticAtMs = 0L
     private val scope = CoroutineScope(Dispatchers.Default)
 
     private suspend fun tryGetContact(pk: String, tag: String) = contactRepository.get(pk).firstOrNull().let {
@@ -239,6 +247,8 @@ class EventListenerCallbacks @Inject constructor(
                 audioPlayer?.stop()
                 audioPlayer?.release()
                 audioPlayer = null
+                audioPlayerSamplingRate = 0
+                audioPlayerChannels = 0
                 notificationHelper.dismissCallNotification(PublicKey(pk))
                 callManager.remoteCallEnded(PublicKey(pk))
             }
@@ -246,6 +256,7 @@ class EventListenerCallbacks @Inject constructor(
 
         videoBitRateHandler = { pk, bitRate ->
             Log.e(TAG, "videoBitRate ${pk.fingerprint()} $bitRate")
+            SkyToxCrashLogger.av("toxav.videoBitRate pk=${pk.fingerprint()} bitRate=$bitRate")
         }
 
         videoReceiveFrameHandler = {
@@ -264,14 +275,48 @@ class EventListenerCallbacks @Inject constructor(
 
         audioBitRateHandler = { pk, bitRate ->
             Log.e(TAG, "audioBitRate ${pk.fingerprint()} $bitRate")
+            SkyToxCrashLogger.av("toxav.audioBitRate pk=${pk.fingerprint()} bitRate=$bitRate")
         }
 
         audioReceiveFrameHandler = { _, pcm, channels, samplingRate ->
-            if (audioPlayer == null) {
+            logAudioDiagnostics(pcm.size, channels, samplingRate)
+            if (audioPlayer == null || audioPlayerSamplingRate != samplingRate || audioPlayerChannels != channels) {
+                audioPlayer?.release()
                 audioPlayer = AudioPlayer(samplingRate, channels)
                 audioPlayer?.start()
+                audioPlayerSamplingRate = samplingRate
+                audioPlayerChannels = channels
             }
             audioPlayer?.buffer(pcm)
         }
+    }
+
+    private fun logAudioDiagnostics(samples: Int, channels: Int, samplingRate: Int) {
+        val now = SystemClock.elapsedRealtime()
+        audioFramesForLog++
+        audioSamplesForLog += samples.toLong()
+        if (lastAudioSamplingRate != samplingRate || lastAudioChannels != channels) {
+            SkyToxCrashLogger.av(
+                "audio format channels=$channels samplingRate=$samplingRate samples=$samples " +
+                    "prevChannels=$lastAudioChannels prevRate=$lastAudioSamplingRate",
+            )
+            lastAudioSamplingRate = samplingRate
+            lastAudioChannels = channels
+        }
+        if (lastAudioDiagnosticAtMs == 0L) {
+            lastAudioDiagnosticAtMs = now
+            return
+        }
+        val elapsed = now - lastAudioDiagnosticAtMs
+        if (elapsed < 5_000L) {
+            return
+        }
+        SkyToxCrashLogger.av(
+            "audio elapsed=${elapsed}ms frames=$audioFramesForLog samples=$audioSamplesForLog " +
+                "channels=$channels samplingRate=$samplingRate",
+        )
+        audioFramesForLog = 0
+        audioSamplesForLog = 0L
+        lastAudioDiagnosticAtMs = now
     }
 }
