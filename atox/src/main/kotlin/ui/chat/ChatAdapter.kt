@@ -32,6 +32,8 @@ import java.util.Locale
 import kotlin.math.roundToInt
 import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.ui.markdown.SkyToxMarkdown
+import ltd.evilcorp.atox.ui.location.SkyToxLocationProtocol
+import ltd.evilcorp.atox.ui.location.SkyToxLocationPayload
 import ltd.evilcorp.core.vo.FileTransfer
 import ltd.evilcorp.core.vo.Message
 import ltd.evilcorp.core.vo.MessageType
@@ -126,6 +128,7 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
     var onFileTransferLongClick: ((View, Int) -> Unit)? = null
     var onLongTextToggle: ((Long) -> Unit)? = null
     var onCodePreviewClick: ((Message) -> Unit)? = null
+    var onLocationClick: ((Message, SkyToxLocationPayload) -> Unit)? = null
 
     override fun getCount(): Int = messages.size
     override fun getItem(position: Int): Any = messages[position]
@@ -180,7 +183,13 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                     },
                 )
 
-                if (SkyToxCodeMessage.isCode(message.message)) {
+                val locationPayload = SkyToxLocationProtocol.decode(message.message)
+                if (locationPayload?.kind == SkyToxLocationPayload.Kind.OneShot) {
+                    vh.message.typeface = Typeface.DEFAULT_BOLD
+                    vh.message.setPadding(dp(10), dp(8), dp(10), dp(8))
+                    vh.message.text = resources.getString(R.string.location_message_open_map)
+                    vh.message.setOnClickListener { onLocationClick?.invoke(message, locationPayload) }
+                } else if (SkyToxCodeMessage.isCode(message.message)) {
                     val code = SkyToxCodeMessage.decode(message.message).orEmpty()
                     vh.message.typeface = Typeface.create(Typeface.MONOSPACE, Typeface.ITALIC)
                     vh.message.setPadding(dp(10), dp(8), dp(10), dp(8))

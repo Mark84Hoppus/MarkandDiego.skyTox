@@ -42,6 +42,7 @@ import ltd.evilcorp.domain.feature.SkyToxCrashLogger
 import ltd.evilcorp.domain.tox.Tox
 import ltd.evilcorp.domain.tox.ToxSaveStatus
 import ltd.evilcorp.atox.settings.Settings
+import ltd.evilcorp.atox.ui.location.SkyToxLocationSharingManager
 
 private const val TAG = "ToxService"
 private const val NOTIFICATION_ID = 1984
@@ -82,6 +83,9 @@ class ToxService : LifecycleService() {
 
     @Inject
     lateinit var settings: Settings
+
+    @Inject
+    lateinit var locationSharingManager: SkyToxLocationSharingManager
 
     private fun createNotificationChannel() {
         val channel = NotificationChannelCompat.Builder(channelId, NotificationManagerCompat.IMPORTANCE_LOW)
@@ -242,6 +246,11 @@ class ToxService : LifecycleService() {
         wakeModeStopHandler.postDelayed({
             if (fileTransferManager.hasActiveDataTransfers()) {
                 SkyToxCrashLogger.diagnostic("toxservice.wake auto_stop_deferred active_file_transfer=true")
+                scheduleWakeModeStopIfNeeded()
+                return@postDelayed
+            }
+            if (locationSharingManager.hasActiveSharing()) {
+                SkyToxCrashLogger.diagnostic("toxservice.wake auto_stop_deferred active_location_share=true")
                 scheduleWakeModeStopIfNeeded()
                 return@postDelayed
             }

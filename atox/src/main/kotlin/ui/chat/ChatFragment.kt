@@ -19,6 +19,7 @@ import android.view.ContextThemeWrapper
 import android.content.Intent
 import android.media.MediaPlayer
 import android.media.MediaRecorder
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -67,6 +68,8 @@ import ltd.evilcorp.atox.requireStringArg
 import ltd.evilcorp.atox.truncated
 import ltd.evilcorp.atox.ui.BaseFragment
 import ltd.evilcorp.atox.ui.call.REQUEST_VIDEO_CALL
+import ltd.evilcorp.atox.ui.location.SkyToxLocationMapActivity
+import ltd.evilcorp.atox.ui.location.SkyToxLocationProtocol
 import ltd.evilcorp.atox.ui.texteditor.SkyToxTextEditorActivity
 import ltd.evilcorp.atox.vmFactory
 import ltd.evilcorp.core.vo.ConnectionStatus
@@ -89,6 +92,7 @@ private const val PERMISSION_RECORD_AUDIO = Manifest.permission.RECORD_AUDIO
 private const val WAKE_CONTACT_COOLDOWN_MS = 30_000L
 private const val AUTO_WAKE_INTERVAL_MS = 3 * 60 * 1000L
 private const val AUTO_WAKE_OPEN_ATTEMPTS = 3
+private const val MAX_FILES_PER_SEND_BATCH = 10
 
 private fun FileTransfer.isAudio() = try {
     URLConnection.guessContentTypeFromName(fileName).orEmpty().startsWith("audio/")
@@ -106,6 +110,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
 
     private lateinit var contactPubKey: String
     private var contactName = ""
+    private var contactAvatarUri = ""
     private var selectedFt: Int = Int.MIN_VALUE
     private var fts: List<FileTransfer> = listOf()
     private var contacts: List<Contact> = listOf()
@@ -141,6 +146,18 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             startVoiceRecording()
         }
     }
+
+    private val requestLocationLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+            if (result.values.any { it }) {
+                viewModel.requestOwnLocation()
+                if (!viewModel.sendCurrentLocation()) {
+                    Toast.makeText(requireContext(), R.string.location_waiting_for_fix, Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Toast.makeText(requireContext(), R.string.location_permission_needed, Toast.LENGTH_LONG).show()
+            }
+        }
 
     private val decryptMessageLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -180,7 +197,15 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private val attachFilesLauncher =
         registerForActivityResult(OpenMultiplePersistableDocuments()) { files ->
             viewModel.setActiveChat(PublicKey(contactPubKey))
-            for (file in files) {
+            val filesToSend = files.take(MAX_FILES_PER_SEND_BATCH)
+            if (files.size > MAX_FILES_PER_SEND_BATCH) {
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.file_send_batch_limited, MAX_FILES_PER_SEND_BATCH),
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+            for (file in filesToSend) {
                 activity?.contentResolver?.takePersistableUriPermission(file, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 viewModel.createFt(file)
             }
@@ -244,6 +269,8 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         toolbar.menu.findItem(R.id.import_history)?.isVisible = !viewModel.isSelfChat()
         toolbar.menu.findItem(R.id.send_encrypted_message)?.isVisible = !viewModel.isSelfChat()
         toolbar.menu.findItem(R.id.send_code_message)?.isVisible = !viewModel.isSelfChat()
+        toolbar.menu.findItem(R.id.share_live_location)?.isVisible = !viewModel.isSelfChat()
+        toolbar.menu.findItem(R.id.send_location)?.isVisible = !viewModel.isSelfChat()
         toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.backup_history -> {
@@ -315,6 +342,14 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                     showSendCodeDialog()
                     true
                 }
+                R.id.share_live_location -> {
+                    SkyToxLocationMapActivity.open(requireContext(), contactPubKey, contactName, contactAvatarUri)
+                    true
+                }
+                R.id.send_location -> {
+                    sendCurrentLocation()
+                    true
+                }
                 else -> super.onOptionsItemSelected(item)
             }
         }
@@ -337,6 +372,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             it.name = it.name.ifEmpty { getString(R.string.contact_default_name) }
 
             contactName = it.name
+            contactAvatarUri = it.avatarUri
             ongoingCall.info.text = getString(R.string.in_call_with, contactName)
             viewModel.contactOnline = it.connectionStatus != ConnectionStatus.None && !viewModel.isSelfChat()
 
@@ -394,6 +430,13 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             }
         }
 
+        viewModel.activeLocationContact().observe(viewLifecycleOwner) {
+            updateLocationMenuState()
+        }
+        viewModel.peerLocations().observe(viewLifecycleOwner) {
+            locationLiveIndicator.visibility = if (it.containsKey(contactPubKey)) View.VISIBLE else View.GONE
+        }
+
         viewModel.ongoingCall.observe(viewLifecycleOwner) {
             if (it is CallState.InCall && it.publicKey.string() == contactPubKey) {
                 ongoingCall.container.visibility = View.VISIBLE
@@ -431,6 +474,9 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         adapter.onCodePreviewClick = { message ->
             SkyToxCodeMessage.decode(message.message)?.let { showCodeViewerDialog(it) }
         }
+        adapter.onLocationClick = { _, payload ->
+            openLocationChooser(payload)
+        }
         adapter.onFileTransferLongClick = { anchor, position ->
             showMessageContextMenu(anchor, adapter.messages[position], adapter)
         }
@@ -465,7 +511,11 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                 R.id.accept -> viewModel.acceptFt(adapter.messages[position].correlationId)
                 R.id.reject, R.id.cancel -> viewModel.rejectFt(adapter.messages[position].correlationId)
                 R.id.audioPlay -> toggleAudioPlayback(adapter.messages[position].correlationId)
-                else -> if (message.type == MessageType.FileTransfer) {
+                else -> if (SkyToxLocationProtocol.decode(message.message) != null) {
+                    SkyToxLocationProtocol.decode(message.message)?.let {
+                        openLocationChooser(it)
+                    }
+                } else if (message.type == MessageType.FileTransfer) {
                     val id = message.correlationId
                     val ft = adapter.fileTransfers.find { it.id == id } ?: return@setOnItemClickListener
                     if (ft.isAudio()) {
@@ -555,7 +605,39 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         viewModel.setActiveChat(PublicKey(contactPubKey))
         viewModel.setTyping(outgoingMessage.text.isNotEmpty())
         updateWakeContactMenuItem()
+        updateLocationMenuState()
         super.onResume()
+    }
+
+    private fun sendCurrentLocation() {
+        if (!viewModel.hasLocationPermission()) {
+            requestLocationLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+            return
+        }
+        viewModel.requestOwnLocation()
+        if (viewModel.sendCurrentLocation()) {
+            Toast.makeText(requireContext(), R.string.location_sent, Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(requireContext(), R.string.location_waiting_for_fix, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun openLocationChooser(payload: ltd.evilcorp.atox.ui.location.SkyToxLocationPayload) {
+        val label = Uri.encode(contactName.ifBlank { getString(R.string.location_message_open_map) })
+        val uri = "geo:${payload.latitude},${payload.longitude}?q=${payload.latitude},${payload.longitude}($label)".toUri()
+        val intent = Intent(Intent.ACTION_VIEW, uri)
+        runCatching {
+            startActivity(Intent.createChooser(intent, getString(R.string.location_open_with)))
+        }.onFailure {
+            Toast.makeText(requireContext(), R.string.location_no_map_app, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun updateLocationMenuState() = binding.run {
+        val active = viewModel.activeLocationContact().value
+        toolbar.menu.findItem(R.id.share_live_location)?.let { item ->
+            item.isEnabled = active == null || active == contactPubKey
+        }
     }
 
     private fun showMessageContextMenu(anchor: View, message: Message, adapter: ChatAdapter) {

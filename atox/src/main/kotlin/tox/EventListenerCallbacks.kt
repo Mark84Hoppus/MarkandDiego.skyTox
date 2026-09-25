@@ -15,6 +15,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import ltd.evilcorp.atox.R
@@ -22,6 +24,8 @@ import ltd.evilcorp.atox.push.SkyToxPushManager
 import ltd.evilcorp.atox.settings.FtAutoAccept
 import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.atox.ui.NotificationHelper
+import ltd.evilcorp.atox.ui.location.SkyToxLocationProtocol
+import ltd.evilcorp.atox.ui.location.SkyToxLocationSharingManager
 import ltd.evilcorp.core.repository.ContactRepository
 import ltd.evilcorp.core.repository.FriendRequestRepository
 import ltd.evilcorp.core.repository.MessageRepository
@@ -50,6 +54,7 @@ import ltd.evilcorp.domain.tox.toMessageType
 
 private const val MAX_ACTIVE_FRIEND_REQUESTS = 32
 private const val TAG = "EventListenerCallbacks"
+private const val FILE_TRANSFER_OFFLINE_GRACE_MS = 30_000L
 
 private fun isImage(filename: String) = try {
     URLConnection.guessContentTypeFromName(filename).startsWith("image/")
@@ -77,6 +82,7 @@ class EventListenerCallbacks @Inject constructor(
     private val notificationHelper: NotificationHelper,
     private val tox: Tox,
     private val settings: Settings,
+    private val locationSharingManager: SkyToxLocationSharingManager,
 ) {
     private var maxFriendRequestsWarningActive = false
     private var audioPlayer: AudioPlayer? = null
@@ -88,6 +94,7 @@ class EventListenerCallbacks @Inject constructor(
     private var audioPlayerChannels = 0
     private var lastAudioDiagnosticAtMs = 0L
     private val scope = CoroutineScope(Dispatchers.Default)
+    private val pendingFileTransferInterrupts = mutableMapOf<String, Job>()
 
     private suspend fun tryGetContact(pk: String, tag: String) = contactRepository.get(pk).firstOrNull().let {
         if (it == null) Log.e(TAG, "$tag -> unable to get contact for ${pk.fingerprint()}")
@@ -113,6 +120,8 @@ class EventListenerCallbacks @Inject constructor(
         friendConnectionStatusHandler = { publicKey, status ->
             contactRepository.setConnectionStatus(publicKey, status)
             if (status != ConnectionStatus.None) {
+                pendingFileTransferInterrupts.remove(publicKey)?.cancel()
+                SkyToxCrashLogger.fileTransfer("offline_grace_cancel contact=${publicKey.fingerprint()} status=$status")
                 fileTransferManager.resumeOutgoingForContact(
                     publicKey,
                     settings.pendingFileRetention.millis,
@@ -127,7 +136,22 @@ class EventListenerCallbacks @Inject constructor(
                     }
                 }
             } else {
-                fileTransferManager.interruptForContact(publicKey)
+                pendingFileTransferInterrupts.remove(publicKey)?.cancel()
+                pendingFileTransferInterrupts[publicKey] = scope.launch {
+                    SkyToxCrashLogger.fileTransfer(
+                        "offline_grace_start contact=${publicKey.fingerprint()} delayMs=$FILE_TRANSFER_OFFLINE_GRACE_MS",
+                    )
+                    delay(FILE_TRANSFER_OFFLINE_GRACE_MS)
+                    val stillOffline = contactRepository.get(publicKey).firstOrNull()
+                        ?.connectionStatus == ConnectionStatus.None
+                    if (stillOffline) {
+                        SkyToxCrashLogger.fileTransfer("offline_grace_interrupt contact=${publicKey.fingerprint()}")
+                        fileTransferManager.interruptForContact(publicKey)
+                    } else {
+                        SkyToxCrashLogger.fileTransfer("offline_grace_skip contact=${publicKey.fingerprint()}")
+                    }
+                    pendingFileTransferInterrupts.remove(publicKey)
+                }
             }
         }
 
@@ -154,7 +178,10 @@ class EventListenerCallbacks @Inject constructor(
         }
 
         friendMessageHandler = { publicKey, type, timeDelta, msg, trifaSentAtMs ->
-            if (SkyToxIncomingTextSanitizer.shouldIgnore(msg)) {
+            val locationPayload = SkyToxLocationProtocol.decode(msg)
+            if (locationPayload != null && locationSharingManager.handleIncoming(publicKey, locationPayload)) {
+                // Live location packets are transient state, not chat history.
+            } else if (SkyToxIncomingTextSanitizer.shouldIgnore(msg)) {
                 Log.w(TAG, "Ignoring unsupported noisy text payload from ${publicKey.fingerprint()}")
             } else {
                 val timestamp = trifaSentAtMs

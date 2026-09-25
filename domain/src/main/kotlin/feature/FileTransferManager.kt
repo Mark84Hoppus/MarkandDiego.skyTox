@@ -695,9 +695,20 @@ class FileTransferManager @Inject constructor(
 
     private fun markCancelledByPeer(ft: FileTransfer) {
         SkyToxCrashLogger.fileTransfer(
-            "peer_cancel ft=${ft.id} contact=${ft.publicKey.fingerprint()} fileNo=${ft.fileNumber} outgoing=${ft.outgoing}",
+            "peer_cancel ft=${ft.id} contact=${ft.publicKey.fingerprint()} fileNo=${ft.fileNumber} " +
+                "outgoing=${ft.outgoing} progress=${ft.transferredBytes()}/${ft.fileSize}",
         )
         fileTransfers.removeAll { it.id == ft.id }
+        if (!ft.outgoing &&
+            ft.fileKind == FileKind.Data.ordinal &&
+            ft.transferredBytes() > FT_STARTED &&
+            !ft.isComplete()
+        ) {
+            SkyToxCrashLogger.fileTransfer("peer_cancel_preserve_interrupted ft=${ft.id}")
+            setProgress(ft, ft.interruptedProgress())
+            return
+        }
+
         setProgress(ft, FT_REJECTED)
         val uri = ft.destination.toUri()
         if (ft.outgoing) {

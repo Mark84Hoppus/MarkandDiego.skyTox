@@ -67,6 +67,7 @@ const val ARG_ADD_CONTACT = "add_contact"
 const val ARG_SHARE = "share"
 const val ARG_SHARE_FILES = "share_files"
 private const val MAX_CONFIRM_DELETE_STRING_LENGTH = 32
+private const val MAX_FILES_PER_SHARE_BATCH = 10
 
 private fun User.online(): Boolean = connectionStatus != ConnectionStatus.None
 
@@ -263,11 +264,19 @@ class ContactListFragment :
 
         arguments?.getParcelableArrayList<Uri>(ARG_SHARE_FILES)?.let { files ->
             if (files.isEmpty()) return@let
+            val filesToShare = ArrayList(files.take(MAX_FILES_PER_SHARE_BATCH))
+            if (files.size > MAX_FILES_PER_SHARE_BATCH) {
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.file_send_batch_limited, MAX_FILES_PER_SHARE_BATCH),
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
             ReceiveShareDialogFragment(
                 viewModel.contacts,
-                files.joinToString(separator = "\n") { it.lastPathSegment ?: it.toString() },
+                filesToShare.joinToString(separator = "\n") { it.lastPathSegment ?: it.toString() },
                 onContactSelected = {
-                    viewModel.onShareFiles(files, it)
+                    viewModel.onShareFiles(filesToShare, it)
                     openChat(it)
                 },
                 onDialogDismissed = {

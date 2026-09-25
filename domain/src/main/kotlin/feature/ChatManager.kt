@@ -90,6 +90,18 @@ class ChatManager @Inject constructor(
         )
     }
 
+    fun sendEphemeralMessage(publicKey: PublicKey, message: String, type: MessageType = MessageType.Normal) =
+        scope.launch {
+            if (contactRepository.get(publicKey.string()).first().connectionStatus == ConnectionStatus.None) return@launch
+
+            val contact = contactRepository.get(publicKey.string()).first()
+            val trifaCompatible = TrifaMessageV3.shouldSendTo(contact)
+            val sentAt = SkyToxMessageTime.outgoingTimestamp()
+            val msgs = message.chunked(if (trifaCompatible) MAX_MESSAGE_LENGTH - 38 else MAX_MESSAGE_LENGTH)
+            SkyToxMessageTime.sendOutgoingMetadata(tox, publicKey, message, sentAt)
+            msgs.forEach { sendMessagePayload(publicKey, it, type, sentAt, trifaCompatible) }
+        }
+
     private fun queueMessage(publicKey: PublicKey, message: String, type: MessageType, sentAt: Long) =
         messageRepository.add(Message(publicKey.string(), message, Sender.Sent, type, Int.MIN_VALUE, sentAt))
 

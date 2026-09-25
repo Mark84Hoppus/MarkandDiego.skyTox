@@ -49,6 +49,7 @@ import ltd.evilcorp.atox.push.SkyToxPushManager
 import ltd.evilcorp.atox.settings.AppLockMode
 import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.atox.ui.NotificationHelper
+import ltd.evilcorp.atox.ui.location.SkyToxLocationSharingManager
 import ltd.evilcorp.core.vo.ConnectionStatus
 import ltd.evilcorp.core.vo.Contact
 import ltd.evilcorp.core.vo.FileTransfer
@@ -94,6 +95,7 @@ class ChatViewModel @Inject constructor(
     private val userManager: UserManager,
     private val messageRepository: MessageRepository,
     private val tox: Tox,
+    private val locationSharingManager: SkyToxLocationSharingManager,
 ) : ViewModel() {
     private var publicKey = PublicKey("")
     private var sentTyping = false
@@ -193,6 +195,11 @@ class ChatViewModel @Inject constructor(
     fun hasWakeToken(): Boolean = pushManager.hasFriendToken(publicKey)
     fun wakeContact(): Boolean = pushManager.sendManualWake(publicKey)
     fun wakeContact(reason: String): Boolean = pushManager.sendWakeSignal(publicKey, reason)
+    fun activeLocationContact() = locationSharingManager.activeContact()
+    fun peerLocations() = locationSharingManager.peerLocations()
+    fun requestOwnLocation() = locationSharingManager.requestOwnLocationOnly()
+    fun hasLocationPermission() = locationSharingManager.canUseLocation()
+    fun sendCurrentLocation(): Boolean = locationSharingManager.sendOneShot(publicKey.string())
 
     fun clearHistory() = scope.launch {
         if (isSelfChat()) {

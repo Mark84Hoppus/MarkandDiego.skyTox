@@ -55,6 +55,8 @@ import ltd.evilcorp.domain.tox.Tox
 import ltd.evilcorp.domain.tox.ToxSaveStatus
 import ltd.evilcorp.domain.tox.testToxSave
 
+private const val MAX_FILES_PER_SHARE_BATCH = 10
+
 class ContactListViewModel @Inject constructor(
     private val scope: CoroutineScope,
     private val context: Context,
@@ -259,7 +261,7 @@ class ContactListViewModel @Inject constructor(
     fun onShareText(what: String, to: Contact) = chatManager.sendMessage(PublicKey(to.publicKey), what)
 
     fun onShareFiles(files: List<Uri>, to: Contact) = scope.launch(Dispatchers.IO) {
-        files.forEach {
+        files.take(MAX_FILES_PER_SHARE_BATCH).forEach {
             fileTransferManager.create(
                 PublicKey(to.publicKey),
                 it,

@@ -77,6 +77,7 @@
     <string name="pref_ft_auto_accept_none">None</string>
     <string name="pref_ft_auto_accept_images">Images</string>
     <string name="pref_ft_auto_accept_all">All</string>
+    <string name="file_send_batch_limited">You can send up to %1$d files at once. Only the first %1$d files will be sent.</string>
     <string-array name="pref_ft_auto_accept_options">
         <item>@string/pref_ft_auto_accept_none</item>
         <item>@string/pref_ft_auto_accept_images</item>
@@ -390,4 +391,19 @@ skyTox validates the JSON structure before importing. An all-chats backup cannot
     <string name="self_chat_scheduled_prefix">Will send %1$s</string>
     <string name="self_chat_scheduled_datetime">%1$s at %2$s</string>
     <string name="scroll_to_bottom">Scroll to latest message</string>
+    <string name="location_share_live">Share live location</string>
+    <string name="location_send">Send location</string>
+    <string name="location_message_open_map">Location\nOpen on map</string>
+    <string name="location_share_start">Start</string>
+    <string name="location_share_stop">Stop</string>
+    <string name="location_share_one_contact_only">Stop the current live location before sharing with another contact</string>
+    <string name="location_waiting_for_fix">Waiting for location</string>
+    <string name="location_permission_needed">Location permission is needed</string>
+    <string name="location_sent">Location sent</string>
+    <string name="location_distance_m">%1$d m</string>
+    <string name="location_meter_short">m</string>
+    <string name="location_kilometer_short">km</string>
+    <string name="location_open_with">Open location with</string>
+    <string name="location_no_map_app">No map app found</string>
+    <string name="location_live_active">Live location active</string>
 </resources>
