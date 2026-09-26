@@ -191,6 +191,10 @@ class SkyToxLocationSharingManager @Inject constructor(
 
             @Deprecated("Deprecated by Android")
             override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) = Unit
+
+            override fun onProviderEnabled(provider: String) = Unit
+
+            override fun onProviderDisabled(provider: String) = Unit
         }
         val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
         providers.forEach { provider ->

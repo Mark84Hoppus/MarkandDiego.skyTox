@@ -102,6 +102,9 @@ private class FileTransferViewHolder(row: View) {
     val bubble: View = row.findViewById(R.id.container)
     val fileName: TextView = row.findViewById(R.id.fileName)
     val fileSize: TextView = row.findViewById(R.id.fileSize)
+    val fileKindRow: View = row.findViewById(R.id.fileKindRow)
+    val fileIcon: ImageView = row.findViewById(R.id.fileIcon)
+    val fileType: TextView = row.findViewById(R.id.fileType)
     val progress: ProgressBar = row.findViewById(R.id.progress)
     val state: TextView = row.findViewById(R.id.state)
     val timestamp: TextView = row.findViewById(R.id.timestamp)
@@ -287,7 +290,10 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                     },
                 )
 
-                if (fileTransfer.hasThumbnail() || fileTransfer.isComplete() && !fileTransfer.isAudio()) {
+                if ((fileTransfer.hasThumbnail() || fileTransfer.isComplete()) &&
+                    !fileTransfer.isAudio() &&
+                    fileTransfer.isImageOrVideo()
+                ) {
                     vh.completedLayout.visibility = View.VISIBLE
                     val targetWidth = if (fileTransfer.isImageOrVideo()) {
                         (Resources.getSystem().displayMetrics.widthPixels * IMAGE_TO_SCREEN_RATIO).roundToInt()
@@ -317,6 +323,12 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                     if (fileTransfer.id == playingAudioId) R.drawable.ic_stop else R.drawable.ic_play,
                 )
                 vh.audioDuration.text = audioDurationText(fileTransfer)
+                vh.fileKindRow.visibility = if (fileTransfer.isAudio() || fileTransfer.isImageOrVideo()) {
+                    View.GONE
+                } else {
+                    View.VISIBLE
+                }
+                vh.fileIcon.setImageResource(R.drawable.ic_document_thumb)
 
                 vh.state.visibility = View.GONE
                 if (fileTransfer.isQueued()) {
@@ -348,6 +360,10 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
 
                 vh.fileName.text = fileTransfer.fileName
                 vh.fileSize.text = Formatter.formatFileSize(inflater.context, fileTransfer.fileSize)
+                vh.fileType.text = fileTransfer.fileName.substringAfterLast('.', "FILE")
+                    .take(5)
+                    .ifBlank { "FILE" }
+                    .uppercase(Locale.getDefault())
                 vh.progress.max = fileTransfer.fileSize.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
                 vh.progress.progress = fileTransfer.transferredBytes().coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
                 val stateId = when {

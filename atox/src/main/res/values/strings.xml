@@ -406,4 +406,12 @@ skyTox validates the JSON structure before importing. An all-chats backup cannot
     <string name="location_open_with">Open location with</string>
     <string name="location_no_map_app">No map app found</string>
     <string name="location_live_active">Live location active</string>
+    <string name="location_marker_add_title">Map marker</string>
+    <string name="location_marker_name_hint">Name</string>
+    <string name="location_marker_default_name">Marker</string>
+    <string name="location_track_delete_title">Delete track?</string>
+    <string name="location_layer_cities">Cities</string>
+    <string name="location_layer_borders">Borders</string>
+    <string name="location_layer_roads">Roads</string>
+    <string name="location_layer_rails">Railways</string>
 </resources>
