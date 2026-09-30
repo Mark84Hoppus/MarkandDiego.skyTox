@@ -132,6 +132,8 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
     var onLongTextToggle: ((Long) -> Unit)? = null
     var onCodePreviewClick: ((Message) -> Unit)? = null
     var onLocationClick: ((Message, SkyToxLocationPayload) -> Unit)? = null
+    var onVisibleMessageClick: ((Message) -> Boolean)? = null
+    var onVisibleMessageLongClick: ((View, Message) -> Boolean)? = null
 
     override fun getCount(): Int = messages.size
     override fun getItem(position: Int): Any = messages[position]
@@ -175,7 +177,12 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                 val unsent = message.timestamp == 0L || SkyToxChatMarkers.isUndelivered(message)
                 view.setBackgroundColor(if (message.id in selectedMessageIds) SELECTED_MESSAGE_COLOR else Color.TRANSPARENT)
 
-                vh.message.setOnClickListener(null)
+                vh.message.setOnClickListener {
+                    onVisibleMessageClick?.invoke(message)
+                }
+                vh.message.setOnLongClickListener {
+                    onVisibleMessageLongClick?.invoke(vh.message, message) ?: false
+                }
                 vh.message.typeface = Typeface.DEFAULT
                 vh.message.setPadding(dp(8), dp(8), dp(8), dp(8))
                 vh.message.setBackgroundResource(
@@ -191,13 +198,19 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                     vh.message.typeface = Typeface.DEFAULT_BOLD
                     vh.message.setPadding(dp(10), dp(8), dp(10), dp(8))
                     vh.message.text = resources.getString(R.string.location_message_open_map)
-                    vh.message.setOnClickListener { onLocationClick?.invoke(message, locationPayload) }
+                    vh.message.setOnClickListener {
+                        if (onVisibleMessageClick?.invoke(message) == true) return@setOnClickListener
+                        onLocationClick?.invoke(message, locationPayload)
+                    }
                 } else if (SkyToxCodeMessage.isCode(message.message)) {
                     val code = SkyToxCodeMessage.decode(message.message).orEmpty()
                     vh.message.typeface = Typeface.create(Typeface.MONOSPACE, Typeface.ITALIC)
                     vh.message.setPadding(dp(10), dp(8), dp(10), dp(8))
                     vh.message.text = foldedPlainText(code, 5, expanded = false, forceFold = true).text
-                    vh.message.setOnClickListener { onCodePreviewClick?.invoke(message) }
+                    vh.message.setOnClickListener {
+                        if (onVisibleMessageClick?.invoke(message) == true) return@setOnClickListener
+                        onCodePreviewClick?.invoke(message)
+                    }
                 } else {
                     val folded = foldedPlainText(
                         message.message,
@@ -206,7 +219,10 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                     )
                     SkyToxMarkdown.render(vh.message, folded.text)
                     if (folded.foldable) {
-                        vh.message.setOnClickListener { onLongTextToggle?.invoke(message.id) }
+                        vh.message.setOnClickListener {
+                            if (onVisibleMessageClick?.invoke(message) == true) return@setOnClickListener
+                            onLongTextToggle?.invoke(message.id)
+                        }
                     }
                 }
                 vh.timestamp.text = if (!unsent) {
@@ -261,27 +277,47 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                     false
                 }
                 val openListener = View.OnClickListener { v ->
+                    if (onVisibleMessageClick?.invoke(message) == true) return@OnClickListener
                     (parent as ListView).performItemClick(v, position, position.toLong())
+                }
+                val longClickListener = View.OnLongClickListener { anchor ->
+                    if (onVisibleMessageLongClick?.invoke(anchor, message) == true) {
+                        true
+                    } else {
+                        onFileTransferLongClick?.invoke(anchor, position)
+                        true
+                    }
                 }
                 vh.accept.setOnTouchListener(touchListener)
                 vh.reject.setOnTouchListener(touchListener)
                 vh.cancel.setOnTouchListener(touchListener)
-                vh.audioPlay.setOnTouchListener(touchListener)
+                vh.audioPlay.setOnTouchListener(null)
                 vh.bubble.setOnClickListener(openListener)
                 vh.completedLayout.setOnClickListener(openListener)
                 vh.imagePreview.setOnClickListener(openListener)
-                vh.container.setOnLongClickListener {
-                    onFileTransferLongClick?.invoke(vh.container, position)
-                    true
-                }
-                view.setOnLongClickListener {
-                    onFileTransferLongClick?.invoke(vh.container, position)
-                    true
-                }
-                vh.audioPlay.setOnLongClickListener {
-                    onFileTransferLongClick?.invoke(vh.container, position)
-                    true
-                }
+                vh.audioLayout.setOnClickListener(openListener)
+                vh.audioPlay.setOnClickListener(openListener)
+                vh.fileName.setOnClickListener(openListener)
+                vh.fileSize.setOnClickListener(openListener)
+                vh.fileKindRow.setOnClickListener(openListener)
+                vh.fileIcon.setOnClickListener(openListener)
+                vh.fileType.setOnClickListener(openListener)
+                vh.progress.setOnClickListener(openListener)
+                vh.state.setOnClickListener(openListener)
+                vh.bubble.setOnLongClickListener(longClickListener)
+                vh.completedLayout.setOnLongClickListener(longClickListener)
+                vh.imagePreview.setOnLongClickListener(longClickListener)
+                vh.audioLayout.setOnLongClickListener(longClickListener)
+                vh.fileKindRow.setOnLongClickListener(longClickListener)
+                vh.fileName.setOnLongClickListener(longClickListener)
+                vh.fileSize.setOnLongClickListener(longClickListener)
+                vh.fileIcon.setOnLongClickListener(longClickListener)
+                vh.fileType.setOnLongClickListener(longClickListener)
+                vh.progress.setOnLongClickListener(longClickListener)
+                vh.state.setOnLongClickListener(longClickListener)
+                vh.container.setOnLongClickListener(longClickListener)
+                view.setOnLongClickListener(null)
+                vh.audioPlay.setOnLongClickListener(longClickListener)
                 vh.bubble.setBackgroundResource(
                     if (fileTransfer.outgoing) {
                         R.drawable.chat_filetransfer_sent_background

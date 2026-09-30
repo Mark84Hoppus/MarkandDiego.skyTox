@@ -30,6 +30,9 @@ vpn-profiles/
 *.ovpn
 cloudflared.exe
 cloudflared-service.log
+trash/
+aTox-backups/
+skyTox-server-backups/
 
 # gradle-from-source build
 _build

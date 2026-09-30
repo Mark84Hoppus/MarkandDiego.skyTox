@@ -196,9 +196,11 @@ class ChatViewModel @Inject constructor(
     fun wakeContact(): Boolean = pushManager.sendManualWake(publicKey)
     fun wakeContact(reason: String): Boolean = pushManager.sendWakeSignal(publicKey, reason)
     fun activeLocationContact() = locationSharingManager.activeContact()
+    fun ownLocation() = locationSharingManager.ownLocation()
     fun peerLocations() = locationSharingManager.peerLocations()
     fun requestOwnLocation() = locationSharingManager.requestOwnLocationOnly()
     fun hasLocationPermission() = locationSharingManager.canUseLocation()
+    fun hasFreshOwnLocation() = locationSharingManager.hasFreshOwnLocation()
     fun sendCurrentLocation(): Boolean = locationSharingManager.sendOneShot(publicKey.string())
 
     fun clearHistory() = scope.launch {

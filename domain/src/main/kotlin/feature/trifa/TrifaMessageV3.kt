@@ -3,6 +3,7 @@
 package ltd.evilcorp.domain.feature.trifa
 
 import java.security.SecureRandom
+import java.util.Collections
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
@@ -15,7 +16,7 @@ object TrifaMessageV3 {
     private const val TRAILER_SIZE = GUARD_SIZE + MESSAGE_ID_SIZE + TIMESTAMP_SIZE
     private const val DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000L
     private val random = SecureRandom()
-    private val observedPeers = ConcurrentHashMap.newKeySet<String>()
+    private val observedPeers = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
     private val incomingMessageIds = ConcurrentHashMap<String, Long>()
 
     fun shouldSendTo(contact: Contact): Boolean {
@@ -70,7 +71,11 @@ object TrifaMessageV3 {
 
     private fun rememberIncoming(publicKey: String, messageId: String): Boolean {
         val now = Date().time
-        incomingMessageIds.entries.removeIf { now - it.value > DUPLICATE_WINDOW_MS }
+        incomingMessageIds.entries.forEach { entry ->
+            if (now - entry.value > DUPLICATE_WINDOW_MS) {
+                incomingMessageIds.remove(entry.key, entry.value)
+            }
+        }
         return incomingMessageIds.putIfAbsent("$publicKey:$messageId", now) != null
     }
 

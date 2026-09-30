@@ -37,6 +37,7 @@ enum class CustomPacketError {
     Null,
     Sendq,
     TooLong,
+    Unknown,
 }
 
 class ToxWrapper(
@@ -200,7 +201,7 @@ class ToxWrapper(
             ToxFriendCustomPacketException.Code.NULL -> CustomPacketError.Null
             ToxFriendCustomPacketException.Code.SENDQ -> CustomPacketError.Sendq
             ToxFriendCustomPacketException.Code.TOO_LONG -> CustomPacketError.TooLong
-            null -> TODO()
+            null -> CustomPacketError.Unknown
         }
     }
 

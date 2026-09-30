@@ -3,6 +3,7 @@
 package ltd.evilcorp.atox.ui.location
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
@@ -23,9 +24,11 @@ import ltd.evilcorp.core.vo.PublicKey
 import ltd.evilcorp.domain.feature.ChatManager
 import ltd.evilcorp.domain.feature.SkyToxCrashLogger
 
-private const val LOCATION_MIN_TIME_MS = 2_000L
+private const val LOCATION_MIN_TIME_MS = 1_000L
 private const val LOCATION_MIN_DISTANCE_M = 2f
-private const val LOCATION_SEND_INTERVAL_MS = 5_000L
+private const val LOCATION_SEND_INTERVAL_MS = 1_000L
+private const val LOCATION_FIX_MAX_AGE_MS = 60_000L
+private const val LOCATION_FIX_MAX_ACCURACY_M = 200f
 
 data class SkyToxSharedLocation(
     val publicKey: String,
@@ -34,6 +37,7 @@ data class SkyToxSharedLocation(
     val accuracy: Float,
     val timestamp: Long,
     val altitude: Double = Double.NaN,
+    val speedMps: Float = 0f,
 )
 
 @Singleton
@@ -55,6 +59,7 @@ class SkyToxLocationSharingManager @Inject constructor(
     fun peerLocations(): LiveData<Map<String, SkyToxSharedLocation>> = peerLocations
     fun activeContactValue(): String? = activeContact.value
     fun hasActiveSharing(): Boolean = activeContact.value != null
+    fun hasFreshOwnLocation(): Boolean = newestLocation() != null
 
     fun canUseLocation(): Boolean =
         ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
@@ -173,6 +178,7 @@ class SkyToxLocationSharingManager @Inject constructor(
         )
     }
 
+    @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
         if (listener != null || !canUseLocation()) return
         listener = object : LocationListener {
@@ -184,6 +190,7 @@ class SkyToxLocationSharingManager @Inject constructor(
                     location.accuracy,
                     location.time.takeIf { it > 0L } ?: System.currentTimeMillis(),
                     if (location.hasAltitude()) location.altitude else Double.NaN,
+                    if (location.hasSpeed()) location.speed else 0f,
                 )
                 ownLocation.postValue(shared)
                 activeContact.value?.let { sendLiveIfDue(it) }
@@ -214,5 +221,12 @@ class SkyToxLocationSharingManager @Inject constructor(
         }
     }
 
-    private fun newestLocation(): SkyToxSharedLocation? = ownLocation.value
+    private fun newestLocation(): SkyToxSharedLocation? {
+        val loc = ownLocation.value ?: return null
+        val age = System.currentTimeMillis() - loc.timestamp
+        return loc.takeIf {
+            age in 0..LOCATION_FIX_MAX_AGE_MS &&
+                (loc.accuracy <= 0f || loc.accuracy <= LOCATION_FIX_MAX_ACCURACY_M)
+        }
+    }
 }

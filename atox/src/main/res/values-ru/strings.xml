@@ -325,6 +325,7 @@
     <string name="location_distance_m">%1$d &#1084;</string>
     <string name="location_meter_short">&#1084;</string>
     <string name="location_kilometer_short">&#1082;&#1084;</string>
+    <string name="location_speed_kmh">&#1082;&#1084;/&#1095;</string>
     <string name="location_open_with">&#1054;&#1090;&#1082;&#1088;&#1099;&#1090;&#1100; &#1075;&#1077;&#1086;&#1087;&#1086;&#1079;&#1080;&#1094;&#1080;&#1102; &#1095;&#1077;&#1088;&#1077;&#1079;</string>
     <string name="location_no_map_app">&#1053;&#1077; &#1085;&#1072;&#1081;&#1076;&#1077;&#1085;&#1086; &#1087;&#1088;&#1080;&#1083;&#1086;&#1078;&#1077;&#1085;&#1080;&#1077; &#1082;&#1072;&#1088;&#1090;</string>
     <string name="location_live_active">&#1048;&#1076;&#1077;&#1090; &#1090;&#1088;&#1072;&#1085;&#1089;&#1083;&#1103;&#1094;&#1080;&#1103; &#1075;&#1077;&#1086;&#1087;&#1086;&#1079;&#1080;&#1094;&#1080;&#1080;</string>
@@ -336,4 +337,14 @@
     <string name="location_layer_borders">&#1043;&#1088;&#1072;&#1085;&#1080;&#1094;&#1099;</string>
     <string name="location_layer_roads">&#1044;&#1086;&#1088;&#1086;&#1075;&#1080;</string>
     <string name="location_layer_rails">&#1046;&#1077;&#1083;&#1077;&#1079;&#1085;&#1099;&#1077; &#1076;&#1086;&#1088;&#1086;&#1075;&#1080;</string>
+    <string name="location_layer_tracks">&#1058;&#1088;&#1077;&#1082;&#1080;</string>
+    <string name="location_track_start_stop">&#1047;&#1072;&#1087;&#1091;&#1089;&#1090;&#1080;&#1090;&#1100;/&#1054;&#1089;&#1090;&#1072;&#1085;&#1086;&#1074;&#1080;&#1090;&#1100; &#1090;&#1088;&#1077;&#1082;</string>
+    <string name="location_track_start">Запустить трек</string>
+    <string name="location_track_stop">Остановить трек</string>
+    <string name="location_track_import">&#1048;&#1084;&#1087;&#1086;&#1088;&#1090; &#1090;&#1088;&#1077;&#1082;&#1072;</string>
+    <string name="location_track_load_title">Загрузить трек?</string>
+    <string name="location_track_loaded">Трек загружен</string>
+    <string name="location_track_already_exists">Такой трек уже существует</string>
+    <string name="location_track_import_failed">Не удалось загрузить трек</string>
+    <string name="location_map_loading">Подождите</string>
 </resources>

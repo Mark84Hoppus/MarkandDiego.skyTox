@@ -154,16 +154,14 @@ class ToxService : LifecycleService() {
 
         createNotificationChannel()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                NOTIFICATION_ID,
-                notificationFor(connectionStatus),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
-            )
-        } else {
-            startForeground(NOTIFICATION_ID, notificationFor(connectionStatus))
-        }
+        startForegroundForCurrentState()
         scheduleWakeModeStopIfNeeded()
+
+        locationSharingManager.activeContact().observe(this) {
+            SkyToxCrashLogger.diagnostic("toxservice.location_share active=${it != null}")
+            startForegroundForCurrentState()
+            scheduleWakeModeStopIfNeeded()
+        }
 
         lifecycleScope.launch(Dispatchers.Default) {
             userRepository.get(tox.publicKey.string())
@@ -257,5 +255,18 @@ class ToxService : LifecycleService() {
             SkyToxCrashLogger.diagnostic("toxservice.wake auto_stop_now")
             stopSelf()
         }, WAKE_MODE_ACTIVE_WINDOW_MS)
+    }
+
+    private fun startForegroundForCurrentState() {
+        val notification = notificationFor(connectionStatus)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            var serviceType = ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            if (locationSharingManager.hasActiveSharing() && locationSharingManager.canUseLocation()) {
+                serviceType = serviceType or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+            }
+            startForeground(NOTIFICATION_ID, notification, serviceType)
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
     }
 }

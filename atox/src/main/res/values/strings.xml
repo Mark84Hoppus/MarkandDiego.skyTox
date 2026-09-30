@@ -403,6 +403,7 @@ skyTox validates the JSON structure before importing. An all-chats backup cannot
     <string name="location_distance_m">%1$d m</string>
     <string name="location_meter_short">m</string>
     <string name="location_kilometer_short">km</string>
+    <string name="location_speed_kmh">km/h</string>
     <string name="location_open_with">Open location with</string>
     <string name="location_no_map_app">No map app found</string>
     <string name="location_live_active">Live location active</string>
@@ -414,4 +415,14 @@ skyTox validates the JSON structure before importing. An all-chats backup cannot
     <string name="location_layer_borders">Borders</string>
     <string name="location_layer_roads">Roads</string>
     <string name="location_layer_rails">Railways</string>
+    <string name="location_layer_tracks">Tracks</string>
+    <string name="location_track_start_stop">Start/Stop track</string>
+    <string name="location_track_start">Start track</string>
+    <string name="location_track_stop">Stop track</string>
+    <string name="location_track_import">Import track</string>
+    <string name="location_track_load_title">Load track?</string>
+    <string name="location_track_loaded">Track loaded</string>
+    <string name="location_track_already_exists">This track already exists</string>
+    <string name="location_track_import_failed">Could not load track</string>
+    <string name="location_map_loading">Please wait</string>
 </resources>

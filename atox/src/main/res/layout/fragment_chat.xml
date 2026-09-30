@@ -72,7 +72,6 @@
                         android:layout_marginEnd="6dp"
                         android:contentDescription="@string/location_live_active"
                         android:src="@drawable/ic_location_globe"
-                        android:tint="#28d864"
                         android:visibility="gone"
                         app:tint="#28d864"/>
 
@@ -137,7 +136,6 @@
             android:elevation="10dp"
             android:padding="10dp"
             android:src="@drawable/ic_keyboard_arrow_down"
-            android:tint="@android:color/white"
             android:visibility="gone"
             app:layout_constraintBottom_toTopOf="@id/bottomBar"
             app:layout_constraintEnd_toEndOf="parent"
@@ -173,7 +171,6 @@
                 android:contentDescription="@string/send"
                 android:paddingHorizontal="4dp"
                 android:src="@drawable/ic_send"
-                android:tint="@android:color/white"
                 android:visibility="gone"
                 app:tint="@android:color/white"/>
 
@@ -185,7 +182,6 @@
                 android:contentDescription="@string/attach_file"
                 android:paddingHorizontal="4dp"
                 android:src="@drawable/ic_attach_file"
-                android:tint="@android:color/white"
                 app:tint="@android:color/white"/>
 
         <TextView android:id="@+id/voiceRecordingTimer"
@@ -204,7 +200,6 @@
                 android:contentDescription="@string/voice_message"
                 android:paddingHorizontal="4dp"
                 android:src="@drawable/ic_mic"
-                android:tint="@android:color/white"
                 app:tint="@android:color/white"/>
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

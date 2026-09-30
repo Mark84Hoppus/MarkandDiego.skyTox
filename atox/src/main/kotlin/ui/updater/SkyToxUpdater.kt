@@ -74,7 +74,7 @@ class SkyToxUpdater(private val context: Context) {
         ).apply { mkdirs() }
         val file = File(dir, "skytox-${update.versionName}-universal.apk")
         val connection = URL(update.apkUrl).openConnection()
-        val total = connection.contentLengthLong
+        val total = connection.contentLength.toLong()
         connection.getInputStream().use { input ->
             file.outputStream().use { output ->
                 val buffer = ByteArray(DEFAULT_BUFFER_SIZE)

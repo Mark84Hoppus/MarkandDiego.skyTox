@@ -50,6 +50,7 @@ import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.appcompat.widget.PopupMenu
 import com.google.android.material.math.MathUtils.lerp
@@ -70,6 +71,8 @@ import ltd.evilcorp.atox.ui.BaseFragment
 import ltd.evilcorp.atox.ui.call.REQUEST_VIDEO_CALL
 import ltd.evilcorp.atox.ui.location.SkyToxLocationMapActivity
 import ltd.evilcorp.atox.ui.location.SkyToxLocationProtocol
+import ltd.evilcorp.atox.ui.location.SkyToxTrackImportStatus
+import ltd.evilcorp.atox.ui.location.SkyToxTrackStore
 import ltd.evilcorp.atox.ui.texteditor.SkyToxTextEditorActivity
 import ltd.evilcorp.atox.vmFactory
 import ltd.evilcorp.core.vo.ConnectionStatus
@@ -81,6 +84,9 @@ import ltd.evilcorp.core.vo.PublicKey
 import ltd.evilcorp.core.vo.isComplete
 import ltd.evilcorp.domain.feature.isSkyToxSelfChat
 import ltd.evilcorp.domain.feature.CallState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val TAG = "ChatFragment"
 const val CONTACT_PUBLIC_KEY = "publicKey"
@@ -271,8 +277,14 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         toolbar.menu.findItem(R.id.send_code_message)?.isVisible = !viewModel.isSelfChat()
         toolbar.menu.findItem(R.id.share_live_location)?.isVisible = !viewModel.isSelfChat()
         toolbar.menu.findItem(R.id.send_location)?.isVisible = !viewModel.isSelfChat()
+        toolbar.menu.findItem(R.id.delete_selected)?.isVisible = false
         toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
+                R.id.delete_selected -> {
+                    val currentAdapter = messages.adapter as? ChatAdapter ?: return@setOnMenuItemClickListener true
+                    confirmDeleteSelected(currentAdapter)
+                    true
+                }
                 R.id.backup_history -> {
                     viewModel.exportSingleTextChatToDefault(contactPubKey)
                     true
@@ -433,6 +445,10 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         viewModel.activeLocationContact().observe(viewLifecycleOwner) {
             updateLocationMenuState()
         }
+        viewModel.requestOwnLocation()
+        viewModel.ownLocation().observe(viewLifecycleOwner) {
+            updateLocationMenuState()
+        }
         viewModel.peerLocations().observe(viewLifecycleOwner) {
             locationLiveIndicator.visibility = if (it.containsKey(contactPubKey)) View.VISIBLE else View.GONE
         }
@@ -477,6 +493,22 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         adapter.onLocationClick = { _, payload ->
             openLocationChooser(payload)
         }
+        adapter.onVisibleMessageClick = { message ->
+            if (selectedMessageIds.isNotEmpty()) {
+                toggleMessageSelection(message, adapter)
+                true
+            } else {
+                false
+            }
+        }
+        adapter.onVisibleMessageLongClick = { anchor, message ->
+            if (selectedMessageIds.isNotEmpty()) {
+                toggleMessageSelection(message, adapter)
+            } else {
+                showMessageContextMenu(anchor, message, adapter)
+            }
+            true
+        }
         adapter.onFileTransferLongClick = { anchor, position ->
             showMessageContextMenu(anchor, adapter.messages[position], adapter)
         }
@@ -503,7 +535,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
 
         messages.setOnItemClickListener { _, view, position, _ ->
             if (selectedMessageIds.isNotEmpty()) {
-                toggleMessageSelection(adapter.messages[position], adapter)
+                // Selection is handled by visible message/file bubbles, not by invisible row padding.
                 return@setOnItemClickListener
             }
             val message = adapter.messages[position]
@@ -528,7 +560,8 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         }
         messages.setOnItemLongClickListener { _, view, position, _ ->
             view.dispatchTouchEvent(MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0f, 0f, 0))
-            showMessageContextMenu(view, adapter.messages[position], adapter)
+            // Long-click selection is handled by visible message bubbles only.
+            // The ListView row includes invisible padding; reacting here makes selection feel random.
             true
         }
         messages.setOnScrollListener(
@@ -637,6 +670,9 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         val active = viewModel.activeLocationContact().value
         toolbar.menu.findItem(R.id.share_live_location)?.let { item ->
             item.isEnabled = active == null || active == contactPubKey
+        }
+        toolbar.menu.findItem(R.id.send_location)?.let { item ->
+            item.isEnabled = viewModel.hasLocationPermission().not() || viewModel.hasFreshOwnLocation()
         }
     }
 
@@ -747,6 +783,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private fun updateSelectionUi(adapter: ChatAdapter) = binding.run {
         val selecting = selectedMessageIds.isNotEmpty()
         toolbar.setNavigationIcon(if (selecting) R.drawable.ic_close else R.drawable.ic_back)
+        updateToolbarMenuForSelection(selecting)
         toolbar.setNavigationOnClickListener {
             WindowInsetsControllerCompat(requireActivity().window, requireView()).hide(WindowInsetsCompat.Type.ime())
             if (selecting) {
@@ -754,6 +791,44 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             } else {
                 requireActivity().onBackPressedDispatcher.onBackPressed()
             }
+        }
+    }
+
+    private fun updateToolbarMenuForSelection(selecting: Boolean) = binding.run {
+        val menu = toolbar.menu
+        val ordinaryItems = listOf(
+            R.id.call,
+            R.id.video_call,
+            R.id.wake_contact,
+            R.id.send_encrypted_message,
+            R.id.send_code_message,
+            R.id.share_live_location,
+            R.id.send_location,
+            R.id.backup_history,
+            R.id.import_history,
+            R.id.clear_history,
+        )
+        if (selecting && menu.findItem(R.id.delete_selected) == null) {
+            menu.add(0, R.id.delete_selected, 0, R.string.delete).setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+        }
+        ordinaryItems.forEach { id ->
+            menu.findItem(id)?.isVisible = if (selecting) false else when (id) {
+                R.id.call,
+                R.id.video_call,
+                R.id.import_history,
+                R.id.send_encrypted_message,
+                R.id.send_code_message,
+                R.id.share_live_location,
+                R.id.send_location,
+                -> !viewModel.isSelfChat()
+                R.id.wake_contact -> false
+                else -> true
+            }
+        }
+        menu.findItem(R.id.delete_selected)?.isVisible = selecting
+        if (!selecting) {
+            updateWakeContactMenuItem()
+            updateLocationMenuState()
         }
     }
 
@@ -1113,6 +1188,10 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         }
 
         val contentType = URLConnection.guessContentTypeFromName(ft.fileName) ?: "*/*"
+        if (ft.fileName.substringAfterLast('.', "").equals("gpx", ignoreCase = true)) {
+            showLoadTrackDialog(uri)
+            return
+        }
         if (isEditableTextFile(ft.fileName, contentType)) {
             val intent = Intent(requireContext(), SkyToxTextEditorActivity::class.java).apply {
                 putExtra("uri", uri.toString())
@@ -1149,6 +1228,28 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             Log.e(TAG, "Unable to open file transfer ${ft.id}: permission lost\n$e")
             Toast.makeText(requireContext(), R.string.file_not_found, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun showLoadTrackDialog(uri: Uri) {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.location_track_load_title)
+            .setPositiveButton(android.R.string.yes) { _, _ ->
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val status = requireContext().contentResolver.openInputStream(uri)?.use {
+                        SkyToxTrackStore.importAndSaveGpx(it)
+                    } ?: SkyToxTrackImportStatus.Failed
+                    withContext(Dispatchers.Main) {
+                        val message = when (status) {
+                            SkyToxTrackImportStatus.Imported -> R.string.location_track_loaded
+                            SkyToxTrackImportStatus.AlreadyExists -> R.string.location_track_already_exists
+                            SkyToxTrackImportStatus.Failed -> R.string.location_track_import_failed
+                        }
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun isEditableTextFile(fileName: String, contentType: String): Boolean {
