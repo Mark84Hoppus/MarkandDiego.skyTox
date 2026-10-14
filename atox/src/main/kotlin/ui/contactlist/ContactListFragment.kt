@@ -70,6 +70,9 @@ private const val MAX_CONFIRM_DELETE_STRING_LENGTH = 32
 private const val MAX_FILES_PER_SHARE_BATCH = 10
 
 private fun User.online(): Boolean = connectionStatus != ConnectionStatus.None
+private fun localAiSupported(): Boolean =
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.N &&
+        Build.SUPPORTED_64_BIT_ABIS.any { it.equals("arm64-v8a", ignoreCase = true) }
 
 class ContactListFragment :
     BaseFragment<FragmentContactListBinding>(FragmentContactListBinding::inflate),
@@ -146,8 +149,13 @@ class ContactListFragment :
         toolbar.subtitle = ""
         updateHeaderConnectionLogo(false)
         toolbar.inflateMenu(R.menu.contact_list_toolbar)
+        toolbar.menu.findItem(R.id.open_ai_assistant)?.isVisible = localAiSupported()
         toolbar.setOnMenuItemClickListener {
             when (it.itemId) {
+                R.id.open_ai_assistant -> {
+                    findNavController().navigate(R.id.action_contactListFragment_to_aiAssistantFragment)
+                    true
+                }
                 R.id.open_games -> {
                     findNavController().navigate(R.id.action_contactListFragment_to_gamesFragment)
                     true

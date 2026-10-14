@@ -2,6 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+            android:id="@+id/open_ai_assistant"
+            android:orderInCategory="5"
+            android:title="AI"
+            app:showAsAction="always|withText"/>
+    <item
             android:id="@+id/open_games"
             android:contentDescription="@string/skytox_games"
             android:icon="@drawable/ic_game"

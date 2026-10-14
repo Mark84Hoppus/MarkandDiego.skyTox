@@ -109,7 +109,7 @@ class ChatViewModel @Inject constructor(
         chatManager.messagesFor(publicKey).distinctUntilChanged().asLiveData()
     }
     val fileTransfers: LiveData<List<FileTransfer>> by lazy {
-        if (isSelfChat()) flowOf(emptyList<FileTransfer>()).asLiveData() else fileTransferManager.transfersFor(publicKey).asLiveData()
+        fileTransferManager.transfersFor(publicKey).asLiveData()
     }
 
     fun callingNeedsConfirmation(): Boolean = settings.confirmCalling

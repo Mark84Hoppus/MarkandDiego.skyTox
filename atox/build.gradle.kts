@@ -29,6 +29,7 @@ kotlin {
     compilerOptions {
         apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2
         languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2
+        freeCompilerArgs.add("-Xskip-metadata-version-check")
     }
 }
 
@@ -39,8 +40,8 @@ android {
         applicationId = "markanddiego.skytox"
         minSdk = libs.versions.sdk.min.get().toInt()
         targetSdk = libs.versions.sdk.target.get().toInt()
-        versionCode = 306
-        versionName = "0.8.30"
+        versionCode = 308
+        versionName = "0.8.32"
         if (skytoxUniversal) {
             ndk {
                 abiFilters += listOf("armeabi-v7a", "arm64-v8a")
@@ -76,7 +77,7 @@ android {
             applicationIdSuffix = ""
         }
         getByName("release") {
-            isMinifyEnabled = true
+            isMinifyEnabled = false
             if (skytoxReleaseSigningEnabled) {
                 signingConfig = signingConfigs.getByName("skytoxRelease")
             }
@@ -160,6 +161,8 @@ dependencies {
     implementation(libs.nayuki.qrcodegen)
     implementation(libs.zxing.android.embedded)
     implementation(libs.square.picasso)
+
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.17.1")
 
     debugImplementation(libs.square.leakcanary)
 

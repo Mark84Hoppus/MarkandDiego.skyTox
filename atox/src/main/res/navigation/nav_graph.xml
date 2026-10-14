@@ -90,6 +90,13 @@
                 app:exitAnim="@anim/fade_out"
                 app:popEnterAnim="@anim/fade_in"
                 app:popExitAnim="@anim/slide_out_right"/>
+        <action
+                android:id="@+id/action_contactListFragment_to_aiAssistantFragment"
+                app:destination="@id/aiAssistantFragment"
+                app:enterAnim="@anim/slide_in_right"
+                app:exitAnim="@anim/fade_out"
+                app:popEnterAnim="@anim/fade_in"
+                app:popExitAnim="@anim/slide_out_right"/>
     </fragment>
 
     <fragment android:id="@+id/friendRequestFragment"
@@ -174,4 +181,9 @@
             android:name="ltd.evilcorp.atox.ui.games.SkyToxGamesFragment"
             android:label="skytox_games"
             tools:layout="@layout/fragment_games"/>
+    <fragment
+            android:id="@+id/aiAssistantFragment"
+            android:name="ltd.evilcorp.atox.ui.ai.SkyToxAiAssistantFragment"
+            android:label="ai_assistant"
+            tools:layout="@layout/fragment_ai_assistant"/>
 </navigation>

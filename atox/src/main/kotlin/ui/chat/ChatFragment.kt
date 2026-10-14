@@ -605,7 +605,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             if (voiceRecorder == null) {
                 startVoiceRecording()
             } else {
-                stopVoiceRecording(send = true)
+                confirmVoiceRecording()
             }
         }
         voiceMessage.setOnLongClickListener {
@@ -1363,6 +1363,14 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         }
 
         updateActions()
+    }
+
+    private fun confirmVoiceRecording() {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.voice_send_confirm_title)
+            .setPositiveButton(android.R.string.yes) { _, _ -> stopVoiceRecording(send = true) }
+            .setNegativeButton(android.R.string.no) { _, _ -> stopVoiceRecording(send = false) }
+            .show()
     }
 
     private fun toggleAudioPlayback(id: Int) {

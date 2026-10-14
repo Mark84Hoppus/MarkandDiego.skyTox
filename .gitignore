@@ -14,6 +14,10 @@ release-artifacts/
 *.aab
 *.apks
 *.idsig
+*.gguf
+*.litertlm
+*.litertlm.part
+*.xnnpack_cache
 *.jks
 *.p12
 *.pem
@@ -33,6 +37,7 @@ cloudflared-service.log
 trash/
 aTox-backups/
 skyTox-server-backups/
+skyTox-backups-for-cloud/
 
 # gradle-from-source build
 _build
