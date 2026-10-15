@@ -2,7 +2,11 @@
 
 package ltd.evilcorp.atox.ui.markdown
 
+import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.graphics.Typeface
+import android.net.Uri
 import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.Spanned
@@ -14,6 +18,8 @@ import android.text.style.TypefaceSpan
 import android.text.style.URLSpan
 import android.text.util.Linkify
 import android.widget.TextView
+import android.widget.Toast
+import ltd.evilcorp.atox.R
 
 object SkyToxMarkdown {
     const val ENABLED = true
@@ -27,7 +33,7 @@ object SkyToxMarkdown {
         InlineRule(Regex("""(?<!\*)\*([^*\n]+)\*(?!\*)"""), InlineStyle.Italic),
     )
 
-    fun render(textView: TextView, rawMessage: String) {
+    fun render(textView: TextView, rawMessage: String, forceBrowserChooser: Boolean = false) {
         if (!ENABLED) {
             textView.text = rawMessage
             return
@@ -35,7 +41,37 @@ object SkyToxMarkdown {
 
         textView.text = format(rawMessage)
         Linkify.addLinks(textView, Linkify.WEB_URLS or Linkify.EMAIL_ADDRESSES)
+        if (forceBrowserChooser) replaceWebLinksWithChooser(textView)
         textView.movementMethod = LinkMovementMethod.getInstance()
+    }
+
+    private fun replaceWebLinksWithChooser(textView: TextView) {
+        val text = textView.text as? Spannable ?: return
+        text.getSpans(0, text.length, URLSpan::class.java).forEach { original ->
+            val url = original.url
+            if (!url.startsWith("http://", ignoreCase = true) && !url.startsWith("https://", ignoreCase = true)) {
+                return@forEach
+            }
+            val start = text.getSpanStart(original)
+            val end = text.getSpanEnd(original)
+            val flags = text.getSpanFlags(original)
+            text.removeSpan(original)
+            text.setSpan(BrowserChooserUrlSpan(url), start, end, flags)
+        }
+    }
+
+    private class BrowserChooserUrlSpan(url: String) : URLSpan(url) {
+        override fun onClick(widget: android.view.View) {
+            val context = widget.context
+            val open = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            val chooser = Intent.createChooser(open, context.getString(R.string.open_link_with))
+            if (context !is Activity) chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            try {
+                context.startActivity(chooser)
+            } catch (_: ActivityNotFoundException) {
+                Toast.makeText(context, R.string.no_browser_available, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     fun format(rawMessage: String): SpannableStringBuilder {

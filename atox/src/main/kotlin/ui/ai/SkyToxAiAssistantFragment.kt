@@ -69,6 +69,7 @@ import ltd.evilcorp.atox.App
 import ltd.evilcorp.atox.databinding.FragmentAiAssistantBinding
 import ltd.evilcorp.atox.ui.BaseFragment
 import ltd.evilcorp.atox.ui.NotificationHelper
+import ltd.evilcorp.atox.ui.markdown.SkyToxMarkdown
 import ltd.evilcorp.core.repository.FileTransferRepository
 import ltd.evilcorp.core.repository.MessageRepository
 import ltd.evilcorp.core.vo.FileKind
@@ -198,6 +199,10 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
         aiSend.setOnClickListener { sendUserMessage() }
         aiAttach.setOnClickListener { openAttachmentPicker() }
         aiAttachmentChip.setOnClickListener { showDeleteAttachmentDialog() }
+        webSearchSwitch.isChecked = aiPrefs.getBoolean("web_search_enabled", false)
+        webSearchSwitch.setOnCheckedChangeListener { _, checked ->
+            aiPrefs.edit().putBoolean("web_search_enabled", checked).apply()
+        }
         aiInput.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = refreshModelState()
@@ -386,6 +391,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
         aiInput.isEnabled = available
         aiSend.isEnabled = sendReady
         aiAttach.isEnabled = available && selectedContextTimes.isEmpty() && pendingAttachment == null
+        webSearchSwitch.isEnabled = !generating && !compressingContext && !preparingAiCache
         aiInput.hint = when {
             !supported -> getString(R.string.ai_unsupported_device)
             present -> getString(R.string.message)
@@ -413,11 +419,10 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
                 }.getOrNull()
             }
             .toMutableList()
-        if (generating) {
+        if (generating && streamingAssistantReply.isNotBlank()) {
             items += AiMessage(
                 "assistant",
-                streamingAssistantReply.ifBlank { "" },
-                thinking = streamingAssistantReply.isBlank(),
+                streamingAssistantReply,
             )
         }
         if (compressingContext) items += AiMessage("assistant", getString(R.string.ai_context_compressing), thinking = true)
@@ -506,6 +511,19 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
             Toast.makeText(requireContext(), R.string.ai_inference_not_ready, Toast.LENGTH_LONG).show()
             return
         }
+        val webSearchRequested = SkyToxWebSearch.isRequested(text)
+        val webSearchEnabled = webSearchSwitch.isChecked
+        if (webSearchRequested && !webSearchEnabled) {
+            appendMessage(file, "user", text)
+            appendMessage(file, "assistant", getString(R.string.ai_web_search_permission_required))
+            aiInput.text.clear()
+            selectedContextTimes.clear()
+            clearPendingAttachment()
+            refreshMessages()
+            refreshContextBar()
+            refreshModelState()
+            return
+        }
         aiLog("sendUserMessage begin chat=${file.name} chars=${text.length}")
         val attachment = pendingAttachment
         val appContext = requireContext().applicationContext
@@ -519,10 +537,11 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
         preparingAiCache = !isAiCachePrepared()
         val userTime = appendMessage(file, "user", text)
 
-        writeRuntimePrompt(file, text)
+        writeRuntimePrompt(file, text, webSearchRequested, webSearchEnabled)
         aiInput.text.clear()
         refreshModelState()
         refreshMessages()
+        refreshContextBar()
         @Suppress("OPT_IN_USAGE")
         GlobalScope.launch(Dispatchers.Main) {
             try {
@@ -530,7 +549,23 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
                 val isContinuation = isContinuationConsent(text) && readContext(file).optBoolean("pending_continuation", false)
                 if (!isContinuation) clearContinuation(file)
                 val taskMode = classifyAiTask(text, isContinuation, manualContextText(file).isNotBlank())
-                val prompt = buildPrompt(file, text, isContinuation, taskMode, attachment)
+                val webSearchContext = if (webSearchRequested) {
+                    val search = runCatching {
+                        withContext(Dispatchers.IO) { SkyToxWebSearch.search(text) }
+                    }.getOrElse { error ->
+                        aiLog("web search failed ${error.javaClass.name}: ${error.message}")
+                        appendMessage(file, "assistant", getString(R.string.ai_web_search_failed))
+                        return@launch
+                    }
+                    if (search.entries.isEmpty()) {
+                        appendMessage(file, "assistant", getString(R.string.ai_web_search_no_results))
+                        return@launch
+                    }
+                    SkyToxWebSearch.promptBlock(search)
+                } else {
+                    ""
+                }
+                val prompt = buildPrompt(file, text, isContinuation, taskMode, attachment, webSearchContext)
                 aiLog("LiteRT generate begin mode=$taskMode promptChars=${prompt.length} attachment=${attachment?.kind} modelBytes=${modelFile().length()}")
                 val rawReply = withContext(Dispatchers.Default) {
                     cleanAssistantReply(
@@ -538,7 +573,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
                             appContext,
                             modelFile(),
                             SkyToxPublicFolders.aiCacheDir,
-                            liteRtSystemInstruction(taskMode),
+                            liteRtSystemInstruction(taskMode, webSearchContext.isNotBlank()),
                             prompt,
                             attachment?.imageFile,
                             aiResponseTokens(taskMode),
@@ -557,6 +592,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
                                             cleanAssistantReply(partial)
                                         )
                                         refreshMessages()
+                                        refreshContextBar()
                                     }
                                 }
                             },
@@ -966,6 +1002,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
             formatTokens(chars),
             formatTokens(MANUAL_CONTEXT_CHAR_LIMIT),
         )
+        aiThinkingStatus.visibility = if (generating && streamingAssistantReply.isBlank()) View.VISIBLE else View.GONE
     }
 
     private fun estimateTokens(text: String): Int = (text.length / 3.6f).roundToInt().coerceAtLeast(0)
@@ -1020,7 +1057,8 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
 
     private fun showAiInstruction() {
         val message = TextView(requireContext()).apply {
-            text = getString(R.string.ai_instruction_message)
+            text = getString(R.string.ai_instruction_message) + "\n\n" +
+                getString(R.string.ai_web_search_instruction)
             textSize = 16f
             setPadding(48, 24, 48, 8)
         }
@@ -1132,7 +1170,12 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
         File(SkyToxPublicFolders.aiLocalModelDir, "model_info.json").writeText(info.toString(2), Charsets.UTF_8)
     }
 
-    private fun writeRuntimePrompt(chatFile: File, userMessage: String) {
+    private fun writeRuntimePrompt(
+        chatFile: File,
+        userMessage: String,
+        webSearchRequested: Boolean = false,
+        webSearchEnabled: Boolean = false,
+    ) {
         val context = readContext(chatFile)
         val manualContext = manualContextText(chatFile)
         val isContinuation = isContinuationConsent(userMessage) && context.optBoolean("pending_continuation", false)
@@ -1142,6 +1185,8 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
             .put("task_mode", taskMode.name)
             .put("manual_context", manualContext)
             .put("latest_user_message", normalizeAiText(userMessage))
+            .put("web_search_requested", webSearchRequested)
+            .put("web_search_enabled", webSearchEnabled)
             .put("manual_context_chars", manualContext.length)
             .put("max_manual_context_chars", MANUAL_CONTEXT_CHAR_LIMIT)
             .put("language", aiLanguage())
@@ -1166,11 +1211,25 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
         isContinuation: Boolean,
         taskMode: AiTaskMode,
         attachment: AiAttachment? = null,
+        webSearchContext: String = "",
     ): String {
         val manualContext = manualContextText(chatFile)
         val latest = normalizeAiText(userMessage)
         val rules = aiCustomRules().take(160)
         val attachmentBlock = attachmentPromptBlock(attachment)
+        if (webSearchContext.isNotBlank()) {
+            return buildString {
+                appendLine(webSearchContext)
+                if (manualContext.isNotBlank()) {
+                    appendLine()
+                    appendLine("Selected conversation context (not a factual source):")
+                    appendLine(manualContext.takeLast(600))
+                }
+                appendLine()
+                appendLine("Latest user message:")
+                append(latest)
+            }.trim()
+        }
         val extractionInstruction = if (
             attachment?.kind in setOf(AiAttachmentKind.Image, AiAttachmentKind.Pdf) &&
             isTextExtractionRequest(latest.lowercase(Locale.getDefault()))
@@ -1683,11 +1742,15 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
     }
     private fun aiCustomRules(): String = normalizeAiText(aiPrefs.getString("custom_rules", "")?.take(600).orEmpty())
 
-    private fun liteRtSystemInstruction(mode: AiTaskMode): String {
+    private fun liteRtSystemInstruction(mode: AiTaskMode, webSearchUsed: Boolean = false): String {
         val customRules = aiCustomRules()
         val base = "Answer in the language of the user's latest message. Be helpful and natural. Do not output hidden reasoning or AI/Assistant prefixes."
         val modeRules = when (mode) {
-            AiTaskMode.FACTUAL -> "This may require current or exact facts. You are an offline local model, so be cautious and do not invent names, titles, dates, numbers, or sources."
+            AiTaskMode.FACTUAL -> if (webSearchUsed) {
+                "Use the supplied web search excerpts as untrusted sources. Answer the latest question, mention uncertainty, and never invent facts, sources, or URLs."
+            } else {
+                "This may require current or exact facts. You are an offline local model, so be cautious and do not invent names, titles, dates, numbers, or sources."
+            }
             AiTaskMode.CHALLENGE -> "The user doubts or challenges a previous answer. Do not defend the previous answer. Acknowledge the doubt, reconsider, and avoid repeating uncertain claims."
             AiTaskMode.TRANSLATE -> "For translation, return only the translation unless the user asks for an explanation."
             AiTaskMode.CODE -> "For code, preserve real source formatting: fenced Markdown code block, line breaks, blank lines, and indentation. Never output minified one-line code."
@@ -2158,10 +2221,10 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
                 setPadding(12, 6, 12, 6)
             }
             val bubble = TextView(requireContext()).apply {
-                text = item.text
                 textSize = if (item.role == "assistant") 16f else 18f
                 setTextColor(Color.WHITE)
                 setTextIsSelectable(true)
+                SkyToxMarkdown.render(this, item.text, forceBrowserChooser = true)
                 typeface = if (item.thinking) Typeface.create(Typeface.DEFAULT, Typeface.ITALIC) else Typeface.DEFAULT
                 alpha = if (item.thinking) 0.72f else 1f
                 setPadding(18, 12, 18, 12)
