@@ -221,7 +221,7 @@ class EventListenerCallbacks @Inject constructor(
 
             val id = fileTransferManager.add(FileTransfer(publicKey, fileNo, kind, fileSize, name, outgoing = false))
 
-            if (kind == FileKind.Data.ordinal) {
+            if (kind == FileKind.Data.ordinal && id >= 0) {
                 if (chatManager.activeChat != publicKey) {
                     scope.launch {
                         val contact = tryGetContact(publicKey, "FileRecv") ?: return@launch

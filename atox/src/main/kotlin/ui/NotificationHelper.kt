@@ -172,7 +172,11 @@ class NotificationHelper @Inject constructor(private val context: Context) {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val icon = if (contact.avatarUri.isNotEmpty()) {
-                IconCompat.createWithBitmap(Picasso.get().load(contact.avatarUri).transform(circleTransform).get())
+                runCatching {
+                    IconCompat.createWithBitmap(Picasso.get().load(contact.avatarUri).transform(circleTransform).get())
+                }.onFailure {
+                    Log.w(TAG, "Unable to decode notification avatar for ${contact.publicKey.take(8)}", it)
+                }.getOrNull()
             } else {
                 null
             }

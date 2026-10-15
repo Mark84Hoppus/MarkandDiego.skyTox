@@ -228,6 +228,7 @@ class FileTransferManager @Inject constructor(
         SkyToxCrashLogger.fileTransfer("resume_queued started ft=${started.id} fileNo=${started.fileNumber}")
     }
 
+    @Synchronized
     fun add(ft: FileTransfer): Int {
         Log.i(TAG, "Add ${ft.fileNumber} for ${ft.publicKey.fingerprint()}")
         SkyToxCrashLogger.fileTransfer(
@@ -235,22 +236,49 @@ class FileTransferManager @Inject constructor(
         )
         return when (ft.fileKind) {
             FileKind.Data.ordinal -> {
-                val fileId = tox.getFileFileId(PublicKey(ft.publicKey), ft.fileNumber).bytesToHex()
-                val interrupted = fileTransferRepository.getInterruptedIncoming(
-                    ft.publicKey,
-                    fileId,
-                    ft.fileName,
-                    ft.fileSize,
-                )
-                if (interrupted != null) {
-                    val resumed = interrupted.copy(fileNumber = ft.fileNumber, fileId = fileId).apply {
-                        id = interrupted.id
+                val receivedFileId = tox.getFileFileId(PublicKey(ft.publicKey), ft.fileNumber).bytesToHex()
+                val fileId = receivedFileId
+                    .takeUnless { id -> id.isEmpty() || id.all { it == '0' } }
+                    .orEmpty()
+                val previous = fileId.takeIf { it.isNotEmpty() }
+                    ?.let { fileTransferRepository.getIncomingByFileId(ft.publicKey, it) }
+                    ?: fileTransferRepository.getInterruptedIncoming(
+                        ft.publicKey,
+                        fileId,
+                        ft.fileName,
+                        ft.fileSize,
+                    )
+                if (previous != null) {
+                    if (previous.isComplete()) {
+                        SkyToxCrashLogger.fileTransfer(
+                            "incoming duplicate_complete ft=${previous.id} fileNo=${ft.fileNumber} " +
+                                "fileId=${fileId.take(8)} progress=${previous.progress}/${previous.fileSize}",
+                        )
+                        tox.stopFileTransfer(PublicKey(ft.publicKey), ft.fileNumber)
+                        return -1
+                    }
+
+                    val resumeProgress = if (previous.isInterrupted()) {
+                        previous.progress
+                    } else {
+                        previous.interruptedProgress()
+                    }
+                    val resumed = previous.copy(
+                        fileNumber = ft.fileNumber,
+                        progress = resumeProgress,
+                        fileId = fileId,
+                    ).apply {
+                        id = previous.id
                     }
                     fileTransferRepository.add(resumed)
                     fileTransfers.removeAll { it.id == resumed.id }
                     fileTransfers.add(resumed)
+                    SkyToxCrashLogger.fileTransfer(
+                        "incoming reuse ft=${resumed.id} fileNo=${ft.fileNumber} fileId=${fileId.take(8)} " +
+                            "progress=${resumed.transferredBytes()}/${resumed.fileSize}",
+                    )
                     accept(resumed)
-                    resumed.id
+                    -1
                 } else {
                     val withFileId = ft.copy(fileId = fileId)
                     val id = fileTransferRepository.add(withFileId).toInt()

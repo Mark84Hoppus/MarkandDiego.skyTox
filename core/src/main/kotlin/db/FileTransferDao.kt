@@ -37,6 +37,18 @@ interface FileTransferDao {
         SELECT * FROM file_transfers
         WHERE public_key == :publicKey
             AND outgoing == 0
+            AND file_id == :fileId
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+    )
+    fun loadIncomingByFileId(publicKey: String, fileId: String): FileTransfer?
+
+    @Query(
+        """
+        SELECT * FROM file_transfers
+        WHERE public_key == :publicKey
+            AND outgoing == 0
             AND progress <= :interruptedBase
             AND (
                 file_id == :fileId
