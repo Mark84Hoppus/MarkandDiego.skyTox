@@ -502,7 +502,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
 
     private fun sendUserMessage() {
         binding.run {
-        val text = aiInput.text.toString().trim()
+        val text = aiInput.text.toString().trim().lowercase(Locale.ROOT)
         val file = activeDialog ?: return
         if (text.length < MIN_AI_MESSAGE_CHARS || !modelPresent() || generating || globalGenerating) return
         if (!localAiSupported()) {
@@ -576,6 +576,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
                 val prompt = buildPrompt(file, text, isContinuation, taskMode, attachment, webSearchContext)
                 val systemInstruction = liteRtSystemInstruction(taskMode, webSearchContext.isNotBlank())
                 writeLiteRtPromptDiagnostics(file, systemInstruction, prompt, webSearchResult)
+                val outputTokens = if (webSearchResult != null) 1024 else aiResponseTokens(taskMode)
                 aiLog("LiteRT generate begin mode=$taskMode promptChars=${prompt.length} attachment=${attachment?.kind} modelBytes=${modelFile().length()}")
                 val rawReply = withContext(Dispatchers.Default) {
                     cleanAssistantReply(
@@ -586,7 +587,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
                             systemInstruction,
                             prompt,
                             attachment?.imageFile,
-                            aiResponseTokens(taskMode),
+                            outputTokens,
                             aiDebugLogFile(),
                             onPartialText = { partial ->
                                 rootView.post {
@@ -616,15 +617,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
                     pruneContextAfterPromptOverflow(file)
                 }
                 val preparedReply = prepareAssistantReply(file, text, rawReply, taskMode, attachment)
-                val reply = if (webSearchResult == null) {
-                    preparedReply
-                } else {
-                    preparedReply.trimEnd() + "\n\n" + getString(R.string.ai_web_sources) + "\n" +
-                        webSearchResult.entries
-                            .distinctBy { it.url }
-                            .take(3)
-                            .joinToString("\n") { "- [${it.title.take(90)}](${it.url})" }
-                }
+                val reply = preparedReply
                 streamingAssistantReply = reply
                 aiLog("LiteRT generate finished replyChars=${reply.length}")
                 val visibleReply = if (shouldSendReplyAsTxtFile(text, attachment)) {
@@ -2285,7 +2278,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
                 setPadding(12, 6, 12, 6)
             }
             val bubble = TextView(requireContext()).apply {
-                textSize = if (item.role == "assistant") 16f else 18f
+                textSize = if (item.role == "assistant") 15f else 18f
                 setTextColor(Color.WHITE)
                 setTextIsSelectable(true)
                 SkyToxMarkdown.render(this, item.text, forceBrowserChooser = true)

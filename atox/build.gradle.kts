@@ -161,6 +161,8 @@ dependencies {
     implementation(libs.nayuki.qrcodegen)
     implementation(libs.zxing.android.embedded)
     implementation(libs.square.picasso)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("org.jsoup:jsoup:1.18.3")
 
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.17.1")
 
