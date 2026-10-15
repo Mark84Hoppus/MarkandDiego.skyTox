@@ -39,10 +39,25 @@ object SkyToxMarkdown {
             return
         }
 
-        textView.text = format(rawMessage)
+        textView.text = format(repairSpacedWebAddresses(rawMessage))
         Linkify.addLinks(textView, Linkify.WEB_URLS or Linkify.EMAIL_ADDRESSES)
         if (forceBrowserChooser) replaceWebLinksWithChooser(textView)
         textView.movementMethod = LinkMovementMethod.getInstance()
+    }
+
+    private fun repairSpacedWebAddresses(rawMessage: String): String {
+        var repaired = rawMessage
+        repeat(8) {
+            val previous = repaired
+            repaired = SPACED_DOMAIN_PART.replace(repaired) { match ->
+                "${match.groupValues[1]}.${match.groupValues[2]}"
+            }
+            repaired = SPACED_PATH_SEPARATOR.replace(repaired) { match ->
+                "${match.groupValues[1]}/${match.groupValues[2]}"
+            }
+            if (repaired == previous) return repaired
+        }
+        return repaired
     }
 
     private fun replaceWebLinksWithChooser(textView: TextView) {
@@ -169,4 +184,11 @@ object SkyToxMarkdown {
         Code,
         Link,
     }
+
+    private val SPACED_DOMAIN_PART = Regex(
+        """(?i)(https?://[^\s<>()\[\]]*[\p{L}\p{N}-])\s*\.\s*([\p{L}\p{N}-]+)""",
+    )
+    private val SPACED_PATH_SEPARATOR = Regex(
+        """(?i)(https?://[^\s<>()\[\]]+)\s*/\s*([^\s<>()\[\]]*)""",
+    )
 }

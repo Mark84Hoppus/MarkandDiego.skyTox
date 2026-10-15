@@ -564,7 +564,10 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
                         appendMessage(file, "assistant", getString(R.string.ai_web_search_no_results))
                         return@launch
                     }
-                    aiLog("web search ok provider=${search.provider} query=${search.query} results=${search.entries.size}")
+                    aiLog(
+                        "web search ok provider=${search.provider} attempts=${search.attempts} " +
+                            "query=${search.query} results=${search.entries.size}",
+                    )
                     search
                 } else {
                     null
