@@ -40,6 +40,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.addCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.core.net.toUri
+import androidx.core.content.FileProvider
+import androidx.core.os.bundleOf
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
@@ -64,10 +66,13 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import ltd.evilcorp.atox.BuildConfig
 import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.App
 import ltd.evilcorp.atox.databinding.FragmentAiAssistantBinding
 import ltd.evilcorp.atox.ui.BaseFragment
+import ltd.evilcorp.atox.ui.contactlist.ARG_SHARE_FILES
 import ltd.evilcorp.atox.ui.NotificationHelper
 import ltd.evilcorp.atox.ui.markdown.SkyToxMarkdown
 import ltd.evilcorp.core.repository.FileTransferRepository
@@ -186,7 +191,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
             compat
         }
 
-        toolbar.setNavigationIcon(R.drawable.ic_back)
+        toolbar.navigationIcon = null
         toolbar.setNavigationOnClickListener { handleBack() }
         toolbar.setOnMenuItemClickListener(::onToolbarMenuItem)
 
@@ -202,6 +207,13 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
         webSearchSwitch.isChecked = aiPrefs.getBoolean("web_search_enabled", false)
         webSearchSwitch.setOnCheckedChangeListener { _, checked ->
             aiPrefs.edit().putBoolean("web_search_enabled", checked).apply()
+            if (checked) {
+                selectedContextTimes.clear()
+                clearPendingAttachment()
+                refreshMessages()
+                refreshContextBar()
+            }
+            refreshModelState()
         }
         aiInput.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -392,7 +404,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
         aiLog("refreshModelState present=$present supported=$supported generating=$generating modelBytes=${modelFile().length()}")
         aiInput.isEnabled = available
         aiSend.isEnabled = sendReady
-        aiAttach.isEnabled = available && selectedContextTimes.isEmpty() && pendingAttachment == null
+        aiAttach.isEnabled = available && !webSearchSwitch.isChecked && selectedContextTimes.isEmpty() && pendingAttachment == null
         webSearchSwitch.isEnabled = !generating && !compressingContext && !preparingAiCache
         aiInput.hint = when {
             !supported -> getString(R.string.ai_unsupported_device)
@@ -433,7 +445,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
     }
 
     private fun openAttachmentPicker() {
-        if (selectedContextTimes.isNotEmpty() || pendingAttachment != null || generating) return
+        if (binding.webSearchSwitch.isChecked || selectedContextTimes.isNotEmpty() || pendingAttachment != null || generating) return
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
             type = "*/*"
@@ -444,7 +456,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
     }
 
     private suspend fun handlePickedAttachment(uri: Uri) {
-        if (selectedContextTimes.isNotEmpty()) return
+        if (binding.webSearchSwitch.isChecked || selectedContextTimes.isNotEmpty()) return
         val info = queryFileInfo(uri)
         val kind = attachmentKind(info.name, info.mimeType)
         if (kind == null) {
@@ -513,19 +525,8 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
             Toast.makeText(requireContext(), R.string.ai_inference_not_ready, Toast.LENGTH_LONG).show()
             return
         }
-        val webSearchRequested = SkyToxWebSearch.isRequested(text)
         val webSearchEnabled = webSearchSwitch.isChecked
-        if (webSearchRequested && !webSearchEnabled) {
-            appendMessage(file, "user", text)
-            appendMessage(file, "assistant", getString(R.string.ai_web_search_permission_required))
-            aiInput.text.clear()
-            selectedContextTimes.clear()
-            clearPendingAttachment()
-            refreshMessages()
-            refreshContextBar()
-            refreshModelState()
-            return
-        }
+        val webSearchRequested = webSearchEnabled
         aiLog("sendUserMessage begin chat=${file.name} chars=${text.length}")
         val attachment = pendingAttachment
         val appContext = requireContext().applicationContext
@@ -553,15 +554,17 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
                 val taskMode = classifyAiTask(text, isContinuation, manualContextText(file).isNotBlank())
                 val webSearchResult = if (webSearchRequested) {
                     val search = runCatching {
-                        withContext(Dispatchers.IO) { SkyToxWebSearch.search(text) }
+                        withTimeout(30_000L) {
+                            withContext(Dispatchers.IO) { SkyToxWebSearch.search(text) }
+                        }
                     }.getOrElse { error ->
                         aiLog("web search failed type=${error.javaClass.simpleName}")
-                        appendMessage(file, "assistant", getString(R.string.ai_web_search_failed))
+                        appendMessage(file, "assistant", getString(R.string.ai_web_connection_failed))
                         return@launch
                     }
                     if (search.entries.isEmpty()) {
                         aiLog("web search empty provider=${search.provider} attempts=${search.attempts} trace=${search.traceSummary()}")
-                        appendMessage(file, "assistant", getString(R.string.ai_web_search_no_results))
+                        appendMessage(file, "assistant", getString(R.string.ai_web_connection_failed))
                         return@launch
                     }
                     aiLog(
@@ -1042,7 +1045,30 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
     }
 
     private fun shareDialog(file: File) {
-        Toast.makeText(requireContext(), R.string.ai_share_placeholder, Toast.LENGTH_LONG).show()
+        val shareDir = File(requireContext().cacheDir, "shared_ai_dialogs").apply { mkdirs() }
+        shareDir.listFiles()?.forEach { it.delete() }
+        val messages = JSONArray()
+        file.readLines(Charsets.UTF_8).forEach { line ->
+            runCatching { JSONObject(line) }.getOrNull()?.let(messages::put)
+        }
+        val sharedFile = File(shareDir, "${file.nameWithoutExtension}.json")
+        sharedFile.writeText(
+            JSONObject()
+                .put("format", "skytox-ai-dialog")
+                .put("version", 1)
+                .put("messages", messages)
+                .toString(2),
+            Charsets.UTF_8,
+        )
+        val uri = FileProvider.getUriForFile(
+            requireContext(),
+            "${BuildConfig.APPLICATION_ID}.fileprovider",
+            sharedFile,
+        )
+        findNavController().navigate(
+            R.id.contactListFragment,
+            bundleOf(ARG_SHARE_FILES to arrayListOf(uri)),
+        )
     }
 
     private fun showModelTerms(onAccepted: () -> Unit) {
@@ -2296,7 +2322,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
                     if (generating || compressingContext) {
                         true
                     } else
-                    if (item.role == "assistant" && !item.thinking && item.time > 0L) {
+                    if (!binding.webSearchSwitch.isChecked && item.role == "assistant" && !item.thinking && item.time > 0L) {
                         toggleManualContextSelection(item)
                     } else {
                         @Suppress("DEPRECATION")
@@ -2315,6 +2341,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
     }
 
     private fun toggleManualContextSelection(item: AiMessage) {
+        if (binding.webSearchSwitch.isChecked) return
         if (pendingAttachment != null) {
             Toast.makeText(requireContext(), R.string.ai_attachment_context_blocked, Toast.LENGTH_SHORT).show()
             return

@@ -163,6 +163,7 @@ dependencies {
     implementation(libs.square.picasso)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jsoup:jsoup:1.18.3")
+    implementation("net.lingala.zip4j:zip4j:2.11.5")
 
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.17.1")
 

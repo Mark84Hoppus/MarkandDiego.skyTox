@@ -262,4 +262,10 @@ class SettingsViewModel @Inject constructor(
     fun setDisableScreenshots(disable: Boolean) {
         settings.disableScreenshots = disable
     }
+
+    fun getEmergencyArchivePassword(): String = settings.emergencyArchivePassword
+
+    fun setEmergencyArchivePassword(password: String) {
+        settings.emergencyArchivePassword = password.ifBlank { "0000" }
+    }
 }

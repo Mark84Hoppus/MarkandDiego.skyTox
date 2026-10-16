@@ -3,11 +3,10 @@
 package ltd.evilcorp.atox.ui.ai
 
 import android.net.Uri
-import android.util.Base64
 import java.net.URI
-import java.net.URLDecoder
-import java.security.SecureRandom
 import java.text.Normalizer
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import okhttp3.Cookie
@@ -26,35 +25,17 @@ internal object SkyToxWebSearch {
     private const val MAX_RESULTS = 5
     private const val MAX_RESPONSE_BYTES = 1024 * 1024
 
-    private val random = SecureRandom()
-    private val requestMarkers = listOf(
-        "в интернете", "в сети", "веб", "вэб", "вэбе", "web", "интернет", "поисковик",
-        "гугл", "google", "яндекс", "yandex", "рамблер", "rambler",
-        "найди онлайн", "поищи онлайн", "search online", "search the web",
-        "look up online", "internet search", "google it",
-    )
-
-    fun isRequested(message: String): Boolean {
-        val normalized = message.lowercase(Locale.ROOT).replace('ё', 'е')
-        return requestMarkers.any(normalized::contains) ||
-            Regex("(^|[^\\p{L}\\p{N}_])(сеть|сети)(?=$|[^\\p{L}\\p{N}_])").containsMatchIn(normalized)
-    }
-
     fun search(message: String): SearchResult {
         val query = searchQuery(message).lowercase(Locale.ROOT)
         val trace = mutableListOf<ProviderTrace>()
-
-        val yahoo = runEngine("Yahoo", trace) { searchYahoo(query) }
-        if (yahoo.isNotEmpty()) {
-            return SearchResult(query, rank(query, yahoo).take(MAX_RESULTS), "Yahoo", 1, trace)
-        }
-
         val duckDuckGo = runEngine("DuckDuckGo", trace) { searchDuckDuckGo(query) }
+        val ranked = rank(query, duckDuckGo).take(MAX_RESULTS)
+        val enriched = enrichTopPages(ranked, trace)
         return SearchResult(
             query,
-            rank(query, duckDuckGo).take(MAX_RESULTS),
+            enriched,
             if (duckDuckGo.isEmpty()) "none" else "DuckDuckGo",
-            2,
+            1,
             trace,
         )
     }
@@ -67,6 +48,7 @@ internal object SkyToxWebSearch {
         appendLine("если данных недостаточно или источники противоречат друг другу, честно сообщи об этом.")
         appendLine("дай понятный и содержательный ответ на вопрос.")
         appendLine("не перечисляй сайты, источники и ссылки.")
+        appendLine("текущая дата устройства: ${SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(Date())}.")
         appendLine()
         appendLine("вопрос:")
         appendLine(result.query)
@@ -95,22 +77,6 @@ internal object SkyToxWebSearch {
         return results
     }
 
-    private fun searchYahoo(query: String): List<SearchEntry> {
-        val base = "https://search.yahoo.com/search;_ylt=${randomToken(18)};_ylu=${randomToken(35)}"
-        val url = base.toHttpUrl().newBuilder().addQueryParameter("p", query).build()
-        val document = Jsoup.parse(execute(newClient(), Request.Builder().url(url).get().build()))
-        return deduplicate(document.select("div.relsrch").mapNotNull { item ->
-            val titleNode = item.selectFirst("div[class*=Title] h3") ?: return@mapNotNull null
-            val anchor = item.selectFirst("div[class*=Title] a") ?: return@mapNotNull null
-            val href = decodeYahooRedirect(anchor.absUrl("href").ifBlank { anchor.attr("href") })
-            if (href.startsWith("https://www.bing.com/aclick?")) return@mapNotNull null
-            val urlValue = normalizeUrl(href) ?: return@mapNotNull null
-            val title = normalizeText(titleNode.text())
-            val body = normalizeText(item.selectFirst("div[class*=Text]")?.text().orEmpty())
-            if (title.isBlank()) null else SearchEntry(title, urlValue, body, host(urlValue))
-        })
-    }
-
     private fun searchDuckDuckGo(query: String): List<SearchEntry> {
         val body = FormBody.Builder()
             .add("q", query)
@@ -118,7 +84,7 @@ internal object SkyToxWebSearch {
             .add("l", "us-en")
             .build()
         val request = Request.Builder().url("https://html.duckduckgo.com/html/").post(body).build()
-        val document = Jsoup.parse(execute(newClient(), request), "https://html.duckduckgo.com")
+        val document = Jsoup.parse(execute(newClient(12), request), "https://html.duckduckgo.com")
         return deduplicate(document.select("div[class*=body]").mapNotNull { item ->
             val titleNode = item.selectFirst("h2") ?: return@mapNotNull null
             val anchor = directAnchor(item) ?: return@mapNotNull null
@@ -131,11 +97,34 @@ internal object SkyToxWebSearch {
         })
     }
 
-    private fun newClient(): OkHttpClient = OkHttpClient.Builder()
+    private fun enrichTopPages(entries: List<SearchEntry>, trace: MutableList<ProviderTrace>): List<SearchEntry> {
+        val enriched = entries.toMutableList()
+        entries.take(2).forEachIndexed { index, entry ->
+            val excerpt = runEngine("Page ${index + 1}", trace) { pageExcerpt(entry.url)?.let(::listOf).orEmpty() }
+                .firstOrNull()
+                ?.snippet
+                .orEmpty()
+            if (excerpt.length >= 160) enriched[index] = entry.copy(snippet = excerpt)
+        }
+        return enriched
+    }
+
+    private fun pageExcerpt(url: String): SearchEntry? {
+        val safeUrl = normalizeUrl(url) ?: return null
+        val html = execute(newClient(7), Request.Builder().url(safeUrl).get().build())
+        val document = Jsoup.parse(html, safeUrl)
+        document.select("script,style,noscript,svg,nav,header,footer,form").remove()
+        val text = normalizeText(document.select("main,article,[role=main]").text().ifBlank { document.body()?.text().orEmpty() })
+            .take(2_400)
+        if (text.isBlank()) return null
+        return SearchEntry(document.title(), safeUrl, text, host(safeUrl))
+    }
+
+    private fun newClient(timeoutSeconds: Long): OkHttpClient = OkHttpClient.Builder()
         .cookieJar(MemoryCookieJar())
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .callTimeout(20, TimeUnit.SECONDS)
+        .connectTimeout(timeoutSeconds, TimeUnit.SECONDS)
+        .readTimeout(timeoutSeconds, TimeUnit.SECONDS)
+        .callTimeout(timeoutSeconds, TimeUnit.SECONDS)
         .followRedirects(true)
         .build()
 
@@ -198,16 +187,6 @@ internal object SkyToxWebSearch {
         .filter { it.length >= 3 }
         .toSet()
 
-    private fun decodeYahooRedirect(value: String): String {
-        val ru = value.indexOf("/RU=")
-        if (ru < 0) return value
-        val end = listOf(value.indexOf("/RK=", ru + 4), value.indexOf("/RS=", ru + 4))
-            .filter { it >= 0 }
-            .minOrNull() ?: value.length
-        return runCatching { URLDecoder.decode(value.substring(ru + 4, end), Charsets.UTF_8.name()) }
-            .getOrDefault(value)
-    }
-
     private fun normalizeText(value: String): String = Normalizer.normalize(value, Normalizer.Form.NFC)
         .filterNot { character ->
             when (Character.getType(character)) {
@@ -230,10 +209,6 @@ internal object SkyToxWebSearch {
         ?: item.selectFirst(":scope > a")
 
     private fun host(url: String): String = runCatching { URI(url).host.orEmpty() }.getOrDefault("")
-
-    private fun randomToken(byteCount: Int): String = ByteArray(byteCount).also(random::nextBytes).let {
-        Base64.encodeToString(it, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
-    }
 
     private fun elapsedMillis(started: Long): Long = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)
 

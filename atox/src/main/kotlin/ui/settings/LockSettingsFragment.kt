@@ -44,7 +44,7 @@ class LockSettingsFragment : BaseFragment<FragmentLockSettingsBinding>(FragmentL
             compat
         }
 
-        toolbar.setNavigationIcon(R.drawable.ic_back)
+        toolbar.navigationIcon = null
         toolbar.setNavigationOnClickListener { findNavController().popBackStack() }
 
         syncSwitch()

@@ -7,12 +7,19 @@ package ltd.evilcorp.atox.ui.contactlist
 
 import android.content.ContentResolver
 import android.content.Context
+import android.app.NotificationManager
+import android.app.ActivityManager
+import android.os.Environment
 import android.net.Uri
 import android.widget.Toast
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.asLiveData
+import androidx.preference.PreferenceManager
+import androidx.work.WorkManager
 import java.io.FileInputStream
+import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -31,6 +38,7 @@ import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.atox.tox.ToxStarter
 import ltd.evilcorp.atox.ui.NotificationHelper
 import ltd.evilcorp.core.repository.MessageRepository
+import ltd.evilcorp.core.db.Database
 import ltd.evilcorp.core.vo.Contact
 import ltd.evilcorp.core.vo.ConnectionStatus
 import ltd.evilcorp.core.vo.FriendRequest
@@ -52,10 +60,20 @@ import ltd.evilcorp.domain.feature.search.SkyToxChatSearch
 import ltd.evilcorp.domain.tox.ProxyType
 import ltd.evilcorp.domain.tox.SaveOptions
 import ltd.evilcorp.domain.tox.Tox
+import ltd.evilcorp.domain.tox.SaveManager
 import ltd.evilcorp.domain.tox.ToxSaveStatus
 import ltd.evilcorp.domain.tox.testToxSave
+import net.lingala.zip4j.ZipFile
+import net.lingala.zip4j.model.ZipParameters
+import net.lingala.zip4j.model.enums.CompressionMethod
+import net.lingala.zip4j.model.enums.EncryptionMethod
 
 private const val MAX_FILES_PER_SHARE_BATCH = 10
+
+sealed interface EmergencyWipeResult {
+    data object Complete : EmergencyWipeResult
+    data class Failed(val reason: String) : EmergencyWipeResult
+}
 
 class ContactListViewModel @Inject constructor(
     private val scope: CoroutineScope,
@@ -74,8 +92,11 @@ class ContactListViewModel @Inject constructor(
     private val tox: Tox,
     private val toxStarter: ToxStarter,
     private val settings: Settings,
+    private val database: Database,
+    private val saveManager: SaveManager,
     userManager: UserManager,
 ) : ViewModel() {
+    val emergencyWipeResult = MutableLiveData<EmergencyWipeResult>()
     val publicKey by lazy { tox.publicKey }
 
     val user: LiveData<User> by lazy { userManager.get(publicKey).asLiveData() }
@@ -274,6 +295,67 @@ class ContactListViewModel @Inject constructor(
     suspend fun searchChats(query: String) = chatSearch.search(query)
 
     fun ownAvatarUri(): Uri? = avatarManager.ownAvatarUri()
+
+    fun emergencyWipe() = scope.launch(Dispatchers.IO) {
+        val safePassword = settings.emergencyArchivePassword.filter { it.isLetterOrDigit() && it.code < 128 }
+            .ifBlank { "0000" }
+        val tempDir = File(context.cacheDir, "skytox_emergency_archive")
+        try {
+            @Suppress("DEPRECATION")
+            val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).apply { mkdirs() }
+            val archive = File(downloads, "0.zip")
+            tempDir.apply {
+                deleteRecursively()
+                mkdirs()
+            }
+            val profile = File(tempDir, "profile.tox").apply { writeBytes(tox.getSaveData()) }
+            val chats = File(tempDir, "all-chats.json").apply {
+                writeText(exportManager.generateAllTextChatsJString(), Charsets.UTF_8)
+            }
+            archive.delete()
+            val parameters = ZipParameters().apply {
+                isEncryptFiles = true
+                encryptionMethod = EncryptionMethod.AES
+                compressionMethod = CompressionMethod.DEFLATE
+            }
+            ZipFile(archive, safePassword.toCharArray()).addFiles(arrayListOf(profile, chats), parameters)
+            check(archive.isFile && archive.length() > 0L && ZipFile(archive, safePassword.toCharArray()).fileHeaders.size == 2)
+            tempDir.deleteRecursively()
+        } catch (error: Throwable) {
+            tempDir.deleteRecursively()
+            emergencyWipeResult.postValue(EmergencyWipeResult.Failed(error.message ?: error.javaClass.simpleName))
+            return@launch
+        }
+
+        // The recovery archive is complete. From this point cleanup is best-effort per storage area,
+        // so one locked file cannot leave the rest of the account behind.
+        runCatching { toxStarter.stopTox() }
+        var waitCycles = 0
+        while (tox.started && waitCycles < 100) {
+            kotlinx.coroutines.delay(50)
+            waitCycles++
+        }
+        runCatching { WorkManager.getInstance(context).cancelAllWork() }
+        runCatching { context.getSystemService(NotificationManager::class.java)?.cancelAll() }
+        runCatching { database.clearAllTables() }
+        runCatching { saveManager.deleteAll() }
+        runCatching { SkyToxPublicFolders.root.deleteRecursively() }
+        if (runCatching { context.getSystemService(ActivityManager::class.java)?.clearApplicationUserData() }.getOrNull() == true) {
+            return@launch
+        }
+        runCatching { context.databaseList().forEach(context::deleteDatabase) }
+        runCatching { PreferenceManager.getDefaultSharedPreferences(context).edit().clear().commit() }
+        listOf("skytox_push", "skytox_ai", "skytox_ai_settings", "skytox_litert_backend", "skytox_location_map").forEach {
+            runCatching { context.getSharedPreferences(it, Context.MODE_PRIVATE).edit().clear().commit() }
+        }
+        runCatching { context.externalCacheDirs.filterNotNull().forEach { it.deleteRecursively() } }
+        runCatching { context.getExternalFilesDirs(null).filterNotNull().forEach { it.deleteRecursively() } }
+        runCatching { context.filesDir.deleteRecursively() }
+        runCatching { context.noBackupFilesDir.deleteRecursively() }
+        runCatching { context.cacheDir.deleteRecursively() }
+        runCatching { File(context.applicationInfo.dataDir, "shared_prefs").deleteRecursively() }
+        emergencyWipeResult.postValue(EmergencyWipeResult.Complete)
+    }
 
     private fun timestamp(): String =
         SimpleDateFormat("""yyyy-MM-dd'T'HH-mm-ss""", Locale.getDefault()).format(Date())

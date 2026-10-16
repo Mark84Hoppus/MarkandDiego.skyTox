@@ -2,6 +2,13 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+            android:id="@+id/open_music"
+            android:contentDescription="@string/music"
+            android:icon="@drawable/ic_music_note"
+            android:orderInCategory="1"
+            android:title="@string/music"
+            app:showAsAction="always"/>
+    <item
             android:id="@+id/open_ai_assistant"
             android:orderInCategory="5"
             android:title="AI"

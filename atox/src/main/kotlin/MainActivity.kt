@@ -9,13 +9,22 @@ import android.app.KeyguardManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings as AndroidSettings
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
+import android.view.MotionEvent
+import android.graphics.Rect
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.widget.ImageButton
+import android.widget.TextView
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -41,6 +50,7 @@ import ltd.evilcorp.atox.ui.contactlist.ARG_SHARE_FILES
 import ltd.evilcorp.atox.ui.call.EXTRA_OPEN_CALL_PUBLIC_KEY
 import ltd.evilcorp.atox.ui.chat.CONTACT_PUBLIC_KEY
 import ltd.evilcorp.atox.tox.ToxStarter
+import ltd.evilcorp.domain.feature.SkyToxPublicFolders
 
 private const val TAG = "MainActivity"
 private const val SCHEME = "tox:"
@@ -62,6 +72,14 @@ class MainActivity : AppCompatActivity() {
 
     private var lockPromptActive = false
     private var lockAccepted = false
+    private var musicPlayer: MediaPlayer? = null
+    private var musicFiles = emptyList<java.io.File>()
+    private var musicIndex = 0
+    private var musicRandom = false
+    private var musicPanelExpanded = false
+    private val musicHandler = Handler(Looper.getMainLooper())
+    private var musicAvailabilityListener: ((Boolean) -> Unit)? = null
+    private val collapseMusicPanel = Runnable { collapseMusicPanel() }
     private val appLockLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         lockPromptActive = false
         if (result.resultCode == RESULT_OK) {
@@ -89,6 +107,7 @@ class MainActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContentView(R.layout.activity_main)
+        setupMusicOverlay()
         setupBottomNavigation()
         requestLegacyStorageAccessIfNeeded()
         requestAllFilesAccessIfNeeded()
@@ -156,10 +175,155 @@ class MainActivity : AppCompatActivity() {
         }
 
         navController.addOnDestinationChangedListener { _, destination, _ ->
+            collapseMusicPanel()
             val visible = destination.id in bottomNavigationDestinations
             bottomNav.visibility = if (visible) View.VISIBLE else View.GONE
             highlightBottomNavigation(destination.id)
         }
+    }
+
+    fun setMusicAvailabilityListener(listener: ((Boolean) -> Unit)?) {
+        musicAvailabilityListener = listener
+        listener?.invoke(findViewById<View>(R.id.musicOverlay)?.visibility != View.VISIBLE)
+    }
+
+    fun showMusicWidget() {
+        SkyToxPublicFolders.ensureDirectories()
+        findViewById<View>(R.id.musicOverlay).visibility = View.VISIBLE
+        findViewById<View>(R.id.musicHandle).visibility = View.VISIBLE
+        findViewById<View>(R.id.musicPanel).visibility = View.GONE
+        musicAvailabilityListener?.invoke(false)
+    }
+
+    private fun setupMusicOverlay() {
+        findViewById<View>(R.id.musicHandle).setOnClickListener { expandMusicPanel() }
+        findViewById<View>(R.id.musicPlayPause).setOnClickListener { toggleMusicPlayback() }
+        findViewById<View>(R.id.musicNext).setOnClickListener { playRelative(1) }
+        findViewById<View>(R.id.musicPrevious).setOnClickListener { playRelative(-1) }
+        findViewById<TextView>(R.id.musicRandom).setOnClickListener { view ->
+            musicRandom = !musicRandom
+            (view as TextView).setTextColor(if (musicRandom) Color.GREEN else Color.WHITE)
+            scheduleMusicPanelCollapse()
+        }
+        findViewById<View>(R.id.musicClose).setOnClickListener { closeMusicWidget() }
+    }
+
+    private fun expandMusicPanel() {
+        val panel = findViewById<View>(R.id.musicPanel)
+        findViewById<View>(R.id.musicHandle).visibility = View.GONE
+        panel.visibility = View.VISIBLE
+        panel.translationX = resources.displayMetrics.density * 58f
+        panel.animate().translationX(0f).setDuration(650L).start()
+        musicPanelExpanded = true
+        scheduleMusicPanelCollapse()
+    }
+
+    private fun collapseMusicPanel() {
+        if (!musicPanelExpanded) return
+        musicHandler.removeCallbacks(collapseMusicPanel)
+        val panel = findViewById<View>(R.id.musicPanel)
+        panel.animate().translationX(resources.displayMetrics.density * 58f).setDuration(650L).withEndAction {
+            panel.visibility = View.GONE
+            panel.translationX = 0f
+            if (findViewById<View>(R.id.musicOverlay).visibility == View.VISIBLE) {
+                findViewById<View>(R.id.musicHandle).visibility = View.VISIBLE
+            }
+        }.start()
+        musicPanelExpanded = false
+    }
+
+    private fun scheduleMusicPanelCollapse() {
+        musicHandler.removeCallbacks(collapseMusicPanel)
+        musicHandler.postDelayed(collapseMusicPanel, 10_000L)
+    }
+
+    private fun loadMusicFiles(): List<java.io.File> = SkyToxPublicFolders.musicDir
+        .listFiles { file -> file.isFile && file.extension.equals("mp3", ignoreCase = true) }
+        ?.sortedWith(compareBy<java.io.File>({ if (it.name.firstOrNull()?.isDigit() == true) 1 else 0 }, { it.name.lowercase() }))
+        .orEmpty()
+
+    private fun toggleMusicPlayback() {
+        val current = musicPlayer
+        if (current?.isPlaying == true) {
+            current.pause()
+            updateMusicPlayIcon(false)
+        } else if (current != null) {
+            current.start()
+            updateMusicPlayIcon(true)
+        } else {
+            musicFiles = loadMusicFiles()
+            if (musicFiles.isEmpty()) {
+                Toast.makeText(this, R.string.music_no_files, Toast.LENGTH_LONG).show()
+            } else {
+                musicIndex = musicIndex.coerceIn(musicFiles.indices)
+                playMusicAt(musicIndex)
+            }
+        }
+        scheduleMusicPanelCollapse()
+    }
+
+    private fun playRelative(delta: Int) {
+        musicFiles = loadMusicFiles()
+        if (musicFiles.isEmpty()) {
+            Toast.makeText(this, R.string.music_no_files, Toast.LENGTH_LONG).show()
+            return
+        }
+        musicIndex = if (musicRandom) {
+            musicFiles.indices.random()
+        } else {
+            (musicIndex + delta).mod(musicFiles.size)
+        }
+        playMusicAt(musicIndex)
+        scheduleMusicPanelCollapse()
+    }
+
+    private fun playMusicAt(index: Int) {
+        musicPlayer?.release()
+        musicPlayer = MediaPlayer().apply {
+            setDataSource(musicFiles[index].absolutePath)
+            setOnCompletionListener { playRelative(1) }
+            setOnErrorListener { _, _, _ ->
+                updateMusicPlayIcon(false)
+                true
+            }
+            prepare()
+            start()
+        }
+        updateMusicPlayIcon(true)
+    }
+
+    private fun updateMusicPlayIcon(playing: Boolean) {
+        findViewById<ImageButton>(R.id.musicPlayPause).apply {
+            setImageResource(if (playing) R.drawable.ic_music_pause else R.drawable.ic_play)
+            imageTintList = ColorStateList.valueOf(Color.WHITE)
+        }
+    }
+
+    private fun closeMusicWidget() {
+        musicHandler.removeCallbacks(collapseMusicPanel)
+        musicPlayer?.release()
+        musicPlayer = null
+        musicPanelExpanded = false
+        findViewById<View>(R.id.musicOverlay).visibility = View.GONE
+        updateMusicPlayIcon(false)
+        musicAvailabilityListener?.invoke(true)
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_DOWN && musicPanelExpanded) {
+            val panel = findViewById<View>(R.id.musicPanel)
+            val bounds = Rect()
+            panel.getGlobalVisibleRect(bounds)
+            if (!bounds.contains(event.rawX.toInt(), event.rawY.toInt())) collapseMusicPanel()
+        }
+        return super.dispatchTouchEvent(event)
+    }
+
+    override fun onDestroy() {
+        musicHandler.removeCallbacksAndMessages(null)
+        musicPlayer?.release()
+        musicPlayer = null
+        super.onDestroy()
     }
 
     private fun NavController.openTopLevel(destinationId: Int) {

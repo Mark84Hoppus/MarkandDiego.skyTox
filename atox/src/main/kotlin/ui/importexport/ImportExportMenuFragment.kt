@@ -61,7 +61,7 @@ class ImportExportMenuFragment : BaseFragment<FragmentImportExportMenuBinding>(F
             compat
         }
 
-        toolbar.setNavigationIcon(R.drawable.ic_back)
+        toolbar.navigationIcon = null
         toolbar.setNavigationOnClickListener { findNavController().popBackStack() }
 
         viewModel.user.observe(viewLifecycleOwner) { user ->

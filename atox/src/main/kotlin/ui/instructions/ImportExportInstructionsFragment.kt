@@ -27,7 +27,7 @@ class ImportExportInstructionsFragment :
             compat
         }
 
-        toolbar.setNavigationIcon(R.drawable.ic_back)
+        toolbar.navigationIcon = null
         toolbar.setNavigationOnClickListener {
             WindowInsetsControllerCompat(requireActivity().window, view).hide(WindowInsetsCompat.Type.ime())
             requireActivity().onBackPressedDispatcher.onBackPressed()

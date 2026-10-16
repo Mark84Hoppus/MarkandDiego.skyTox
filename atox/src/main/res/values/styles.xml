@@ -82,4 +82,11 @@
     <style name="DialogSlideAnimation" parent="Theme.AppCompat.Dialog">
         <item name="android:windowAnimationStyle">@style/DialogAnimation</item>
     </style>
+
+    <style name="MusicPanelButton">
+        <item name="android:layout_width">42dp</item>
+        <item name="android:layout_height">38dp</item>
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:padding">8dp</item>
+    </style>
 </resources>

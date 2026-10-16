@@ -108,13 +108,17 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
             compat
         }
 
-        toolbar.apply {
-            setNavigationIcon(R.drawable.ic_back)
-            setNavigationOnClickListener {
-                WindowInsetsControllerCompat(requireActivity().window, view)
-                    .hide(WindowInsetsCompat.Type.ime())
-                requireActivity().onBackPressedDispatcher.onBackPressed()
-            }
+        toolbar.navigationIcon = null
+
+        emergencyArchivePassword.setText(vm.getEmergencyArchivePassword())
+        emergencyArchiveConfirm.setOnClickListener {
+            val password = emergencyArchivePassword.text.toString().filter { it.isLetterOrDigit() && it.code < 128 }
+                .ifBlank { "0000" }
+            emergencyArchivePassword.setText(password)
+            emergencyArchivePassword.setSelection(password.length)
+            vm.setEmergencyArchivePassword(password)
+            emergencyArchiveName.visibility = View.VISIBLE
+            Toast.makeText(requireContext(), R.string.emergency_archive_password_saved, Toast.LENGTH_SHORT).show()
         }
 
         theme.adapter = ArrayAdapter.createFromResource(

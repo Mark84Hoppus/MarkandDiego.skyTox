@@ -4,6 +4,7 @@
 
     <cache-path name="shared_images" path="shared_images/"/>
     <cache-path name="updates" path="updates/"/>
+    <cache-path name="shared_ai_dialogs" path="shared_ai_dialogs/"/>
     <external-path name="skytox_files" path="skyTox files/"/>
     <external-path name="skytox_app" path="skyTox files/skyTox app/"/>
 </paths>

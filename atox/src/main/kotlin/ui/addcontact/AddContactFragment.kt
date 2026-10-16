@@ -68,7 +68,7 @@ class AddContactFragment : BaseFragment<FragmentAddContactBinding>(FragmentAddCo
             contacts = it
         }
 
-        toolbar.setNavigationIcon(R.drawable.ic_back)
+        toolbar.navigationIcon = null
         toolbar.setNavigationOnClickListener {
             WindowInsetsControllerCompat(requireActivity().window, view)
                 .hide(WindowInsetsCompat.Type.ime())
