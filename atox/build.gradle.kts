@@ -40,7 +40,7 @@ android {
         applicationId = "markanddiego.skytox"
         minSdk = libs.versions.sdk.min.get().toInt()
         targetSdk = libs.versions.sdk.target.get().toInt()
-        versionCode = 309
+        versionCode = 312
         versionName = "0.8.33"
         if (skytoxUniversal) {
             ndk {
@@ -109,8 +109,8 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
         val abiVersionCodes = mapOf(
-            "armeabi-v7a" to 304,
-            "arm64-v8a" to 305,
+            "armeabi-v7a" to 310,
+            "arm64-v8a" to 311,
             "x86" to 295,
             "x86_64" to 296,
         )
