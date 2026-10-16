@@ -70,7 +70,7 @@ class SkyToxGamesFragment : BaseFragment<FragmentGamesBinding>(FragmentGamesBind
             compat
         }
 
-        toolbar.navigationIcon = null
+        toolbar.setNavigationIcon(R.drawable.ic_back)
         toolbar.setNavigationOnClickListener {
             findNavController().popBackStack()
         }

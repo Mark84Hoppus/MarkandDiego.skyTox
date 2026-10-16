@@ -403,8 +403,8 @@
     <string name="ai_file_sent_to_self_chat">Файл отправлен в Мой skyTox</string>
     <string name="you">&#1042;&#1099;</string>
     <string name="voice_send_confirm_title">&#1054;&#1090;&#1087;&#1088;&#1072;&#1074;&#1080;&#1090;&#1100; &#1075;&#1086;&#1083;&#1086;&#1089;&#1086;&#1074;&#1086;&#1077;?</string>
-    <string name="emergency_archive_heading">Архив\nпосле самоудаления</string>
-    <string name="emergency_archive_password_hint">Задайте любой пароль\nпо умолчанию 0000</string>
+    <string name="emergency_archive_heading">Архив после самоудаления</string>
+    <string name="emergency_archive_password_hint">Задайте пароль</string>
     <string name="emergency_archive_password_saved">Пароль архива сохранён</string>
     <string name="emergency_wipe_instruction">Нажмите 3 раза для полного удаления</string>
     <string name="emergency_wipe_failed">Не удалось создать архив. Данные не были удалены.</string>

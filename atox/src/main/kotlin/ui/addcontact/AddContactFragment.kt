@@ -68,12 +68,8 @@ class AddContactFragment : BaseFragment<FragmentAddContactBinding>(FragmentAddCo
             contacts = it
         }
 
-        toolbar.navigationIcon = null
-        toolbar.setNavigationOnClickListener {
-            WindowInsetsControllerCompat(requireActivity().window, view)
-                .hide(WindowInsetsCompat.Type.ime())
-            requireActivity().onBackPressedDispatcher.onBackPressed()
-        }
+        toolbar.setNavigationIcon(R.drawable.ic_navigation_placeholder)
+        toolbar.setNavigationOnClickListener(null)
 
         toxId.doAfterTextChanged { s ->
             val input = ToxID(s?.toString() ?: "")

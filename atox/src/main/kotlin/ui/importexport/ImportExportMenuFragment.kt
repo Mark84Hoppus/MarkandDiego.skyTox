@@ -61,8 +61,8 @@ class ImportExportMenuFragment : BaseFragment<FragmentImportExportMenuBinding>(F
             compat
         }
 
-        toolbar.navigationIcon = null
-        toolbar.setNavigationOnClickListener { findNavController().popBackStack() }
+        toolbar.setNavigationIcon(R.drawable.ic_navigation_placeholder)
+        toolbar.setNavigationOnClickListener(null)
 
         viewModel.user.observe(viewLifecycleOwner) { user ->
             if (user != null) backupFileNameHint = user.name + ".tox"

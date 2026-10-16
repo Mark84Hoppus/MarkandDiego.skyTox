@@ -191,7 +191,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
             compat
         }
 
-        toolbar.navigationIcon = null
+        toolbar.setNavigationIcon(R.drawable.ic_back)
         toolbar.setNavigationOnClickListener { handleBack() }
         toolbar.setOnMenuItemClickListener(::onToolbarMenuItem)
 

@@ -108,7 +108,8 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
             compat
         }
 
-        toolbar.navigationIcon = null
+        toolbar.setNavigationIcon(R.drawable.ic_navigation_placeholder)
+        toolbar.setNavigationOnClickListener(null)
 
         emergencyArchivePassword.setText(vm.getEmergencyArchivePassword())
         emergencyArchiveConfirm.setOnClickListener {
@@ -117,6 +118,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
             emergencyArchivePassword.setText(password)
             emergencyArchivePassword.setSelection(password.length)
             vm.setEmergencyArchivePassword(password)
+            emergencyArchivePasswordHint.visibility = View.GONE
             emergencyArchiveName.visibility = View.VISIBLE
             Toast.makeText(requireContext(), R.string.emergency_archive_password_saved, Toast.LENGTH_SHORT).show()
         }
