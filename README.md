@@ -59,6 +59,8 @@ It is an independent Android fork of [aTox](https://github.com/evilcorpltd/aTox)
 - Темная тема и интерфейс, приспособленный к старым и новым версиям Android.
 - Подписанные сборки для `armeabi-v7a`, `arm64-v8a` и универсальная APK.
 - Встроенная проверка обновлений через GitHub Releases.
+- Музыкальный мини-плеер поверх экранов приложения: файлы `.mp3` пользователь добавляет в папку `skyTox music`, после чего доступны воспроизведение, пауза, предыдущий/следующий трек и случайный порядок.
+- Аварийное удаление локального аккаунта долгим удержанием логотипа и тройным подтверждением. Перед очисткой в `Downloads/0.zip` создаётся защищённый паролем архив профиля Tox и текстовой истории чатов; пароль задаётся в настройках, значение по умолчанию — `0000`.
 
 ### Карта и геопозиция
 
@@ -88,6 +90,8 @@ It is an independent Android fork of [aTox](https://github.com/evilcorpltd/aTox)
 - Пользователь сам выбирает до трех предыдущих ответов как контекст следующего вопроса.
 - Поддерживаются вложения `JPG`, `PNG`, `PDF` и `TXT`; для PDF анализируется первая страница.
 - Распознанный текст и программный код могут быть переданы TXT-файлом в «Мой skyTox».
+- Переключатель «Веб-поиск» разрешает приложению получать актуальные результаты из сети и передавать их локальной Gemma для подготовки ответа. Пока переключатель выключен, помощник полностью работает с локальной моделью и выбранными пользователем вложениями или контекстом.
+- В режиме веб-поиска контекст предыдущих ответов и вложения отключаются, чтобы поисковые данные не смешивались с документами и старым диалогом.
 - На 32-битных устройствах `armeabi-v7a` AI скрыт, но все обычные функции мессенджера продолжают работать.
 
 Локальная небольшая модель может ошибаться, повторяться, пропускать текст на изображениях и уверенно сообщать неверные сведения. Ее ответы, код и распознавание документов необходимо проверять самостоятельно.
@@ -105,6 +109,7 @@ It is an independent Android fork of [aTox](https://github.com/evilcorpltd/aTox)
 - **0.8.26:** существенно переработаны аудио- и видеозвонки, рендеринг видео и адаптация качества.
 - **0.8.28–0.8.30:** появились геопозиция, онлайн- и офлайн-карты, метки, навигационный режим, запись и обмен GPX-треками.
 - **0.8.32:** добавлен локальный AI-помощник с поддержкой текста, изображений и простых документов.
+- **0.8.33:** добавлены веб-поиск для локальной Gemma, музыкальный мини-плеер и аварийное удаление аккаунта с защищённым архивом; исправлены дубли файлов, экспорт чатов и сбои аватаров.
 
 Эта история остается в README только как краткая карта развития. Подробности конкретной сборки находятся в описании соответствующего [релиза](https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases).
 
@@ -182,6 +187,8 @@ There is no central “turn it off” button. The author may stop publishing upd
 - Dark theme and compatibility work for both older and newer Android devices.
 - Signed `armeabi-v7a`, `arm64-v8a`, and universal APK builds.
 - Built-in update checks through GitHub Releases.
+- A floating music mini-player: users place `.mp3` files in `skyTox music` and can play, pause, skip, return to the previous track, or enable random order from any screen.
+- Emergency local-account removal by holding the skyTox logo and confirming with three taps. Before cleanup, skyTox creates `Downloads/0.zip`, a password-protected archive containing the Tox profile and text chat history; the password is configured in Settings and defaults to `0000`.
 
 ### Maps and location
 
@@ -210,6 +217,8 @@ There is no central “turn it off” button. The author may stop publishing upd
 - The user selects up to three previous AI replies as context for the next request.
 - `JPG`, `PNG`, `PDF`, and `TXT` attachments; the first page of a PDF is used for visual analysis.
 - Recognized text and generated code can be delivered as TXT files to “My skyTox”.
+- The Web Search switch lets the app retrieve current web results and pass them to the local Gemma model for composing an answer. With the switch off, the assistant remains fully local and can use user-selected context or supported attachments.
+- Previous-answer context and attachments are disabled during web search so documents and old dialog do not interfere with current search evidence.
 - Local AI is hidden on 32-bit `armeabi-v7a` devices while normal messenger features remain available.
 
 A small local model can make mistakes, repeat itself, miss text in images, or confidently provide incorrect information. Its facts, code, and document recognition must be independently verified.
@@ -227,6 +236,7 @@ A small local model can make mistakes, repeat itself, miss text in images, or co
 - **0.8.26:** major audio/video call and rendering improvements.
 - **0.8.28–0.8.30:** location sharing, online/offline maps, markers, navigation mode, and GPX tracks.
 - **0.8.32:** local AI assistant with text, image, and basic document support.
+- **0.8.33:** web search for local Gemma, a music mini-player, and emergency account removal with a protected recovery archive; file duplication, chat export, and avatar crash issues were fixed.
 
 This timeline is only a compact map of the project. Build-specific details are available on the corresponding [GitHub Releases](https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases) pages.
 
