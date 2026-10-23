@@ -30,10 +30,12 @@ import androidx.core.os.bundleOf
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnPreDraw
 import androidx.core.view.updatePadding
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
+import androidx.navigation.NavOptions
 import com.google.android.material.navigation.NavigationView
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -51,6 +53,9 @@ import ltd.evilcorp.atox.ui.chat.CONTACT_PUBLIC_KEY
 import ltd.evilcorp.atox.ui.colorFromStatus
 import ltd.evilcorp.atox.ui.contactListSorter
 import ltd.evilcorp.atox.ui.friendrequest.FRIEND_REQUEST_PUBLIC_KEY
+import ltd.evilcorp.atox.ui.motion.CHAT_WINDOW_MOTION
+import ltd.evilcorp.atox.ui.motion.ChatWindowMotion
+import ltd.evilcorp.atox.ui.motion.chatWindowMotion
 import ltd.evilcorp.atox.ui.search.SkyToxChatSearchDialog
 import ltd.evilcorp.atox.vmFactory
 import ltd.evilcorp.core.vo.ConnectionStatus
@@ -68,6 +73,7 @@ const val ARG_SHARE = "share"
 const val ARG_SHARE_FILES = "share_files"
 private const val MAX_CONFIRM_DELETE_STRING_LENGTH = 32
 private const val MAX_FILES_PER_SHARE_BATCH = 10
+private const val RETURN_CHAT_PUBLIC_KEY = "returnChatPublicKey"
 
 private fun User.online(): Boolean = connectionStatus != ConnectionStatus.None
 private fun localAiSupported(): Boolean =
@@ -91,6 +97,10 @@ class ContactListFragment :
     private var passwordDialog: AlertDialog? = null
     private var selfChatContact: Contact? = null
     private var normalContacts: List<Contact> = emptyList()
+    private lateinit var chatMotion: ChatWindowMotion
+    private var contactAdapter: ContactAdapter? = null
+    private var returnChatPublicKey: String? = null
+    private var returnTransitionPostponed = false
 
     private val exportToxSaveLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument("*/*")) { dest ->
@@ -123,8 +133,19 @@ class ContactListFragment :
         return v
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        returnChatPublicKey?.let { outState.putString(RETURN_CHAT_PUBLIC_KEY, it) }
+        super.onSaveInstanceState(outState)
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?): Unit = binding.run {
         if (!viewModel.isToxRunning()) return@run
+        chatMotion = chatWindowMotion(this@ContactListFragment, viewModel.windowAnimationsEnabled())
+        if (returnChatPublicKey != null && chatMotion.transitionName(returnChatPublicKey!!) != null) {
+            postponeEnterTransition()
+            returnTransitionPostponed = true
+            view.postDelayed(::releaseReturnTransition, 500L)
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (!requireContext().hasPermission(Manifest.permission.POST_NOTIFICATIONS)) {
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -196,7 +217,8 @@ class ContactListFragment :
         navView.setNavigationItemSelectedListener(this@ContactListFragment)
         drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
 
-        val contactAdapter = ContactAdapter(layoutInflater, requireContext())
+        val contactAdapter = ContactAdapter(layoutInflater, requireContext(), chatMotion::transitionName)
+        this@ContactListFragment.contactAdapter = contactAdapter
         contactList.adapter = contactAdapter
         registerForContextMenu(contactList)
 
@@ -214,11 +236,13 @@ class ContactListFragment :
         viewModel.contacts.observe(viewLifecycleOwner) { contacts ->
             normalContacts = contacts
             updateContactAdapter(contactAdapter)
+            prepareReturnTransition(contactAdapter)
         }
 
         viewModel.selfChatContact.observe(viewLifecycleOwner) { contact ->
             selfChatContact = contact
             updateContactAdapter(contactAdapter)
+            prepareReturnTransition(contactAdapter)
         }
 
         viewModel.pendingMessageContacts.observe(viewLifecycleOwner) { contacts ->
@@ -226,13 +250,16 @@ class ContactListFragment :
             contactAdapter.notifyDataSetChanged()
         }
 
-        contactList.setOnItemClickListener { _, _, position, _ ->
+        contactList.setOnItemClickListener { _, row, position, _ ->
             when (contactList.adapter.getItemViewType(position)) {
                 ContactListItemType.FriendRequest.ordinal -> {
                     openFriendRequest(contactList.getItemAtPosition(position) as FriendRequest)
                 }
                 ContactListItemType.Contact.ordinal -> {
-                    openChat(contactList.getItemAtPosition(position) as Contact)
+                    openChat(
+                        contactList.getItemAtPosition(position) as Contact,
+                        row.findViewById(R.id.avatarImageView),
+                    )
                 }
             }
         }
@@ -295,6 +322,8 @@ class ContactListFragment :
     }
 
     override fun onDestroyView() {
+        if (returnTransitionPostponed) releaseReturnTransition()
+        contactAdapter = null
         navHeader = null
         super.onDestroyView()
     }
@@ -446,6 +475,7 @@ class ContactListFragment :
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        returnChatPublicKey = savedInstanceState?.getString(RETURN_CHAT_PUBLIC_KEY)
         if (!viewModel.isToxRunning()) viewModel.tryLoadTox(null)
     }
 
@@ -519,11 +549,51 @@ class ContactListFragment :
         }
     }
 
+    private fun openChat(contact: Contact, source: View) {
+        val pk = contact.publicKey
+        val args = bundleOf(CONTACT_PUBLIC_KEY to pk, CHAT_WINDOW_MOTION to true)
+        chatMotion.open(
+            source,
+            pk,
+            plain = { openChat(pk) },
+            animated = { extras ->
+                returnChatPublicKey = pk
+                val noWindowAnimations = NavOptions.Builder()
+                    .setEnterAnim(0)
+                    .setExitAnim(0)
+                    .setPopEnterAnim(0)
+                    .setPopExitAnim(0)
+                    .build()
+                findNavController().navigate(
+                    R.id.action_contactListFragment_to_chatFragment,
+                    args,
+                    noWindowAnimations,
+                    extras,
+                )
+            },
+        )
+    }
+
     private fun openChat(contact: Contact) = openChat(contact.publicKey)
+
     private fun openChat(pk: String) = findNavController().navigate(
         R.id.action_contactListFragment_to_chatFragment,
         bundleOf(CONTACT_PUBLIC_KEY to pk),
     )
+
+    private fun prepareReturnTransition(adapter: ContactAdapter) {
+        if (!returnTransitionPostponed) return
+        val position = returnChatPublicKey?.let(adapter::positionOfContact) ?: return
+        binding.contactList.setSelection(position)
+        binding.contactList.doOnPreDraw { releaseReturnTransition() }
+    }
+
+    private fun releaseReturnTransition() {
+        if (!returnTransitionPostponed) return
+        returnTransitionPostponed = false
+        returnChatPublicKey = null
+        startPostponedEnterTransition()
+    }
 
     private fun openFriendRequest(friendRequest: FriendRequest) = findNavController().navigate(
         R.id.action_contactListFragment_to_friendRequestFragment,

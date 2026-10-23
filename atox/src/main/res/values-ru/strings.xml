@@ -64,6 +64,7 @@
     <string name="atox_connected_with_udp">Подключено (UDP)</string>
     <string name="read_qr">QR-код</string>
     <string name="pref_heading_theme">Тема</string>
+    <string name="pref_window_animations">Анимация окон</string>
     <string name="pref_heading_ft_auto_accept">Автоматически принимаемые файлы</string>
     <string name="pref_heading_type">Тип</string>
     <string name="pref_heading_advanced">Расширенные</string>

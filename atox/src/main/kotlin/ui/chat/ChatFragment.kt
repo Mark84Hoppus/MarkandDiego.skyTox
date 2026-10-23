@@ -54,6 +54,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.appcompat.widget.PopupMenu
 import com.google.android.material.math.MathUtils.lerp
+import com.google.android.material.color.MaterialColors
 import java.io.File
 import java.net.URLConnection
 import java.text.DateFormat
@@ -73,6 +74,10 @@ import ltd.evilcorp.atox.ui.location.SkyToxLocationMapActivity
 import ltd.evilcorp.atox.ui.location.SkyToxLocationProtocol
 import ltd.evilcorp.atox.ui.location.SkyToxTrackImportStatus
 import ltd.evilcorp.atox.ui.location.SkyToxTrackStore
+import ltd.evilcorp.atox.ui.motion.CHAT_WINDOW_MOTION
+import ltd.evilcorp.atox.ui.motion.ChatWindowMotion
+import ltd.evilcorp.atox.ui.motion.NoChatWindowMotion
+import ltd.evilcorp.atox.ui.motion.chatWindowMotion
 import ltd.evilcorp.atox.ui.texteditor.SkyToxTextEditorActivity
 import ltd.evilcorp.atox.vmFactory
 import ltd.evilcorp.core.vo.ConnectionStatus
@@ -113,6 +118,7 @@ class OpenMultiplePersistableDocuments : ActivityResultContracts.OpenMultipleDoc
 
 class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::inflate) {
     private val viewModel: ChatViewModel by viewModels { vmFactory }
+    private var chatMotion: ChatWindowMotion = NoChatWindowMotion
 
     private lateinit var contactPubKey: String
     private var contactName = ""
@@ -217,8 +223,20 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             }
         }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?): Unit = binding.run {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
         contactPubKey = requireStringArg(CONTACT_PUBLIC_KEY)
+        chatMotion = chatWindowMotion(this, requireArguments().getBoolean(CHAT_WINDOW_MOTION, false))
+        val containerColor = MaterialColors.getColor(
+            requireContext(),
+            com.google.android.material.R.attr.colorSurface,
+            ContextCompat.getColor(requireContext(), android.R.color.black),
+        )
+        chatMotion.prepareDestination(this, contactPubKey, containerColor)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?): Unit = binding.run {
+        chatMotion.bindDestination(view, contactPubKey)
         viewModel.setActiveChat(PublicKey(contactPubKey))
 
         ViewCompat.setOnApplyWindowInsetsListener(view) { _, compat ->

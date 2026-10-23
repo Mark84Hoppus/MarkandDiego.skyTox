@@ -60,6 +60,10 @@ class Settings @Inject constructor(private val ctx: Context) {
             AppCompatDelegate.setDefaultNightMode(theme)
         }
 
+    var windowAnimationsEnabled: Boolean
+        get() = preferences.getBoolean("window_animations_enabled", true)
+        set(enabled) = preferences.edit { putBoolean("window_animations_enabled", enabled) }
+
     var appLanguage: String
         get() = preferences.getString("app_language", null) ?: "ru"
         set(language) {

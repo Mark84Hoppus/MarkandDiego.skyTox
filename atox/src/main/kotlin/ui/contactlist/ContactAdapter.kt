@@ -13,6 +13,7 @@ import android.widget.BaseAdapter
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
 import java.text.DateFormat
 import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.databinding.ContactListViewItemBinding
@@ -28,7 +29,11 @@ enum class ContactListItemType {
     Contact,
 }
 
-class ContactAdapter(private val inflater: LayoutInflater, private val context: Context) : BaseAdapter() {
+class ContactAdapter(
+    private val inflater: LayoutInflater,
+    private val context: Context,
+    private val transitionName: (String) -> String? = { null },
+) : BaseAdapter() {
     var friendRequests: List<FriendRequest> = listOf()
     var contacts: List<Contact> = listOf()
     var pendingMessageContacts: Set<String> = emptySet()
@@ -121,6 +126,7 @@ class ContactAdapter(private val inflater: LayoutInflater, private val context: 
                         }
                     }
                     vh.avatarImageView.setFrom(this)
+                    ViewCompat.setTransitionName(vh.avatarImageView, transitionName(publicKey))
                     when {
                         publicKey in pendingMessageContacts -> {
                             vh.unreadIndicator.setImageResource(R.drawable.indicator_undelivered)
@@ -141,6 +147,11 @@ class ContactAdapter(private val inflater: LayoutInflater, private val context: 
                 view
             }
         }
+
+    fun positionOfContact(publicKey: String): Int? {
+        val contactIndex = contacts.indexOfFirst { it.publicKey == publicKey }
+        return if (contactIndex < 0) null else friendRequests.size + contactIndex
+    }
 
     private class FriendRequestViewHolder(row: FriendRequestItemBinding) {
         val publicKey: TextView = row.publicKey

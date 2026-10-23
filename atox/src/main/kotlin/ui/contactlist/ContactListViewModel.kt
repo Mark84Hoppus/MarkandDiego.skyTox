@@ -96,6 +96,7 @@ class ContactListViewModel @Inject constructor(
         }.asLiveData()
 
     fun isToxRunning() = tox.started
+    fun windowAnimationsEnabled(): Boolean = settings.windowAnimationsEnabled
     fun tryLoadTox(password: String?): ToxSaveStatus = toxStarter.tryLoadTox(password)
     fun quitTox() = toxStarter.stopTox()
 

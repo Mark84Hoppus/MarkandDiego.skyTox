@@ -85,6 +85,11 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun getWindowAnimationsEnabled(): Boolean = settings.windowAnimationsEnabled
+    fun setWindowAnimationsEnabled(enabled: Boolean) {
+        settings.windowAnimationsEnabled = enabled
+    }
+
     fun getLanguage(): Int = if (settings.appLanguage == "ru") 0 else 1
     fun setLanguage(position: Int) {
         settings.appLanguage = when (position) {

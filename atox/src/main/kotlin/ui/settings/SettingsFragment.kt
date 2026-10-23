@@ -129,6 +129,11 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
             vm.setTheme(it)
         }
 
+        settingWindowAnimations.isChecked = vm.getWindowAnimationsEnabled()
+        settingWindowAnimations.setOnCheckedChangeListener { _, enabled ->
+            vm.setWindowAnimationsEnabled(enabled)
+        }
+
         settingPushMode.adapter = ArrayAdapter.createFromResource(
             requireContext(),
             R.array.pref_push_mode_options,
