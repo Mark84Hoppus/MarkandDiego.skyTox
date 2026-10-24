@@ -6,20 +6,32 @@
 package ltd.evilcorp.atox.ui.contactlist
 
 import android.Manifest
+import android.app.Dialog
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.CountDownTimer
+import android.os.Handler
+import android.os.Looper
+import android.os.Process
 import android.text.method.PasswordTransformationMethod
 import android.view.ContextMenu
 import android.view.LayoutInflater
 import android.view.MenuInflater
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.Gravity
 import android.view.inputmethod.EditorInfo
 import android.widget.AdapterView
 import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -101,6 +113,11 @@ class ContactListFragment :
     private var contactAdapter: ContactAdapter? = null
     private var returnChatPublicKey: String? = null
     private var returnTransitionPostponed = false
+    private val emergencyHandler = Handler(Looper.getMainLooper())
+    private var emergencyDialog: Dialog? = null
+    private var emergencyTimer: CountDownTimer? = null
+    private var logoConnected = false
+    private val openEmergencyScreen = Runnable { showEmergencyWipeScreen() }
 
     private val exportToxSaveLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument("*/*")) { dest ->
@@ -169,6 +186,23 @@ class ContactListFragment :
         toolbar.title = ""
         toolbar.subtitle = ""
         updateHeaderConnectionLogo(false)
+        connectionLogo.setOnTouchListener { logo, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    emergencyHandler.removeCallbacks(openEmergencyScreen)
+                    DrawableCompat.setTint((logo as ImageView).drawable.mutate(), Color.RED)
+                    logo.animate().scaleX(2f).scaleY(2f).setDuration(2_000L).start()
+                    emergencyHandler.postDelayed(openEmergencyScreen, 5_000L)
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    emergencyHandler.removeCallbacks(openEmergencyScreen)
+                    resetConnectionLogo()
+                    true
+                }
+                else -> true
+            }
+        }
         toolbar.inflateMenu(R.menu.contact_list_toolbar)
         toolbar.menu.findItem(R.id.open_ai_assistant)?.isVisible = localAiSupported()
         toolbar.setOnMenuItemClickListener {
@@ -250,6 +284,22 @@ class ContactListFragment :
             contactAdapter.notifyDataSetChanged()
         }
 
+        viewModel.emergencyWipeResult.observe(viewLifecycleOwner) { result ->
+            when (result) {
+                EmergencyWipeResult.Complete -> {
+                    emergencyTimer?.cancel()
+                    emergencyDialog?.dismiss()
+                    requireActivity().finishAndRemoveTask()
+                    emergencyHandler.postDelayed({ Process.killProcess(Process.myPid()) }, 250L)
+                }
+                is EmergencyWipeResult.Failed -> {
+                    emergencyTimer?.cancel()
+                    emergencyDialog?.dismiss()
+                    Toast.makeText(requireContext(), R.string.emergency_wipe_failed, Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
         contactList.setOnItemClickListener { _, row, position, _ ->
             when (contactList.adapter.getItemViewType(position)) {
                 ContactListItemType.FriendRequest.ordinal -> {
@@ -322,6 +372,9 @@ class ContactListFragment :
     }
 
     override fun onDestroyView() {
+        emergencyHandler.removeCallbacks(openEmergencyScreen)
+        emergencyTimer?.cancel()
+        emergencyDialog?.dismiss()
         if (returnTransitionPostponed) releaseReturnTransition()
         contactAdapter = null
         navHeader = null
@@ -333,6 +386,7 @@ class ContactListFragment :
     }
 
     private fun updateHeaderConnectionLogo(connected: Boolean) = binding.toolbar.run {
+        logoConnected = connected
         val color = ContextCompat.getColor(
             requireContext(),
             if (connected) android.R.color.holo_green_light else android.R.color.white,
@@ -342,7 +396,90 @@ class ContactListFragment :
             ?.let { DrawableCompat.wrap(it) }
             ?: return@run
         DrawableCompat.setTint(icon, color)
-        logo = icon
+        binding.connectionLogo.setImageDrawable(icon)
+        logo = null
+    }
+
+    private fun resetConnectionLogo() {
+        binding.connectionLogo.animate().scaleX(1f).scaleY(1f).setDuration(220L).start()
+        updateHeaderConnectionLogo(logoConnected)
+    }
+
+    private fun showEmergencyWipeScreen() {
+        if (emergencyDialog?.isShowing == true || !isAdded) return
+        resetConnectionLogo()
+        var taps = 0
+        val density = resources.displayMetrics.density
+        val root = FrameLayout(requireContext()).apply { setBackgroundColor(Color.BLACK) }
+        val instruction = TextView(requireContext()).apply {
+            text = getString(R.string.emergency_wipe_instruction)
+            setTextColor(Color.WHITE)
+            textSize = 18f
+            gravity = Gravity.CENTER
+        }
+        root.addView(
+            instruction,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP or Gravity.CENTER_HORIZONTAL,
+            ).apply {
+                topMargin = (72 * density).toInt()
+                marginStart = (24 * density).toInt()
+                marginEnd = (24 * density).toInt()
+            },
+        )
+        val logo = ImageView(requireContext()).apply {
+            setImageResource(R.drawable.atox_logo_white)
+            DrawableCompat.setTint(drawable.mutate(), Color.RED)
+            setPadding(12, 12, 12, 12)
+        }
+        val logoSize = (113 * density).toInt()
+        root.addView(logo, FrameLayout.LayoutParams(logoSize, logoSize, Gravity.CENTER))
+        val countdown = TextView(requireContext()).apply {
+            setTextColor(0x88FFFFFF.toInt())
+            textSize = 16f
+            gravity = Gravity.CENTER
+            text = "10"
+        }
+        root.addView(
+            countdown,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM,
+            ).apply { bottomMargin = (24 * density).toInt() },
+        )
+        val dialog = Dialog(requireContext()).apply {
+            setContentView(root)
+            setCancelable(false)
+            window?.setBackgroundDrawable(ColorDrawable(Color.BLACK))
+        }
+        emergencyDialog = dialog
+        logo.setOnClickListener {
+            taps++
+            logo.animate().scaleX(2f).scaleY(2f).setDuration(140L).withEndAction {
+                logo.animate().scaleX(1f).scaleY(1f).setDuration(180L).start()
+            }.start()
+            if (taps >= 3) {
+                logo.isEnabled = false
+                emergencyTimer?.cancel()
+                viewModel.emergencyWipe()
+            }
+        }
+        dialog.setOnShowListener {
+            dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        }
+        dialog.show()
+        emergencyTimer = object : CountDownTimer(10_000L, 1_000L) {
+            override fun onTick(millisUntilFinished: Long) {
+                countdown.text = ((millisUntilFinished + 999L) / 1_000L).toString()
+            }
+
+            override fun onFinish() {
+                if (taps < 3) dialog.dismiss()
+            }
+        }.start()
     }
 
     override fun onCreateContextMenu(menu: ContextMenu, v: View, menuInfo: ContextMenu.ContextMenuInfo?) {

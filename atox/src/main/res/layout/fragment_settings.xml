@@ -5,6 +5,7 @@
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="?android:attr/colorBackground"
         android:orientation="vertical">
     <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
@@ -35,6 +36,75 @@
                             android:padding="16dp"
                             android:text="@string/pref_heading_general"
                             android:textSize="16sp"/>
+                    <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="@color/dividerColor"/>
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                            style="@style/OptionRow"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp">
+                        <TextView
+                                android:id="@+id/emergency_archive_heading"
+                                style="@style/OptionItemText"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:gravity="center_vertical"
+                                android:padding="0dp"
+                                android:singleLine="true"
+                                android:text="@string/emergency_archive_heading"
+                                app:layout_constraintEnd_toStartOf="@id/emergency_archive_password"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toTopOf="parent"/>
+                        <EditText
+                                android:id="@+id/emergency_archive_password"
+                                android:layout_width="112dp"
+                                android:layout_height="48dp"
+                                android:digits="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+                                android:importantForAutofill="no"
+                                android:inputType="textPassword"
+                                android:maxLength="64"
+                                android:singleLine="true"
+                                app:layout_constraintBottom_toBottomOf="parent"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintTop_toTopOf="parent"/>
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                            style="@style/OptionRow"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp">
+                        <TextView
+                                android:id="@+id/emergency_archive_password_hint"
+                                style="@style/OptionItemText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="match_parent"
+                                android:gravity="center_vertical"
+                                android:padding="0dp"
+                                android:text="@string/emergency_archive_password_hint"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toTopOf="parent"/>
+                        <TextView
+                                android:id="@+id/emergency_archive_name"
+                                style="@style/OptionItemText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="match_parent"
+                                android:gravity="center_vertical"
+                                android:padding="0dp"
+                                android:text="0.zip"
+                                android:visibility="invisible"
+                                app:layout_constraintBottom_toBottomOf="parent"
+                                app:layout_constraintEnd_toStartOf="@id/emergency_archive_confirm"
+                                app:layout_constraintStart_toEndOf="@id/emergency_archive_password_hint"
+                                app:layout_constraintTop_toTopOf="parent"/>
+                        <Button
+                                android:id="@+id/emergency_archive_confirm"
+                                android:layout_width="wrap_content"
+                                android:layout_height="48dp"
+                                android:text="@string/confirm"
+                                app:layout_constraintBottom_toBottomOf="parent"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintTop_toTopOf="parent"/>
+                    </androidx.constraintlayout.widget.ConstraintLayout>
                     <View
                             android:layout_width="match_parent"
                             android:layout_height="1dp"

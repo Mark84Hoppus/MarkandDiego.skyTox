@@ -484,4 +484,9 @@ skyTox validates the JSON structure before importing. An all-chats backup cannot
 
     <string name="you">You</string>
     <string name="voice_send_confirm_title">Send voice message?</string>
+    <string name="emergency_archive_heading">Archive after self-deletion</string>
+    <string name="emergency_archive_password_hint">Set password</string>
+    <string name="emergency_archive_password_saved">Archive password saved</string>
+    <string name="emergency_wipe_instruction">Tap 3 times for complete deletion</string>
+    <string name="emergency_wipe_failed">The archive could not be created. Nothing was deleted.</string>
 </resources>

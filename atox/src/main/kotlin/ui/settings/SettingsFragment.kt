@@ -117,6 +117,19 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
             }
         }
 
+        emergencyArchivePassword.setText(vm.getEmergencyArchivePassword())
+        emergencyArchiveConfirm.setOnClickListener {
+            val password = emergencyArchivePassword.text.toString()
+                .filter { it.isLetterOrDigit() && it.code < 128 }
+                .ifBlank { "0000" }
+            emergencyArchivePassword.setText(password)
+            emergencyArchivePassword.setSelection(password.length)
+            vm.setEmergencyArchivePassword(password)
+            emergencyArchivePasswordHint.visibility = View.GONE
+            emergencyArchiveName.visibility = View.VISIBLE
+            Toast.makeText(requireContext(), R.string.emergency_archive_password_saved, Toast.LENGTH_SHORT).show()
+        }
+
         theme.adapter = ArrayAdapter.createFromResource(
             requireContext(),
             R.array.pref_theme_options,

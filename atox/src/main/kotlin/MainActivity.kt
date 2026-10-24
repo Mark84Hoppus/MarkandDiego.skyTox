@@ -40,6 +40,7 @@ import ltd.evilcorp.atox.ui.contactlist.ARG_SHARE
 import ltd.evilcorp.atox.ui.contactlist.ARG_SHARE_FILES
 import ltd.evilcorp.atox.ui.call.EXTRA_OPEN_CALL_PUBLIC_KEY
 import ltd.evilcorp.atox.ui.chat.CONTACT_PUBLIC_KEY
+import ltd.evilcorp.atox.ui.motion.topLevelWindowMotion
 import ltd.evilcorp.atox.tox.ToxStarter
 
 private const val TAG = "MainActivity"
@@ -140,19 +141,24 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.bottomNavChats).setOnClickListener {
-            navController.openTopLevel(R.id.contactListFragment)
+            topLevelWindowMotion(it, settings.windowAnimationsEnabled)
+                .open(navController, R.id.contactListFragment, it)
         }
         findViewById<View>(R.id.bottomNavAdd).setOnClickListener {
-            navController.openTopLevel(R.id.addContactFragment)
+            topLevelWindowMotion(it, settings.windowAnimationsEnabled)
+                .open(navController, R.id.addContactFragment, it)
         }
         findViewById<View>(R.id.bottomNavSettings).setOnClickListener {
-            navController.openTopLevel(R.id.settingsFragment)
+            topLevelWindowMotion(it, settings.windowAnimationsEnabled)
+                .open(navController, R.id.settingsFragment, it)
         }
         findViewById<View>(R.id.bottomNavExport).setOnClickListener {
-            navController.openTopLevel(R.id.importExportMenuFragment)
+            topLevelWindowMotion(it, settings.windowAnimationsEnabled)
+                .open(navController, R.id.importExportMenuFragment, it)
         }
         findViewById<View>(R.id.bottomNavProfile).setOnClickListener {
-            navController.openTopLevel(R.id.userProfileFragment)
+            topLevelWindowMotion(it, settings.windowAnimationsEnabled)
+                .open(navController, R.id.userProfileFragment, it)
         }
 
         navController.addOnDestinationChangedListener { _, destination, _ ->
@@ -160,18 +166,6 @@ class MainActivity : AppCompatActivity() {
             bottomNav.visibility = if (visible) View.VISIBLE else View.GONE
             highlightBottomNavigation(destination.id)
         }
-    }
-
-    private fun NavController.openTopLevel(destinationId: Int) {
-        if (currentDestination?.id == destinationId) return
-        navigate(
-            destinationId,
-            null,
-            NavOptions.Builder()
-                .setLaunchSingleTop(true)
-                .setPopUpTo(R.id.contactListFragment, false)
-                .build(),
-        )
     }
 
     private fun highlightBottomNavigation(destinationId: Int) {

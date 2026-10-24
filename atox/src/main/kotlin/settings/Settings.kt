@@ -159,4 +159,8 @@ class Settings @Inject constructor(private val ctx: Context) {
     var confirmCalling: Boolean
         get() = preferences.getBoolean("confirm_calling", true)
         set(confirm) = preferences.edit { putBoolean("confirm_calling", confirm) }
+
+    var emergencyArchivePassword: String
+        get() = preferences.getString("emergency_archive_password", null) ?: "0000"
+        set(password) = preferences.edit { putString("emergency_archive_password", password.ifBlank { "0000" }) }
 }
