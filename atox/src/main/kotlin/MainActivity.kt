@@ -6,17 +6,28 @@ package ltd.evilcorp.atox
 
 import android.Manifest
 import android.app.KeyguardManager
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings as AndroidSettings
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
+import android.view.MotionEvent
 import android.view.WindowManager
+import android.widget.ImageButton
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -42,6 +53,7 @@ import ltd.evilcorp.atox.ui.call.EXTRA_OPEN_CALL_PUBLIC_KEY
 import ltd.evilcorp.atox.ui.chat.CONTACT_PUBLIC_KEY
 import ltd.evilcorp.atox.ui.motion.topLevelWindowMotion
 import ltd.evilcorp.atox.tox.ToxStarter
+import ltd.evilcorp.domain.feature.SkyToxPublicFolders
 
 private const val TAG = "MainActivity"
 private const val SCHEME = "tox:"
@@ -63,6 +75,13 @@ class MainActivity : AppCompatActivity() {
 
     private var lockPromptActive = false
     private var lockAccepted = false
+    private var musicPanelExpanded = false
+    private val musicHandler = Handler(Looper.getMainLooper())
+    private var musicAvailabilityListener: ((Boolean) -> Unit)? = null
+    private val collapseMusicPanel = Runnable { collapseMusicPanel() }
+    private val musicStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) = updateMusicControls()
+    }
     private val appLockLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         lockPromptActive = false
         if (result.resultCode == RESULT_OK) {
@@ -90,6 +109,13 @@ class MainActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContentView(R.layout.activity_main)
+        setupMusicOverlay()
+        ContextCompat.registerReceiver(
+            this,
+            musicStateReceiver,
+            IntentFilter(SkyToxMusicService.ACTION_STATE_CHANGED),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
         setupBottomNavigation()
         requestLegacyStorageAccessIfNeeded()
         requestAllFilesAccessIfNeeded()
@@ -187,6 +213,118 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun setMusicAvailabilityListener(listener: ((Boolean) -> Unit)?) {
+        musicAvailabilityListener = listener
+        listener?.invoke(findViewById<View>(R.id.musicOverlay)?.visibility != View.VISIBLE)
+    }
+
+    fun showMusicWidget() {
+        SkyToxPublicFolders.ensureDirectories()
+        findViewById<View>(R.id.musicOverlay).visibility = View.VISIBLE
+        findViewById<View>(R.id.musicHandle).visibility = View.VISIBLE
+        findViewById<View>(R.id.musicPanel).visibility = View.GONE
+        musicAvailabilityListener?.invoke(false)
+    }
+
+    private fun setupMusicOverlay() {
+        findViewById<View>(R.id.musicHandle).setOnClickListener { expandMusicPanel() }
+        findViewById<View>(R.id.musicPlayPause).setOnClickListener { toggleMusicPlayback() }
+        findViewById<View>(R.id.musicNext).setOnClickListener { playRelative(1) }
+        findViewById<View>(R.id.musicPrevious).setOnClickListener { playRelative(-1) }
+        findViewById<TextView>(R.id.musicRandom).setOnClickListener { view ->
+            if (SkyToxMusicService.active) {
+                sendMusicAction(SkyToxMusicService.ACTION_RANDOM)
+            } else {
+                SkyToxMusicService.random = !SkyToxMusicService.random
+            }
+            (view as TextView).setTextColor(if (SkyToxMusicService.random) Color.GREEN else Color.WHITE)
+            scheduleMusicPanelCollapse()
+        }
+        findViewById<View>(R.id.musicClose).setOnClickListener { closeMusicWidget() }
+    }
+
+    private fun expandMusicPanel() {
+        val panel = findViewById<View>(R.id.musicPanel)
+        findViewById<View>(R.id.musicHandle).visibility = View.GONE
+        panel.visibility = View.VISIBLE
+        panel.translationX = resources.displayMetrics.density * 58f
+        panel.animate().translationX(0f).setDuration(650L).start()
+        musicPanelExpanded = true
+        scheduleMusicPanelCollapse()
+    }
+
+    private fun collapseMusicPanel() {
+        if (!musicPanelExpanded) return
+        musicHandler.removeCallbacks(collapseMusicPanel)
+        val panel = findViewById<View>(R.id.musicPanel)
+        panel.animate().translationX(resources.displayMetrics.density * 58f).setDuration(650L).withEndAction {
+            panel.visibility = View.GONE
+            panel.translationX = 0f
+            if (findViewById<View>(R.id.musicOverlay).visibility == View.VISIBLE) {
+                findViewById<View>(R.id.musicHandle).visibility = View.VISIBLE
+            }
+        }.start()
+        musicPanelExpanded = false
+    }
+
+    private fun scheduleMusicPanelCollapse() {
+        musicHandler.removeCallbacks(collapseMusicPanel)
+        musicHandler.postDelayed(collapseMusicPanel, 10_000L)
+    }
+
+    private fun toggleMusicPlayback() {
+        sendMusicAction(SkyToxMusicService.ACTION_TOGGLE)
+        scheduleMusicPanelCollapse()
+    }
+
+    private fun playRelative(delta: Int) {
+        sendMusicAction(if (delta < 0) SkyToxMusicService.ACTION_PREVIOUS else SkyToxMusicService.ACTION_NEXT)
+        scheduleMusicPanelCollapse()
+    }
+
+    private fun sendMusicAction(action: String) {
+        ContextCompat.startForegroundService(this, Intent(this, SkyToxMusicService::class.java).setAction(action))
+    }
+
+    private fun updateMusicPlayIcon(playing: Boolean) {
+        findViewById<ImageButton>(R.id.musicPlayPause).apply {
+            setImageResource(if (playing) R.drawable.ic_music_pause else R.drawable.ic_play)
+            imageTintList = ColorStateList.valueOf(Color.WHITE)
+        }
+    }
+
+    private fun closeMusicWidget() {
+        musicHandler.removeCallbacks(collapseMusicPanel)
+        if (SkyToxMusicService.active) sendMusicAction(SkyToxMusicService.ACTION_CLOSE)
+        musicPanelExpanded = false
+        findViewById<View>(R.id.musicOverlay).visibility = View.GONE
+        updateMusicPlayIcon(false)
+        musicAvailabilityListener?.invoke(true)
+    }
+
+    private fun updateMusicControls() {
+        updateMusicPlayIcon(SkyToxMusicService.playing)
+        findViewById<TextView>(R.id.musicRandom)?.setTextColor(
+            if (SkyToxMusicService.random) Color.GREEN else Color.WHITE,
+        )
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_DOWN && musicPanelExpanded) {
+            val panel = findViewById<View>(R.id.musicPanel)
+            val bounds = Rect()
+            panel.getGlobalVisibleRect(bounds)
+            if (!bounds.contains(event.rawX.toInt(), event.rawY.toInt())) collapseMusicPanel()
+        }
+        return super.dispatchTouchEvent(event)
+    }
+
+    override fun onDestroy() {
+        musicHandler.removeCallbacksAndMessages(null)
+        runCatching { unregisterReceiver(musicStateReceiver) }
+        super.onDestroy()
+    }
+
     private fun maybePromptAppLock() {
         if (lockAccepted || lockPromptActive || settings.appLockMode == AppLockMode.None) return
         if (isIncomingCallDeepLink()) {
@@ -242,7 +380,7 @@ class MainActivity : AppCompatActivity() {
 
         when (intent.action) {
             Intent.ACTION_VIEW -> handleToxLinkIntent(intent)
-            Intent.ACTION_SEND -> handleShareIntent(intent)
+            Intent.ACTION_SEND, Intent.ACTION_SEND_MULTIPLE -> handleShareIntent(intent)
         }
     }
 

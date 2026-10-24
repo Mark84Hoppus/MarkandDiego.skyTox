@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+    <ImageButton
+            android:id="@+id/musicHandle"
+            android:layout_width="44dp"
+            android:layout_height="64dp"
+            android:layout_gravity="end|center_vertical"
+            android:background="@drawable/music_handle_background"
+            android:contentDescription="@string/music"
+            android:padding="10dp"
+            android:src="@drawable/ic_music_note"
+            app:tint="@android:color/white"/>
+    <LinearLayout
+            android:id="@+id/musicPanel"
+            android:layout_width="58dp"
+            android:layout_height="200dp"
+            android:layout_gravity="end|center_vertical"
+            android:background="@drawable/music_panel_background"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+        <ImageButton android:id="@+id/musicPlayPause" style="@style/MusicPanelButton" android:contentDescription="@string/music" android:src="@drawable/ic_play" app:tint="@android:color/white"/>
+        <ImageButton android:id="@+id/musicNext" style="@style/MusicPanelButton" android:contentDescription="@string/music" android:src="@drawable/ic_music_next" app:tint="@android:color/white"/>
+        <ImageButton android:id="@+id/musicPrevious" style="@style/MusicPanelButton" android:contentDescription="@string/music" android:src="@drawable/ic_music_previous" app:tint="@android:color/white"/>
+        <TextView android:id="@+id/musicRandom" style="@style/MusicPanelButton" android:gravity="center" android:text="rnd" android:textColor="@android:color/white" android:textSize="12sp"/>
+        <ImageButton android:id="@+id/musicClose" style="@style/MusicPanelButton" android:contentDescription="@string/close" android:src="@drawable/ic_close" app:tint="@android:color/holo_red_light"/>
+    </LinearLayout>
+</FrameLayout>

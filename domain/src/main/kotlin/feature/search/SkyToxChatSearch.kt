@@ -30,6 +30,7 @@ class SkyToxChatSearch @Inject constructor(
                 val contact = contacts[it.publicKey]
                 Result(
                     publicKey = it.publicKey,
+                    messageId = it.id,
                     contactName = contact?.name?.ifEmpty { it.publicKey.take(8) } ?: it.publicKey.take(8),
                     message = it.message,
                     timestamp = it.timestamp,
@@ -40,6 +41,7 @@ class SkyToxChatSearch @Inject constructor(
 
     data class Result(
         val publicKey: String,
+        val messageId: Long,
         val contactName: String,
         val message: String,
         val timestamp: Long,

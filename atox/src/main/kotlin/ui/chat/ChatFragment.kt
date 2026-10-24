@@ -96,6 +96,7 @@ import kotlinx.coroutines.withContext
 private const val TAG = "ChatFragment"
 const val CONTACT_PUBLIC_KEY = "publicKey"
 const val FOCUS_ON_MESSAGE_BOX = "focusOnMessageBox"
+const val TARGET_MESSAGE_ID = "targetMessageId"
 private const val MAX_CONFIRM_DELETE_STRING_LENGTH = 20
 private const val VOICE_MESSAGE_BIT_RATE = 64_000
 private const val MIN_VOICE_MESSAGE_DURATION_MS = 500
@@ -142,6 +143,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private var autoWakeOpenAttempts = 0
     private var pendingMessageWakeActive = false
     private var messageCount = 0
+    private var pendingTargetMessageId: Long? = null
 
     companion object {
         private val autoWakeOpenAttemptsByContact = mutableMapOf<String, Int>()
@@ -226,6 +228,8 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         contactPubKey = requireStringArg(CONTACT_PUBLIC_KEY)
+        pendingTargetMessageId = arguments?.takeIf { it.containsKey(TARGET_MESSAGE_ID) }
+            ?.getLong(TARGET_MESSAGE_ID)
         chatMotion = chatWindowMotion(this, requireArguments().getBoolean(CHAT_WINDOW_MOTION, false))
         val containerColor = MaterialColors.getColor(
             requireContext(),
@@ -536,7 +540,17 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             adapter.messages = it
             messageCount = it.size
             adapter.notifyDataSetChanged()
-            if (wasAtBottom) {
+            val target = pendingTargetMessageId
+            val targetPosition = target?.let { id -> adapter.messages.indexOfFirst { message -> message.id == id } }
+            if (targetPosition != null && targetPosition >= 0) {
+                messages.post {
+                    messages.setSelectionFromTop(targetPosition, messages.height / 3)
+                    messages.postDelayed({
+                        messages.setSelectionFromTop(targetPosition, messages.height / 3)
+                        if (pendingTargetMessageId == target) pendingTargetMessageId = null
+                    }, 350L)
+                }
+            } else if (wasAtBottom && target == null) {
                 messages.post { messages.setSelection(adapter.count - 1) }
             }
             updateScrollToBottomButton()

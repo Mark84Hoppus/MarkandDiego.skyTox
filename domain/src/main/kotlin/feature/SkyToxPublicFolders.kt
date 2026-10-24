@@ -33,6 +33,7 @@ private const val SKYTOX_AI_LOCAL_MODEL = "local model"
 private const val SKYTOX_AI_CHATS = "ai chats"
 private const val SKYTOX_AI_CONTEXT = "ai context"
 private const val SKYTOX_AI_CACHE = "cache"
+private const val SKYTOX_MUSIC = "skyTox music"
 
 object SkyToxPublicFolders {
     @Suppress("DEPRECATION")
@@ -62,6 +63,7 @@ object SkyToxPublicFolders {
     val aiChatsDir: File get() = File(aiDir, SKYTOX_AI_CHATS)
     val aiContextDir: File get() = File(aiDir, SKYTOX_AI_CONTEXT)
     val aiCacheDir: File get() = File(aiDir, SKYTOX_AI_CACHE)
+    val musicDir: File get() = File(root, SKYTOX_MUSIC)
 
     fun ensureDirectories() {
         listOf(
@@ -91,6 +93,7 @@ object SkyToxPublicFolders {
             aiChatsDir,
             aiContextDir,
             aiCacheDir,
+            musicDir,
         )
             .forEach { it.mkdirs() }
     }

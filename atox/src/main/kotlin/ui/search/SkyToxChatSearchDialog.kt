@@ -22,7 +22,7 @@ import ltd.evilcorp.domain.feature.search.SkyToxChatSearch
 class SkyToxChatSearchDialog(
     private val fragment: Fragment,
     private val search: suspend (String) -> List<SkyToxChatSearch.Result>,
-    private val openChat: (String) -> Unit,
+    private val openChat: (String, Long) -> Unit,
 ) {
     private var results = emptyList<SkyToxChatSearch.Result>()
     private var searchJob: Job? = null
@@ -54,7 +54,7 @@ class SkyToxChatSearchDialog(
         list.setOnItemClickListener { _, _, position, _ ->
             results.getOrNull(position)?.let {
                 dialog.dismiss()
-                openChat(it.publicKey)
+                openChat(it.publicKey, it.messageId)
             }
         }
 

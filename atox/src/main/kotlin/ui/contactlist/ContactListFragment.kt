@@ -53,6 +53,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import ltd.evilcorp.atox.R
+import ltd.evilcorp.atox.MainActivity
 import ltd.evilcorp.atox.databinding.ContactListViewItemBinding
 import ltd.evilcorp.atox.databinding.FragmentContactListBinding
 import ltd.evilcorp.atox.databinding.FriendRequestItemBinding
@@ -60,8 +61,9 @@ import ltd.evilcorp.atox.databinding.NavHeaderContactListBinding
 import ltd.evilcorp.atox.hasPermission
 import ltd.evilcorp.atox.truncated
 import ltd.evilcorp.atox.ui.BaseFragment
-import ltd.evilcorp.atox.ui.ReceiveShareDialogFragment
+import ltd.evilcorp.atox.ui.ReceiveShareDialog
 import ltd.evilcorp.atox.ui.chat.CONTACT_PUBLIC_KEY
+import ltd.evilcorp.atox.ui.chat.TARGET_MESSAGE_ID
 import ltd.evilcorp.atox.ui.colorFromStatus
 import ltd.evilcorp.atox.ui.contactListSorter
 import ltd.evilcorp.atox.ui.friendrequest.FRIEND_REQUEST_PUBLIC_KEY
@@ -113,6 +115,7 @@ class ContactListFragment :
     private var contactAdapter: ContactAdapter? = null
     private var returnChatPublicKey: String? = null
     private var returnTransitionPostponed = false
+    private var receiveShareDialog: ReceiveShareDialog? = null
     private val emergencyHandler = Handler(Looper.getMainLooper())
     private var emergencyDialog: Dialog? = null
     private var emergencyTimer: CountDownTimer? = null
@@ -205,8 +208,18 @@ class ContactListFragment :
         }
         toolbar.inflateMenu(R.menu.contact_list_toolbar)
         toolbar.menu.findItem(R.id.open_ai_assistant)?.isVisible = localAiSupported()
+        (requireActivity() as? MainActivity)?.setMusicAvailabilityListener { enabled ->
+            toolbar.menu.findItem(R.id.open_music)?.let { item ->
+                item.isEnabled = enabled
+                item.icon?.alpha = if (enabled) 255 else 90
+            }
+        }
         toolbar.setOnMenuItemClickListener {
             when (it.itemId) {
+                R.id.open_music -> {
+                    (requireActivity() as? MainActivity)?.showMusicWidget()
+                    true
+                }
                 R.id.open_ai_assistant -> {
                     findNavController().navigate(R.id.action_contactListFragment_to_aiAssistantFragment)
                     true
@@ -219,7 +232,7 @@ class ContactListFragment :
                     SkyToxChatSearchDialog(
                         this@ContactListFragment,
                         search = viewModel::searchChats,
-                        openChat = ::openChat,
+                        openChat = { publicKey, messageId -> openChat(publicKey, targetMessageId = messageId) },
                     ).show()
                     true
                 }
@@ -334,8 +347,7 @@ class ContactListFragment :
         }
 
         arguments?.getString(ARG_SHARE)?.let { share ->
-            ReceiveShareDialogFragment(
-                viewModel.contacts,
+            showReceiveShareDialog(
                 share,
                 onContactSelected = {
                     viewModel.onShareText(share, it)
@@ -344,7 +356,7 @@ class ContactListFragment :
                 onDialogDismissed = {
                     arguments?.remove(ARG_SHARE)
                 },
-            ).show(childFragmentManager, null)
+            )
         }
 
         arguments?.getParcelableArrayList<Uri>(ARG_SHARE_FILES)?.let { files ->
@@ -357,8 +369,7 @@ class ContactListFragment :
                     Toast.LENGTH_LONG,
                 ).show()
             }
-            ReceiveShareDialogFragment(
-                viewModel.contacts,
+            showReceiveShareDialog(
                 filesToShare.joinToString(separator = "\n") { it.lastPathSegment ?: it.toString() },
                 onContactSelected = {
                     viewModel.onShareFiles(filesToShare, it)
@@ -367,14 +378,18 @@ class ContactListFragment :
                 onDialogDismissed = {
                     arguments?.remove(ARG_SHARE_FILES)
                 },
-            ).show(childFragmentManager, null)
+            )
         }
     }
 
     override fun onDestroyView() {
+        (activity as? MainActivity)?.setMusicAvailabilityListener(null)
         emergencyHandler.removeCallbacks(openEmergencyScreen)
         emergencyTimer?.cancel()
         emergencyDialog?.dismiss()
+        receiveShareDialog?.setOnDismissListener(null)
+        receiveShareDialog?.dismiss()
+        receiveShareDialog = null
         if (returnTransitionPostponed) releaseReturnTransition()
         contactAdapter = null
         navHeader = null
@@ -711,11 +726,29 @@ class ContactListFragment :
         )
     }
 
+    private fun showReceiveShareDialog(
+        preview: String,
+        onContactSelected: (Contact) -> Unit,
+        onDialogDismissed: () -> Unit,
+    ) {
+        receiveShareDialog?.dismiss()
+        val dialog = ReceiveShareDialog(requireContext(), preview, onContactSelected)
+        receiveShareDialog = dialog
+        dialog.setContacts(viewModel.contacts.value.orEmpty().sortedByDescending(::contactListSorter))
+        dialog.setOnDismissListener {
+            if (receiveShareDialog === dialog) receiveShareDialog = null
+            onDialogDismissed()
+        }
+        dialog.show()
+    }
+
     private fun openChat(contact: Contact) = openChat(contact.publicKey)
 
-    private fun openChat(pk: String) = findNavController().navigate(
+    private fun openChat(pk: String, targetMessageId: Long? = null) = findNavController().navigate(
         R.id.action_contactListFragment_to_chatFragment,
-        bundleOf(CONTACT_PUBLIC_KEY to pk),
+        bundleOf(CONTACT_PUBLIC_KEY to pk).apply {
+            targetMessageId?.let { putLong(TARGET_MESSAGE_ID, it) }
+        },
     )
 
     private fun prepareReturnTransition(adapter: ContactAdapter) {
