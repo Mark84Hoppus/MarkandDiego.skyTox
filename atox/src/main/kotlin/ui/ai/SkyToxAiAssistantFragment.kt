@@ -66,6 +66,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.App
+import ltd.evilcorp.atox.MainActivity
 import ltd.evilcorp.atox.databinding.FragmentAiAssistantBinding
 import ltd.evilcorp.atox.ui.BaseFragment
 import ltd.evilcorp.atox.ui.NotificationHelper
@@ -2215,7 +2216,8 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
             showDialogList()
             Toast.makeText(requireContext(), R.string.saved, Toast.LENGTH_SHORT).show()
         } else {
-            findNavController().popBackStack()
+            (activity as? MainActivity)?.openChatsWithWindowMotion()
+                ?: findNavController().popBackStack()
         }
     }
 

@@ -77,6 +77,7 @@ class MainActivity : AppCompatActivity() {
     private var lockPromptActive = false
     private var lockAccepted = false
     private var musicPanelExpanded = false
+    private var mainNavController: NavController? = null
     private val musicHandler = Handler(Looper.getMainLooper())
     private var musicAvailabilityListener: ((Boolean) -> Unit)? = null
     private val collapseMusicPanel = Runnable { collapseMusicPanel() }
@@ -155,6 +156,7 @@ class MainActivity : AppCompatActivity() {
     private fun setupBottomNavigation() {
         val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) ?: return
         val navController = navHost.findNavController()
+        mainNavController = navController
         val bottomNav = findViewById<View>(R.id.mainBottomNav) ?: return
         val baseBottomMargin = (bottomNav.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin ?: 0
 
@@ -213,6 +215,13 @@ class MainActivity : AppCompatActivity() {
                 },
             )
         }
+    }
+
+    fun openChatsWithWindowMotion() {
+        val source = findViewById<View>(R.id.bottomNavChats) ?: return
+        val navController = mainNavController ?: return
+        topLevelWindowMotion(source, settings.windowAnimationsEnabled)
+            .open(navController, R.id.contactListFragment, source)
     }
 
     fun setMusicAvailabilityListener(listener: ((Boolean) -> Unit)?) {

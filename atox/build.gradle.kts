@@ -40,7 +40,7 @@ android {
         applicationId = "markanddiego.skytox"
         minSdk = libs.versions.sdk.min.get().toInt()
         targetSdk = libs.versions.sdk.target.get().toInt()
-        versionCode = 322
+        versionCode = 323
         versionName = "0.8.34"
         if (skytoxUniversal) {
             ndk {

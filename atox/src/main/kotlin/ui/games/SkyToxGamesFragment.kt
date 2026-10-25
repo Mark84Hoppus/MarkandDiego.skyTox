@@ -20,6 +20,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.activity.addCallback
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.setPadding
@@ -38,6 +39,7 @@ import java.net.SocketTimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.min
 import ltd.evilcorp.atox.R
+import ltd.evilcorp.atox.MainActivity
 import ltd.evilcorp.atox.databinding.FragmentGamesBinding
 import ltd.evilcorp.atox.ui.BaseFragment
 import ltd.evilcorp.domain.feature.SkyToxPublicFolders
@@ -72,8 +74,9 @@ class SkyToxGamesFragment : BaseFragment<FragmentGamesBinding>(FragmentGamesBind
 
         toolbar.setNavigationIcon(R.drawable.ic_back)
         toolbar.setNavigationOnClickListener {
-            findNavController().popBackStack()
+            returnToChats()
         }
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) { returnToChats() }
         toolbar.setOnMenuItemClickListener(::onGamesMenuItem)
         emulatorThanks.movementMethod = LinkMovementMethod.getInstance()
 
@@ -83,6 +86,11 @@ class SkyToxGamesFragment : BaseFragment<FragmentGamesBinding>(FragmentGamesBind
         gamesList.setOnItemClickListener { _, _, position, _ ->
             startGame(games[position])
         }
+    }
+
+    private fun returnToChats() {
+        (activity as? MainActivity)?.openChatsWithWindowMotion()
+            ?: findNavController().popBackStack()
     }
 
     override fun onResume() {
