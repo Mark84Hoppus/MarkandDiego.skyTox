@@ -28,8 +28,8 @@ class MessageRepository @Inject internal constructor(
 
     fun get(conversation: String): Flow<List<Message>> = messageDao.load(conversation)
     fun getRecent(conversation: String, limit: Int): Flow<List<Message>> = messageDao.loadRecent(conversation, limit)
-    fun getRecentEndingAt(conversation: String, messageId: Long, limit: Int): Flow<List<Message>> =
-        messageDao.loadRecentEndingAt(conversation, messageId, limit)
+    fun getFromContextToLatest(conversation: String, messageId: Long, contextLimit: Int): Flow<List<Message>> =
+        messageDao.loadFromContextToLatest(conversation, messageId, contextLimit)
 
     fun getAll(): Flow<List<Message>> = messageDao.loadAll()
 

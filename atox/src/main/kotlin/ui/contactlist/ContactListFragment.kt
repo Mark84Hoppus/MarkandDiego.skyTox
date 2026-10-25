@@ -71,6 +71,7 @@ import ltd.evilcorp.atox.ui.friendrequest.FRIEND_REQUEST_PUBLIC_KEY
 import ltd.evilcorp.atox.ui.motion.CHAT_WINDOW_MOTION
 import ltd.evilcorp.atox.ui.motion.ChatWindowMotion
 import ltd.evilcorp.atox.ui.motion.chatWindowMotion
+import ltd.evilcorp.atox.ui.motion.openTopToolbarWindow
 import ltd.evilcorp.atox.ui.search.SkyToxChatSearchDialog
 import ltd.evilcorp.atox.vmFactory
 import ltd.evilcorp.core.vo.ConnectionStatus
@@ -222,11 +223,23 @@ class ContactListFragment :
                     true
                 }
                 R.id.open_ai_assistant -> {
-                    findNavController().navigate(R.id.action_contactListFragment_to_aiAssistantFragment)
+                    openTopToolbarWindow(
+                        findNavController(),
+                        R.id.action_contactListFragment_to_aiAssistantFragment,
+                        it.itemId,
+                        toolbar,
+                        viewModel.windowAnimationsEnabled(),
+                    )
                     true
                 }
                 R.id.open_games -> {
-                    findNavController().navigate(R.id.action_contactListFragment_to_gamesFragment)
+                    openTopToolbarWindow(
+                        findNavController(),
+                        R.id.action_contactListFragment_to_gamesFragment,
+                        it.itemId,
+                        toolbar,
+                        viewModel.windowAnimationsEnabled(),
+                    )
                     true
                 }
                 R.id.search_chats -> {

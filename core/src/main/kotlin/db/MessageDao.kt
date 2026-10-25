@@ -27,10 +27,12 @@ interface MessageDao {
     fun loadRecent(conversation: String, limit: Int): Flow<List<Message>>
 
     @Query(
-        "SELECT * FROM (SELECT * FROM messages WHERE conversation == :conversation AND id <= :messageId " +
-            "ORDER BY id DESC LIMIT :limit) ORDER BY id ASC",
+        "SELECT * FROM messages WHERE conversation == :conversation AND id >= COALESCE((" +
+            "SELECT MIN(id) FROM (SELECT id FROM messages " +
+            "WHERE conversation == :conversation AND id <= :messageId " +
+            "ORDER BY id DESC LIMIT :contextLimit)), :messageId) ORDER BY id ASC",
     )
-    fun loadRecentEndingAt(conversation: String, messageId: Long, limit: Int): Flow<List<Message>>
+    fun loadFromContextToLatest(conversation: String, messageId: Long, contextLimit: Int): Flow<List<Message>>
 
     @Query("SELECT * FROM messages")
     fun loadAll(): Flow<List<Message>>

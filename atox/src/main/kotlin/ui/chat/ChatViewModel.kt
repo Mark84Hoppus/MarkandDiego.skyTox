@@ -111,7 +111,7 @@ class ChatViewModel @Inject constructor(
     val contacts: LiveData<List<Contact>> by lazy { contactManager.getAll().asLiveData() }
     val messages: LiveData<List<Message>> by lazy {
         val source = initialTargetMessageId?.let { target ->
-            chatManager.recentMessagesEndingAt(publicKey, target, CHAT_INITIAL_MESSAGE_LIMIT)
+            chatManager.messagesFromContextToLatest(publicKey, target, CHAT_INITIAL_MESSAGE_LIMIT)
         } ?: chatManager.recentMessagesFor(publicKey, CHAT_INITIAL_MESSAGE_LIMIT)
         source.distinctUntilChanged().asLiveData()
     }
