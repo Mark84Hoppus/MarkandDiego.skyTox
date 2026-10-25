@@ -148,8 +148,8 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private var messageCount = 0
     private var pendingTargetMessageId: Long? = null
     private var waitForInitialChatContent = false
+    private var chatShellReady = false
     private var initialMessagesReady = false
-    private var initialFileTransfersReady = false
     private var chatTransitionReleased = false
 
     companion object {
@@ -253,6 +253,10 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         viewModel.setActiveChat(PublicKey(contactPubKey), pendingTargetMessageId)
         if (waitForInitialChatContent) {
             transitionTimer.postDelayed({ releaseChatTransition() }, CHAT_TRANSITION_TIMEOUT_MS)
+            view.doOnPreDraw {
+                chatShellReady = true
+                releaseChatTransitionWhenReady()
+            }
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(view) { _, compat ->
@@ -573,8 +577,6 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             fts = it
             adapter.fileTransfers = it
             adapter.notifyDataSetChanged()
-            initialFileTransfersReady = true
-            releaseChatTransitionWhenReady()
         }
         viewModel.contacts.observe(viewLifecycleOwner) {
             contacts = it
@@ -683,8 +685,9 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     }
 
     private fun releaseChatTransitionWhenReady() {
-        if (!initialMessagesReady || !initialFileTransfersReady || chatTransitionReleased) return
-        binding.messages.doOnPreDraw { releaseChatTransition() }
+        if (!chatShellReady || chatTransitionReleased) return
+        if (pendingTargetMessageId != null && !initialMessagesReady) return
+        releaseChatTransition()
     }
 
     private fun releaseChatTransition() {

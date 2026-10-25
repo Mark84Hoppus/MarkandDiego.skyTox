@@ -77,40 +77,42 @@ class SettingsViewModel @Inject constructor(
     // and 0 to -1 when setting.
     fun getTheme(): Int = max(0, settings.theme)
     fun setTheme(theme: Int) {
-        settings.theme = when (theme) {
+        val mode = when (theme) {
             0 -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
             1 -> AppCompatDelegate.MODE_NIGHT_NO
             2 -> AppCompatDelegate.MODE_NIGHT_YES
             else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
         }
+        if (settings.theme != mode) settings.theme = mode
     }
 
     fun getWindowAnimationsEnabled(): Boolean = settings.windowAnimationsEnabled
     fun setWindowAnimationsEnabled(enabled: Boolean) {
-        settings.windowAnimationsEnabled = enabled
+        if (settings.windowAnimationsEnabled != enabled) settings.windowAnimationsEnabled = enabled
     }
 
     fun getLanguage(): Int = if (settings.appLanguage == "ru") 0 else 1
     fun setLanguage(position: Int) {
-        settings.appLanguage = when (position) {
+        val language = when (position) {
             0 -> "ru"
             else -> "en"
         }
+        if (settings.appLanguage != language) settings.appLanguage = language
     }
 
     fun getFtAutoAccept(): FtAutoAccept = settings.ftAutoAccept
     fun setFtAutoAccept(autoAccept: FtAutoAccept) {
-        settings.ftAutoAccept = autoAccept
+        if (settings.ftAutoAccept != autoAccept) settings.ftAutoAccept = autoAccept
     }
 
     fun getPendingFileRetention(): PendingFileRetention = settings.pendingFileRetention
     fun setPendingFileRetention(retention: PendingFileRetention) {
-        settings.pendingFileRetention = retention
+        if (settings.pendingFileRetention != retention) settings.pendingFileRetention = retention
     }
 
     fun getPendingQueueLimit(): PendingQueueLimit = settings.pendingQueueLimit
     fun setPendingQueueLimit(limit: PendingQueueLimit) {
-        settings.pendingQueueLimit = limit
+        if (settings.pendingQueueLimit != limit) settings.pendingQueueLimit = limit
     }
 
     fun getPushMode(): PushMode = settings.pushMode

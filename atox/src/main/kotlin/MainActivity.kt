@@ -20,6 +20,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.provider.Settings as AndroidSettings
 import android.util.Log
 import android.view.View
@@ -175,6 +176,7 @@ class MainActivity : AppCompatActivity() {
                 .open(navController, R.id.addContactFragment, it)
         }
         findViewById<View>(R.id.bottomNavSettings).setOnClickListener {
+            Log.d(TAG, "settingsClickUptimeMs=${SystemClock.uptimeMillis()}")
             topLevelWindowMotion(it, settings.windowAnimationsEnabled)
                 .open(navController, R.id.settingsFragment, it)
         }

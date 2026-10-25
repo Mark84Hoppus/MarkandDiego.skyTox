@@ -9,8 +9,12 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Process
+import android.os.SystemClock
+import android.util.Log
 import android.view.View
 import android.view.WindowManager
+import android.view.LayoutInflater
+import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Spinner
@@ -22,9 +26,11 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.updatePadding
+import androidx.core.view.doOnPreDraw
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.fragment.findNavController
 import java.lang.NumberFormatException
 import kotlinx.coroutines.CoroutineScope
@@ -45,6 +51,8 @@ import ltd.evilcorp.atox.ui.BaseFragment
 import ltd.evilcorp.atox.ui.updater.SkyToxUpdater
 import ltd.evilcorp.atox.vmFactory
 import ltd.evilcorp.domain.tox.ProxyType
+
+private const val TAG = "SettingsFragment"
 
 private fun Spinner.onItemSelectedListener(callback: (Int) -> Unit) {
     this.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -93,13 +101,25 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
         }
     }
 
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+        val startedAt = SystemClock.elapsedRealtimeNanos()
+        Log.d(TAG, "createViewStartUptimeMs=${SystemClock.uptimeMillis()}")
+        return super.onCreateView(inflater, container, savedInstanceState).also {
+            Log.d(TAG, "inflateMs=${(SystemClock.elapsedRealtimeNanos() - startedAt) / 1_000_000}")
+        }
+    }
+
     override fun onAttach(context: Context) {
         super.onAttach(context)
         requireActivity().onBackPressedDispatcher.addCallback(this, applySettingsCallback)
         requireActivity().onBackPressedDispatcher.addCallback(this, blockBackCallback)
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) = binding.run {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?): Unit = binding.run {
+        val setupStartedAt = SystemClock.elapsedRealtimeNanos()
+        view.doOnPreDraw {
+            Log.d(TAG, "firstPreDrawMs=${(SystemClock.elapsedRealtimeNanos() - setupStartedAt) / 1_000_000}")
+        }
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, compat ->
             val insets = compat.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
             toolbar.updatePadding(top = insets.top)
@@ -139,7 +159,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
         theme.setSelection(vm.getTheme())
 
         theme.onItemSelectedListener {
-            vm.setTheme(it)
+            if (it != vm.getTheme()) vm.setTheme(it)
         }
 
         settingWindowAnimations.isChecked = vm.getWindowAnimationsEnabled()
@@ -190,7 +210,8 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
         settingFtAutoAccept.setSelection(vm.getFtAutoAccept().ordinal)
 
         settingFtAutoAccept.onItemSelectedListener {
-            vm.setFtAutoAccept(FtAutoAccept.entries[it])
+            val selected = FtAutoAccept.entries[it]
+            if (selected != vm.getFtAutoAccept()) vm.setFtAutoAccept(selected)
         }
 
         settingPendingFileRetention.adapter = ArrayAdapter.createFromResource(
@@ -200,7 +221,8 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
         ).apply { setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
         settingPendingFileRetention.setSelection(vm.getPendingFileRetention().ordinal)
         settingPendingFileRetention.onItemSelectedListener {
-            vm.setPendingFileRetention(PendingFileRetention.entries[it])
+            val selected = PendingFileRetention.entries[it]
+            if (selected != vm.getPendingFileRetention()) vm.setPendingFileRetention(selected)
         }
 
         settingPendingQueueLimit.adapter = ArrayAdapter.createFromResource(
@@ -210,7 +232,8 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
         ).apply { setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
         settingPendingQueueLimit.setSelection(vm.getPendingQueueLimit().ordinal)
         settingPendingQueueLimit.onItemSelectedListener {
-            vm.setPendingQueueLimit(PendingQueueLimit.entries[it])
+            val selected = PendingQueueLimit.entries[it]
+            if (selected != vm.getPendingQueueLimit()) vm.setPendingQueueLimit(selected)
         }
 
         settingConfirmCalling.isChecked = vm.getConfirmCalling()
@@ -224,7 +247,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
 
         settingLanguage.setSelection(vm.getLanguage())
         settingLanguage.onItemSelectedListener {
-            vm.setLanguage(it)
+            if (it != vm.getLanguage()) vm.setLanguage(it)
         }
 
         if (vm.getProxyType() != ProxyType.None) {
@@ -245,6 +268,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
 
         proxyType.onItemSelectedListener {
             val selected = ProxyType.entries[it]
+            if (selected == vm.getProxyType()) return@onItemSelectedListener
             vm.setProxyType(selected)
 
             // Disable UDP if a proxy is selected to ensure all traffic goes through the proxy.
@@ -284,7 +308,13 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
             }
             blockBackCallback.isEnabled = proxyStatus.text.isNotEmpty()
         }
-        vm.checkProxy()
+        view.doOnPreDraw {
+            view.post {
+                if (viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                    vm.checkProxy()
+                }
+            }
+        }
 
         vm.committed.observe(viewLifecycleOwner) { committed ->
             if (committed) {
@@ -381,6 +411,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
         }
 
         version.text = getString(R.string.version_display, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)
+        Log.d(TAG, "setupMs=${(SystemClock.elapsedRealtimeNanos() - setupStartedAt) / 1_000_000}")
     }
 
     private fun showPushModeRestartDialog(oldMode: PushMode) {
