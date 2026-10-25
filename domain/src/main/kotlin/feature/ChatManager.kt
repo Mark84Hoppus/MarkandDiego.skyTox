@@ -62,6 +62,9 @@ class ChatManager @Inject constructor(
         }
 
     fun messagesFor(publicKey: PublicKey) = messageRepository.get(publicKey.string())
+    fun recentMessagesFor(publicKey: PublicKey, limit: Int) = messageRepository.getRecent(publicKey.string(), limit)
+    fun recentMessagesEndingAt(publicKey: PublicKey, messageId: Long, limit: Int) =
+        messageRepository.getRecentEndingAt(publicKey.string(), messageId, limit)
 
     fun sendMessage(publicKey: PublicKey, message: String, type: MessageType = MessageType.Normal) = scope.launch {
         val sentAt = SkyToxMessageTime.outgoingTimestamp()

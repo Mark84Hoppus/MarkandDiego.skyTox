@@ -6,6 +6,7 @@ package ltd.evilcorp.core.vo
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 enum class Sender {
@@ -19,7 +20,7 @@ enum class MessageType {
     FileTransfer,
 }
 
-@Entity(tableName = "messages")
+@Entity(tableName = "messages", indices = [Index(value = ["conversation"])])
 data class Message(
     @ColumnInfo(name = "conversation")
     val publicKey: String,

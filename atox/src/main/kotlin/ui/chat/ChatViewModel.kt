@@ -73,6 +73,9 @@ import ltd.evilcorp.domain.tox.Tox
 private const val TAG = "ChatViewModel"
 private const val WAKE_AUTO_INTERVAL_MS = 3 * 60 * 1000L
 private const val WAKE_WAIT_OWN_ONLINE_MS = 10_000L
+private const val WAKE_OPEN_STATUS_GRACE_MS = 3_000L
+private const val WAKE_OPEN_STATUS_POLL_MS = 250L
+private const val CHAT_INITIAL_MESSAGE_LIMIT = 30
 
 enum class CallAvailability {
     Unavailable,
@@ -98,6 +101,7 @@ class ChatViewModel @Inject constructor(
     private val locationSharingManager: SkyToxLocationSharingManager,
 ) : ViewModel() {
     private var publicKey = PublicKey("")
+    private var initialTargetMessageId: Long? = null
     private var sentTyping = false
     private val localContact = MutableLiveData<Contact>()
 
@@ -106,7 +110,10 @@ class ChatViewModel @Inject constructor(
     }
     val contacts: LiveData<List<Contact>> by lazy { contactManager.getAll().asLiveData() }
     val messages: LiveData<List<Message>> by lazy {
-        chatManager.messagesFor(publicKey).distinctUntilChanged().asLiveData()
+        val source = initialTargetMessageId?.let { target ->
+            chatManager.recentMessagesEndingAt(publicKey, target, CHAT_INITIAL_MESSAGE_LIMIT)
+        } ?: chatManager.recentMessagesFor(publicKey, CHAT_INITIAL_MESSAGE_LIMIT)
+        source.distinctUntilChanged().asLiveData()
     }
     val fileTransfers: LiveData<List<FileTransfer>> by lazy {
         fileTransferManager.transfersFor(publicKey).asLiveData()
@@ -212,7 +219,7 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    fun setActiveChat(pk: PublicKey) {
+    fun setActiveChat(pk: PublicKey, targetMessageId: Long? = null) {
         if (pk.string().isEmpty()) {
             Log.i(TAG, "Clearing active chat")
             setTyping(false)
@@ -221,6 +228,7 @@ class ChatViewModel @Inject constructor(
         }
 
         publicKey = pk
+        initialTargetMessageId = targetMessageId
         notificationHelper.dismissNotifications(publicKey)
         chatManager.activeChat = publicKey.string()
         if (isSelfChat()) {
@@ -396,6 +404,7 @@ class ChatViewModel @Inject constructor(
         openWakeJobs[contactPublicKey] = scope.launch(Dispatchers.Default) {
             repeat(3) {
                 waitUntilOwnOnline()
+                if (waitForContactOnline(contactPublicKey, WAKE_OPEN_STATUS_GRACE_MS)) return@launch
                 if (isContactOnline(contactPublicKey) || !pushManager.hasFriendToken(PublicKey(contactPublicKey))) return@launch
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, R.string.wake_signal_sending, Toast.LENGTH_SHORT).show()
@@ -436,6 +445,15 @@ class ChatViewModel @Inject constructor(
             delay(WAKE_WAIT_OWN_ONLINE_MS)
             if (isContactOnline(contactPublicKey)) return
         }
+    }
+
+    private suspend fun waitForContactOnline(contactPublicKey: String, timeoutMs: Long): Boolean {
+        val attempts = (timeoutMs / WAKE_OPEN_STATUS_POLL_MS).toInt().coerceAtLeast(1)
+        repeat(attempts) {
+            if (isContactOnline(contactPublicKey)) return true
+            delay(WAKE_OPEN_STATUS_POLL_MS)
+        }
+        return isContactOnline(contactPublicKey)
     }
 
     private suspend fun isOwnOnline(): Boolean =

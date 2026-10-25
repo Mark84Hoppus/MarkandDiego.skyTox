@@ -455,11 +455,7 @@ class MainActivity : AppCompatActivity() {
     private fun handleShareIntent(intent: Intent) {
         val navController =
             supportFragmentManager.findFragmentById(R.id.nav_host_fragment)?.findNavController() ?: return
-        val uris = when (intent.action) {
-            Intent.ACTION_SEND -> intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)?.let { arrayListOf(it) }
-            Intent.ACTION_SEND_MULTIPLE -> intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM)
-            else -> null
-        }.orEmpty()
+        val uris = sharedUris(intent)
 
         if (uris.isNotEmpty()) {
             uris.forEach {
@@ -477,6 +473,20 @@ class MainActivity : AppCompatActivity() {
         }
 
         Log.e(TAG, "Got unsupported share type ${intent.type}")
+    }
+
+    private fun sharedUris(intent: Intent): ArrayList<Uri> {
+        val uris = linkedSetOf<Uri>()
+        when (intent.action) {
+            Intent.ACTION_SEND -> intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)?.let(uris::add)
+            Intent.ACTION_SEND_MULTIPLE ->
+                intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)?.let(uris::addAll)
+        }
+        intent.clipData?.let { clip ->
+            repeat(clip.itemCount) { index -> clip.getItemAt(index).uri?.let(uris::add) }
+        }
+        if (intent.action == Intent.ACTION_SEND) intent.data?.let(uris::add)
+        return ArrayList(uris)
     }
 
     companion object {

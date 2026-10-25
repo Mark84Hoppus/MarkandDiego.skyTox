@@ -46,6 +46,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.doOnPreDraw
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.core.widget.doAfterTextChanged
@@ -105,6 +106,7 @@ private const val WAKE_CONTACT_COOLDOWN_MS = 30_000L
 private const val AUTO_WAKE_INTERVAL_MS = 3 * 60 * 1000L
 private const val AUTO_WAKE_OPEN_ATTEMPTS = 3
 private const val MAX_FILES_PER_SEND_BATCH = 10
+private const val CHAT_TRANSITION_TIMEOUT_MS = 600L
 
 private fun FileTransfer.isAudio() = try {
     URLConnection.guessContentTypeFromName(fileName).orEmpty().startsWith("audio/")
@@ -136,6 +138,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private val voiceTimer = Handler(Looper.getMainLooper())
     private val audioProgressTimer = Handler(Looper.getMainLooper())
     private val wakeTimer = Handler(Looper.getMainLooper())
+    private val transitionTimer = Handler(Looper.getMainLooper())
     private var startAfterMicPermission = false
     private var pendingEncryptedMessage: String? = null
     private val expandedTextMessageIds = mutableSetOf<Long>()
@@ -144,6 +147,10 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private var pendingMessageWakeActive = false
     private var messageCount = 0
     private var pendingTargetMessageId: Long? = null
+    private var waitForInitialChatContent = false
+    private var initialMessagesReady = false
+    private var initialFileTransfersReady = false
+    private var chatTransitionReleased = false
 
     companion object {
         private val autoWakeOpenAttemptsByContact = mutableMapOf<String, Int>()
@@ -231,17 +238,22 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         pendingTargetMessageId = arguments?.takeIf { it.containsKey(TARGET_MESSAGE_ID) }
             ?.getLong(TARGET_MESSAGE_ID)
         chatMotion = chatWindowMotion(this, requireArguments().getBoolean(CHAT_WINDOW_MOTION, false))
+        waitForInitialChatContent = chatMotion !== NoChatWindowMotion
         val containerColor = MaterialColors.getColor(
             requireContext(),
             com.google.android.material.R.attr.colorSurface,
             ContextCompat.getColor(requireContext(), android.R.color.black),
         )
         chatMotion.prepareDestination(this, contactPubKey, containerColor)
+        if (waitForInitialChatContent) postponeEnterTransition()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?): Unit = binding.run {
         chatMotion.bindDestination(view, contactPubKey)
-        viewModel.setActiveChat(PublicKey(contactPubKey))
+        viewModel.setActiveChat(PublicKey(contactPubKey), pendingTargetMessageId)
+        if (waitForInitialChatContent) {
+            transitionTimer.postDelayed({ releaseChatTransition() }, CHAT_TRANSITION_TIMEOUT_MS)
+        }
 
         ViewCompat.setOnApplyWindowInsetsListener(view) { _, compat ->
             val insets = compat.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
@@ -467,7 +479,6 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         viewModel.activeLocationContact().observe(viewLifecycleOwner) {
             updateLocationMenuState()
         }
-        viewModel.requestOwnLocation()
         viewModel.ownLocation().observe(viewLifecycleOwner) {
             updateLocationMenuState()
         }
@@ -554,12 +565,16 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                 messages.post { messages.setSelection(adapter.count - 1) }
             }
             updateScrollToBottomButton()
+            initialMessagesReady = true
+            releaseChatTransitionWhenReady()
         }
 
         viewModel.fileTransfers.observe(viewLifecycleOwner) {
             fts = it
             adapter.fileTransfers = it
             adapter.notifyDataSetChanged()
+            initialFileTransfersReady = true
+            releaseChatTransitionWhenReady()
         }
         viewModel.contacts.observe(viewLifecycleOwner) {
             contacts = it
@@ -661,13 +676,26 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         stopVoiceRecording(send = false)
         stopAudioPlayback()
         wakeTimer.removeCallbacksAndMessages(null)
+        releaseChatTransition()
         viewModel.setDraft(binding.outgoingMessage.text.toString())
         viewModel.setActiveChat(PublicKey(""))
         super.onPause()
     }
 
+    private fun releaseChatTransitionWhenReady() {
+        if (!initialMessagesReady || !initialFileTransfersReady || chatTransitionReleased) return
+        binding.messages.doOnPreDraw { releaseChatTransition() }
+    }
+
+    private fun releaseChatTransition() {
+        if (chatTransitionReleased || !waitForInitialChatContent) return
+        chatTransitionReleased = true
+        transitionTimer.removeCallbacksAndMessages(null)
+        startPostponedEnterTransition()
+    }
+
     override fun onResume() = binding.run {
-        viewModel.setActiveChat(PublicKey(contactPubKey))
+        viewModel.setActiveChat(PublicKey(contactPubKey), pendingTargetMessageId)
         viewModel.setTyping(outgoingMessage.text.isNotEmpty())
         updateWakeContactMenuItem()
         updateLocationMenuState()

@@ -114,16 +114,16 @@ class SkyToxMusicService : Service() {
             .setOngoing(playing)
             .addAction(
                 R.drawable.ic_music_previous,
-                getString(R.string.music_previous),
+                ACTION_LABEL_PREVIOUS,
                 actionIntent(ACTION_PREVIOUS, 1),
             )
             .addAction(
                 if (playing) R.drawable.ic_music_pause else R.drawable.ic_play,
-                getString(if (playing) R.string.music_pause else R.string.music_play),
+                if (playing) ACTION_LABEL_PAUSE else ACTION_LABEL_PLAY,
                 actionIntent(ACTION_TOGGLE, 2),
             )
-            .addAction(R.drawable.ic_music_next, getString(R.string.music_next), actionIntent(ACTION_NEXT, 3))
-            .addAction(R.drawable.ic_close, getString(R.string.close), actionIntent(ACTION_CLOSE, 4))
+            .addAction(R.drawable.ic_music_next, ACTION_LABEL_NEXT, actionIntent(ACTION_NEXT, 3))
+            .addAction(R.drawable.ic_close, ACTION_LABEL_CLOSE, actionIntent(ACTION_CLOSE, 4))
             .build()
         startForeground(NOTIFICATION_ID, notification)
         sendBroadcast(Intent(ACTION_STATE_CHANGED).setPackage(packageName))
@@ -172,6 +172,11 @@ class SkyToxMusicService : Service() {
         private const val CHANNEL_ID = "skytox_music"
         private const val NOTIFICATION_ID = 7342
         private const val PENDING_FLAGS = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        private const val ACTION_LABEL_PREVIOUS = "|<"
+        private const val ACTION_LABEL_PLAY = ">"
+        private const val ACTION_LABEL_PAUSE = "||"
+        private const val ACTION_LABEL_NEXT = ">|"
+        private const val ACTION_LABEL_CLOSE = "X"
         @Volatile var active = false
         @Volatile var playing = false
         @Volatile var random = false

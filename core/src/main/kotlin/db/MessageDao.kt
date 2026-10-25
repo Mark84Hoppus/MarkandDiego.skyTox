@@ -20,6 +20,18 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE conversation == :conversation")
     fun load(conversation: String): Flow<List<Message>>
 
+    @Query(
+        "SELECT * FROM (SELECT * FROM messages WHERE conversation == :conversation " +
+            "ORDER BY id DESC LIMIT :limit) ORDER BY id ASC",
+    )
+    fun loadRecent(conversation: String, limit: Int): Flow<List<Message>>
+
+    @Query(
+        "SELECT * FROM (SELECT * FROM messages WHERE conversation == :conversation AND id <= :messageId " +
+            "ORDER BY id DESC LIMIT :limit) ORDER BY id ASC",
+    )
+    fun loadRecentEndingAt(conversation: String, messageId: Long, limit: Int): Flow<List<Message>>
+
     @Query("SELECT * FROM messages")
     fun loadAll(): Flow<List<Message>>
 

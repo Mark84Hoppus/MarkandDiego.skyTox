@@ -16,6 +16,7 @@ import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
+import android.provider.OpenableColumns
 import android.text.method.PasswordTransformationMethod
 import android.view.ContextMenu
 import android.view.LayoutInflater
@@ -283,6 +284,7 @@ class ContactListFragment :
         viewModel.contacts.observe(viewLifecycleOwner) { contacts ->
             normalContacts = contacts
             updateContactAdapter(contactAdapter)
+            receiveShareDialog?.setContacts(contacts.sortedByDescending(::contactListSorter))
             prepareReturnTransition(contactAdapter)
         }
 
@@ -370,7 +372,7 @@ class ContactListFragment :
                 ).show()
             }
             showReceiveShareDialog(
-                filesToShare.joinToString(separator = "\n") { it.lastPathSegment ?: it.toString() },
+                filesToShare.joinToString(separator = "\n", transform = ::sharedFileName),
                 onContactSelected = {
                     viewModel.onShareFiles(filesToShare, it)
                     openChat(it)
@@ -740,6 +742,24 @@ class ContactListFragment :
             onDialogDismissed()
         }
         dialog.show()
+    }
+
+    private fun sharedFileName(uri: Uri): String {
+        val displayName = runCatching {
+            requireContext().contentResolver.query(
+                uri,
+                arrayOf(OpenableColumns.DISPLAY_NAME),
+                null,
+                null,
+                null,
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            }
+        }.getOrNull()
+        val fallback = Uri.decode(uri.lastPathSegment ?: uri.toString())
+        return (displayName ?: fallback).substringAfterLast('/').substringAfterLast('\\').ifBlank {
+            uri.toString()
+        }
     }
 
     private fun openChat(contact: Contact) = openChat(contact.publicKey)
