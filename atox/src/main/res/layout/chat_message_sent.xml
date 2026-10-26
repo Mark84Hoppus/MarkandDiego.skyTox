@@ -12,7 +12,7 @@
             android:autoLink="all"
             android:background="@drawable/sent_message_bubble"
             android:padding="8dp"
-            android:textColor="@android:color/white"
+            android:textColor="@color/ocean_on_bubble"
             android:textColorLink="@android:color/holo_orange_light"
             tools:text="Message I sent"/>
 

@@ -42,7 +42,7 @@
                 android:layout_height="?attr/actionBarSize"
                 android:background="@color/colorPrimary"
                 android:elevation="16dp"
-                android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+                android:theme="@style/AppTheme.AppBarOverlay"
                 app:navigationIcon="?attr/homeAsUpIndicator">
 
             <RelativeLayout
@@ -139,7 +139,7 @@
             android:visibility="gone"
             app:layout_constraintBottom_toTopOf="@id/bottomBar"
             app:layout_constraintEnd_toEndOf="parent"
-            app:tint="@android:color/white"/>
+            app:tint="@color/ocean_on_accent"/>
 
     <LinearLayout android:id="@+id/bottomBar"
             android:layout_width="match_parent"
@@ -158,9 +158,9 @@
                 android:importantForAutofill="no"
                 android:inputType="textMultiLine|textCapSentences"
                 android:maxHeight="256dp"
-                android:textColor="@android:color/white"
-                android:textColorHint="#DDFFFFFF"
-                android:backgroundTint="@android:color/white"
+                android:textColor="@color/ocean_input_text"
+                android:textColorHint="@color/ocean_input_hint"
+                android:backgroundTint="@color/ocean_accent"
                 tools:targetApi="26"/>
 
         <ImageButton android:id="@+id/send"
@@ -172,7 +172,7 @@
                 android:paddingHorizontal="4dp"
                 android:src="@drawable/ic_send"
                 android:visibility="gone"
-                app:tint="@android:color/white"/>
+                app:tint="@color/ocean_input_text"/>
 
         <ImageButton android:id="@+id/attach"
                 android:layout_width="wrap_content"
@@ -182,14 +182,14 @@
                 android:contentDescription="@string/attach_file"
                 android:paddingHorizontal="4dp"
                 android:src="@drawable/ic_attach_file"
-                app:tint="@android:color/white"/>
+                app:tint="@color/ocean_input_text"/>
 
         <TextView android:id="@+id/voiceRecordingTimer"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:gravity="center"
                 android:paddingHorizontal="8dp"
-                android:textColor="@android:color/white"
+                android:textColor="@color/ocean_input_text"
                 android:visibility="gone"/>
 
         <ImageButton android:id="@+id/voiceMessage"
@@ -200,6 +200,6 @@
                 android:contentDescription="@string/voice_message"
                 android:paddingHorizontal="4dp"
                 android:src="@drawable/ic_mic"
-                app:tint="@android:color/white"/>
+                app:tint="@color/ocean_input_text"/>
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

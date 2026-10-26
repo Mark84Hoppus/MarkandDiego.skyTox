@@ -23,6 +23,7 @@ import android.widget.ListView
 import android.widget.ProgressBar
 import android.widget.RelativeLayout
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import com.squareup.picasso.Picasso
 import java.io.File
@@ -50,7 +51,6 @@ import ltd.evilcorp.domain.feature.chatmarkers.SkyToxChatMarkers
 private const val TAG = "ChatAdapter"
 private const val IMAGE_TO_SCREEN_RATIO = 0.5
 private const val DOCUMENT_THUMB_SIZE_DP = 96
-private const val SELECTED_MESSAGE_COLOR = 0x55D81B60
 
 private fun FileTransfer.isAudio() = try {
     URLConnection.guessContentTypeFromName(fileName).startsWith("audio/")
@@ -175,7 +175,13 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                 }
 
                 val unsent = message.timestamp == 0L || SkyToxChatMarkers.isUndelivered(message)
-                view.setBackgroundColor(if (message.id in selectedMessageIds) SELECTED_MESSAGE_COLOR else Color.TRANSPARENT)
+                view.setBackgroundColor(
+                    if (message.id in selectedMessageIds) {
+                        ContextCompat.getColor(inflater.context, R.color.ocean_selected)
+                    } else {
+                        Color.TRANSPARENT
+                    },
+                )
 
                 vh.message.setOnClickListener {
                     onVisibleMessageClick?.invoke(message)
@@ -265,7 +271,13 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                     vh = FileTransferViewHolder(view)
                     view.tag = vh
                 }
-                view.setBackgroundColor(if (message.id in selectedMessageIds) SELECTED_MESSAGE_COLOR else Color.TRANSPARENT)
+                view.setBackgroundColor(
+                    if (message.id in selectedMessageIds) {
+                        ContextCompat.getColor(inflater.context, R.color.ocean_selected)
+                    } else {
+                        Color.TRANSPARENT
+                    },
+                )
 
                 // TODO(robinlinden)
                 // Updating the file transfer progress refreshes this so often that onClick-listeners never trigger

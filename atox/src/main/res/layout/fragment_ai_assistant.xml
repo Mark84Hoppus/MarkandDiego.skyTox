@@ -11,7 +11,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
-            android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+            android:theme="@style/AppTheme.AppBarOverlay"
             app:layout_constraintTop_toTopOf="parent"
             app:popupTheme="@style/AppTheme.PopupOverlay"/>
 
@@ -31,7 +31,7 @@
             android:id="@+id/contextBar"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:background="#202020"
+            android:background="@color/ocean_surface"
             android:orientation="vertical"
             android:paddingHorizontal="12dp"
             android:paddingVertical="6dp"
@@ -51,7 +51,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:textColor="#DDFFFFFF"
+                    android:textColor="@color/ocean_text_secondary"
                     android:textSize="12sp"
                     tools:text="Контекст: 1.2k / 32k"/>
 
@@ -61,7 +61,7 @@
                     android:layout_height="wrap_content"
                     android:paddingStart="6dp"
                     android:text="@string/ai_thinking_status"
-                    android:textColor="#EEFFFFFF"
+                    android:textColor="@color/ocean_text_primary"
                     android:textSize="12sp"
                     android:visibility="gone"/>
         </LinearLayout>
@@ -155,7 +155,7 @@
                 android:maxLines="1"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="6dp"
-                android:textColor="@android:color/white"
+                android:textColor="@color/ocean_text_primary"
                 android:textSize="14sp"
                 android:visibility="gone"
                 tools:text="document.txt"/>
@@ -174,13 +174,13 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:backgroundTint="@android:color/white"
+                    android:backgroundTint="@color/ocean_accent"
                     android:hint="@string/message"
                     android:importantForAutofill="no"
                     android:inputType="textMultiLine|textCapSentences"
                     android:maxHeight="256dp"
-                    android:textColor="@android:color/white"
-                    android:textColorHint="#DDFFFFFF"
+                    android:textColor="@color/ocean_input_text"
+                    android:textColorHint="@color/ocean_input_hint"
                     tools:targetApi="26"/>
 
             <ImageButton
@@ -191,7 +191,7 @@
                     android:contentDescription="@string/attach_file"
                     android:paddingHorizontal="8dp"
                     android:src="@drawable/ic_attach_file"
-                    app:tint="@android:color/white"/>
+                    app:tint="@color/ocean_input_text"/>
 
             <ImageButton
                     android:id="@+id/aiSend"
@@ -201,7 +201,7 @@
                     android:contentDescription="@string/send"
                     android:paddingHorizontal="8dp"
                     android:src="@drawable/ic_send"
-                    app:tint="@android:color/white"/>
+                    app:tint="@color/ocean_input_text"/>
         </LinearLayout>
     </LinearLayout>
 
@@ -227,7 +227,7 @@
                 android:shadowDy="1"
                 android:shadowRadius="3"
                 android:text="@string/ai_web_search"
-                android:textColor="#EEFFFFFF"
+                android:textColor="@color/ocean_text_primary"
                 android:textSize="11sp"/>
 
         <androidx.appcompat.widget.SwitchCompat
@@ -242,7 +242,7 @@
             android:id="@+id/aiCachePreparingOverlay"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:background="#CC202020"
+            android:background="@color/ocean_surface"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
@@ -263,7 +263,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="@string/ai_cache_preparing"
-                android:textColor="@android:color/white"
+                android:textColor="@color/ocean_text_primary"
                 android:textSize="18sp"/>
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

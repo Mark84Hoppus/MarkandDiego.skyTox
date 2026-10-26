@@ -10,7 +10,7 @@
             android:id="@+id/appbar"
             android:layout_width="match_parent"
             android:layout_height="200dp"
-            android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+            android:theme="@style/AppTheme.AppBarOverlay">
         <com.google.android.material.appbar.CollapsingToolbarLayout
                 android:id="@+id/profile_collapsing_toolbar"
                 android:layout_width="match_parent"
@@ -37,7 +37,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="128dp"
                     app:layout_collapseMode="pin"
-                    app:popupTheme="@style/ThemeOverlay.AppCompat.Light"/>
+                    app:popupTheme="@style/AppTheme.PopupOverlay"/>
             <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/profile_avatar"
                     android:layout_width="88dp"
@@ -49,13 +49,13 @@
                     android:elevation="8dp"
                     android:scaleType="centerCrop"
                     app:shapeAppearanceOverlay="@style/CircleImageView"
-                    app:strokeColor="@android:color/white"
+                    app:strokeColor="@color/ocean_text_primary"
                     app:strokeWidth="2dp" />
             <androidx.appcompat.widget.Toolbar
                     android:layout_width="match_parent"
                     android:layout_height="?attr/actionBarSize"
                     android:layout_gravity="bottom"
-                    app:popupTheme="@style/ThemeOverlay.AppCompat.Light">
+                    app:popupTheme="@style/AppTheme.PopupOverlay">
                 <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -109,7 +109,8 @@
             <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_margin="16dp">
+                    android:layout_margin="16dp"
+                    app:cardBackgroundColor="@color/ocean_card">
                 <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
@@ -146,7 +147,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_alignParentEnd="true"
-                                android:background="@color/textWhiteColor"
+                                android:background="@color/ocean_surface"
                                 android:contentDescription="@string/read_qr"
                                 android:elevation="8dp"
                                 android:src="@drawable/ic_qr_code"/>

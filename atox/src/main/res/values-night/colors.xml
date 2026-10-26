@@ -1,7 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <item name="startMenuBackground" type="color">#EE1F2933</item>
-    <item name="startMenuSelectedBackground" type="color">#223594A1</item>
-    <item name="startMenuText" type="color">#E6FFFFFF</item>
-    <item name="chatTimestampText" type="color">#E6FFFFFF</item>
+    <color name="ocean_background">#09151B</color>
+    <color name="ocean_surface">#12232B</color>
+    <color name="ocean_card">#1C343D</color>
+    <color name="ocean_accent">#008FAD</color>
+    <color name="ocean_text_primary">#E4F3F4</color>
+    <color name="ocean_text_secondary">#A8C1C8</color>
+    <color name="ocean_text_hint">#91ACB5</color>
+    <color name="ocean_divider">#31505A</color>
+    <color name="ocean_toolbar">#122F40</color>
+    <color name="ocean_selected">#214B57</color>
+    <color name="ocean_bubble_received">#1C343D</color>
+    <color name="ocean_bubble_sent">#00677F</color>
+    <color name="ocean_on_accent">#09151B</color>
+    <color name="ocean_on_dark_button">#FFFFFF</color>
+    <color name="ocean_input_surface">#12232B</color>
+    <color name="ocean_input_text">#E4F3F4</color>
+    <color name="ocean_input_hint">#91ACB5</color>
+    <color name="ocean_file_transfer_surface">#1C343D</color>
+    <color name="ocean_on_bubble">#E4F3F4</color>
+
+    <color name="colorPrimaryLight">#1C4352</color>
+    <color name="colorPrimary">#122F40</color>
+    <color name="colorPrimaryDark">#09151B</color>
+    <color name="colorAccent">#008FAD</color>
+    <color name="colorGray">#1C343D</color>
+    <color name="statusOffline">#A8C1C8</color>
+    <item name="dividerColor" type="color">#31505A</item>
+    <item name="dialogIconButton" type="color">#A8C1C8</item>
+    <item name="dialogTextButton" type="color">#E4F3F4</item>
+    <item name="dialogBackground" type="color">#1C343D</item>
+    <item name="chatTimestampText" type="color">#A8C1C8</item>
+    <item name="startMenuBackground" type="color">#12232B</item>
+    <item name="startMenuSelectedBackground" type="color">#214B57</item>
+    <item name="startMenuText" type="color">#E4F3F4</item>
 </resources>

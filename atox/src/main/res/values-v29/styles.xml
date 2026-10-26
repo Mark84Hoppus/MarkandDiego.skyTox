@@ -4,8 +4,18 @@
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
-
-        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@color/ocean_background</item>
+        <item name="android:colorBackground">@color/ocean_background</item>
+        <item name="colorBackgroundFloating">@color/ocean_card</item>
+        <item name="android:textColorPrimary">@color/ocean_text_primary</item>
+        <item name="android:textColorSecondary">@color/ocean_text_secondary</item>
+        <item name="android:textColorHint">@color/ocean_text_hint</item>
+        <item name="colorControlNormal">@color/ocean_text_secondary</item>
+        <item name="colorControlActivated">@color/ocean_accent</item>
+        <item name="colorSurface">@color/ocean_card</item>
+        <item name="android:navigationBarColor">@color/ocean_background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 </resources>

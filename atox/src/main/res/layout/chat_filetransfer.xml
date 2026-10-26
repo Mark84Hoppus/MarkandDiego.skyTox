@@ -24,13 +24,13 @@
                     android:maxLines="1"
                     android:paddingEnd="8dp"
                     android:textSize="9sp"
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/ocean_on_bubble"
                     tools:text="linux_distro.iso"/>
             <TextView android:id="@+id/fileSize"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textSize="9sp"
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/ocean_on_bubble"
                     tools:text="42KiB"/>
         </LinearLayout>
         <LinearLayout
@@ -51,7 +51,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="5dp"
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/ocean_on_bubble"
                     android:textSize="10sp"
                     android:textStyle="bold"
                     tools:text="APK"/>
@@ -63,7 +63,7 @@
         <TextView android:id="@+id/state"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@android:color/white"
+                android:textColor="@color/ocean_on_bubble"
                 android:visibility="gone"/>
         <LinearLayout
                 android:id="@+id/audioLayout"
@@ -80,7 +80,7 @@
                     android:contentDescription="@string/play_audio"
                     android:padding="8dp"
                     android:src="@drawable/ic_play"
-                    app:tint="@android:color/white"/>
+                    app:tint="@color/ocean_on_bubble"/>
             <ltd.evilcorp.atox.ui.chat.VoiceWaveformView
                     android:id="@+id/audioWaveform"
                     android:layout_width="110dp"
@@ -89,7 +89,7 @@
             <TextView android:id="@+id/audioDuration"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/ocean_on_bubble"
                     tools:text="00:12"/>
         </LinearLayout>
         <LinearLayout android:id="@+id/acceptLayout"

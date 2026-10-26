@@ -12,7 +12,7 @@
             android:layout_marginEnd="@dimen/message_margin"
             android:autoLink="all"
             android:gravity="start"
-            android:textColor="@android:color/holo_blue_dark"
+            android:textColor="@color/ocean_accent"
             android:textColorLink="@android:color/holo_orange_light"
             tools:text="Message I received"/>
 
@@ -22,5 +22,6 @@
             android:layout_height="wrap_content"
             android:layout_gravity="start"
             android:layout_marginHorizontal="8dp"
+            android:textColor="@color/chatTimestampText"
             tools:text="2020-12-24"/>
 </LinearLayout>

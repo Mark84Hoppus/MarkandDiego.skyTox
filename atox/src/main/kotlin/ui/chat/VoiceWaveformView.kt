@@ -4,12 +4,13 @@ package ltd.evilcorp.atox.ui.chat
 
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
+import androidx.core.content.ContextCompat
 import kotlin.math.abs
 import kotlin.math.max
+import ltd.evilcorp.atox.R
 
 class VoiceWaveformView @JvmOverloads constructor(
     context: Context,
@@ -23,12 +24,12 @@ class VoiceWaveformView @JvmOverloads constructor(
         }
 
     private val playedPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE
+        color = ContextCompat.getColor(context, R.color.ocean_on_bubble)
         strokeCap = Paint.Cap.ROUND
         strokeWidth = 2f * resources.displayMetrics.density
     }
     private val idlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x88FFFFFF.toInt()
+        color = ContextCompat.getColor(context, R.color.ocean_text_secondary)
         strokeCap = Paint.Cap.ROUND
         strokeWidth = 2f * resources.displayMetrics.density
     }

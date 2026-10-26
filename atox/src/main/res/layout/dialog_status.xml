@@ -10,7 +10,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="60dp"
-            android:elevation="3dp">
+            android:elevation="3dp"
+            app:cardBackgroundColor="@color/dialogBackground">
         <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -27,7 +28,7 @@
                     android:layout_marginBottom="16dp"
                     android:fontFamily="sans-serif-light"
                     android:text="@string/status_dialog_edit_user_status"
-                    android:textColor="@color/textWhiteColor"
+                    android:textColor="@color/ocean_text_primary"
                     android:textSize="20sp" />
 
             <LinearLayout android:id="@+id/status_available"
@@ -58,7 +59,7 @@
                         android:layout_gravity="center"
                         android:fontFamily="sans-serif-light"
                         android:text="@string/status_available"
-                        android:textColor="@color/textWhiteColor"
+                        android:textColor="@color/ocean_text_primary"
                         android:textSize="16sp" />
             </LinearLayout>
 
@@ -89,7 +90,7 @@
                         android:layout_gravity="center"
                         android:fontFamily="sans-serif-light"
                         android:text="@string/status_away"
-                        android:textColor="@color/textWhiteColor"
+                        android:textColor="@color/ocean_text_primary"
                         android:textSize="16sp" />
             </LinearLayout>
 
@@ -120,7 +121,7 @@
                         android:layout_gravity="center"
                         android:fontFamily="sans-serif-light"
                         android:text="@string/status_busy"
-                        android:textColor="@color/textWhiteColor"
+                        android:textColor="@color/ocean_text_primary"
                         android:textSize="16sp" />
             </LinearLayout>
 
@@ -155,7 +156,7 @@
         <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                app:tint="@color/textWhiteColor"
+                app:tint="@color/ocean_on_accent"
                 tools:ignore="ContentDescription" />
     </LinearLayout>
 </RelativeLayout>

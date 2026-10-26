@@ -13,7 +13,7 @@
             android:background="@drawable/received_message_bubble"
             android:gravity="start"
             android:padding="8dp"
-            android:textColor="@android:color/white"
+            android:textColor="@color/ocean_on_bubble"
             android:textColorLink="@android:color/holo_orange_light"
             tools:text="Message I received"/>
 

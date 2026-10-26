@@ -1,40 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimaryLight">#1976D2</color>
-    <color name="colorPrimary">#1565C0</color>
-    <color name="colorPrimaryDark">#0D47A1</color>
-    <color name="colorAccent">#D81B60</color>
-    <color name="colorGray">#555</color>
+    <color name="ocean_background">#F4F8FA</color>
+    <color name="ocean_surface">#FFFFFF</color>
+    <color name="ocean_card">#EAF2F5</color>
+    <color name="ocean_accent">#007E99</color>
+    <color name="ocean_text_primary">#102A36</color>
+    <color name="ocean_text_secondary">#48616D</color>
+    <color name="ocean_text_hint">#526B77</color>
+    <color name="ocean_divider">#CFDEE4</color>
+    <color name="ocean_toolbar">#E2F0F4</color>
+    <color name="ocean_selected">#D0EAF0</color>
+    <color name="ocean_bubble_received">#EAF2F5</color>
+    <color name="ocean_bubble_sent">#CDEBF2</color>
+    <color name="ocean_on_accent">#FFFFFF</color>
+    <color name="ocean_on_dark_button">#FFFFFF</color>
+    <color name="ocean_input_surface">#FFFFFF</color>
+    <color name="ocean_input_text">#102A36</color>
+    <color name="ocean_input_hint">#526B77</color>
+    <color name="ocean_file_transfer_surface">#EAF2F5</color>
+    <color name="ocean_on_bubble">#102A36</color>
 
-    <color name="statusOffline">@color/colorGray</color>
+    <color name="colorPrimaryLight">#EAF6F8</color>
+    <color name="colorPrimary">#E2F0F4</color>
+    <color name="colorPrimaryDark">#B8D7E0</color>
+    <color name="colorAccent">#007E99</color>
+    <color name="colorGray">#48616D</color>
+    <color name="statusOffline">#48616D</color>
     <color name="statusBusy">@android:color/holo_red_dark</color>
     <color name="statusAway">@android:color/holo_orange_light</color>
     <color name="statusAvailable">@android:color/holo_green_dark</color>
 
-    <item name="dividerColor" type="color">#E0E0E0</item>
-
+    <item name="dividerColor" type="color">#CFDEE4</item>
     <item name="textWhiteColor" type="color">#FFFFFF</item>
-
-    <item name="dialogIconButton" type="color">#546E7A</item>
-    <item name="dialogTextButton" type="color">#ECEFF1</item>
-    <item name="dialogBackground" type="color">#3E4651</item>
-
+    <item name="dialogIconButton" type="color">#007E99</item>
+    <item name="dialogTextButton" type="color">#102A36</item>
+    <item name="dialogBackground" type="color">#EAF2F5</item>
     <item name="transparentBar" type="color">#40000000</item>
     <item name="transparent" type="color">#00000000</item>
     <item name="chatBackgroundDim" type="color">#66000000</item>
-    <item name="chatTimestampText" type="color">#263238</item>
-    <item name="startMenuBackground" type="color">#EEFFFFFF</item>
-    <item name="startMenuSelectedBackground" type="color">#223594A1</item>
-    <item name="startMenuText" type="color">#263238</item>
+    <item name="chatTimestampText" type="color">#48616D</item>
+    <item name="startMenuBackground" type="color">#FFFFFF</item>
+    <item name="startMenuSelectedBackground" type="color">#D0EAF0</item>
+    <item name="startMenuText" type="color">#102A36</item>
 
     <array name="contactBackgrounds">
-        <item>#f16364</item>
-        <item>#f58559</item>
-        <item>#f9a43e</item>
-        <item>#e4c62e</item>
-        <item>#67bf74</item>
-        <item>#59a2be</item>
-        <item>#2093cd</item>
-        <item>#ad62a7</item>
+        <item>#f16364</item><item>#f58559</item><item>#f9a43e</item><item>#e4c62e</item>
+        <item>#67bf74</item><item>#59a2be</item><item>#2093cd</item><item>#ad62a7</item>
     </array>
 </resources>

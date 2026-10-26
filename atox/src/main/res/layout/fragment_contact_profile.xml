@@ -30,7 +30,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_margin="6dp"
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/ocean_text_primary"
                     tools:text="Contact name or something here"/>
         </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>
@@ -74,7 +74,7 @@
         <View android:layout_width="match_parent"
                 android:layout_height="1px"
                 android:layout_margin="8dp"
-                android:background="@color/colorPrimary"/>
+                android:background="@color/ocean_divider"/>
 
         <TextView android:id="@+id/contactPublicKey"
                 android:layout_width="wrap_content"

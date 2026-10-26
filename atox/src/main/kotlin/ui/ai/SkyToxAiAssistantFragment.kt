@@ -39,6 +39,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.addCallback
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -1859,7 +1860,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
                 setPadding(18, 18, 18, 18)
                 background = GradientDrawable().apply {
                     cornerRadius = 12f
-                    setColor(Color.rgb(78, 78, 78))
+                    setColor(ContextCompat.getColor(requireContext(), R.color.ocean_card))
                 }
                 setOnClickListener { showRulesDialog() }
             }
@@ -1876,7 +1877,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
         addView(TextView(requireContext()).apply {
             text = textValue
             textSize = 18f
-            setTextColor(Color.WHITE)
+            setTextColor(ContextCompat.getColor(requireContext(), R.color.ocean_text_primary))
             setPadding(0, 20, 0, 8)
         })
     }
@@ -2289,7 +2290,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
             }
             val bubble = TextView(requireContext()).apply {
                 textSize = if (item.role == "assistant") 15f else 18f
-                setTextColor(Color.WHITE)
+                setTextColor(ContextCompat.getColor(requireContext(), R.color.ocean_on_bubble))
                 setTextIsSelectable(true)
                 SkyToxMarkdown.render(this, item.text, forceBrowserChooser = true)
                 typeface = if (item.thinking) Typeface.create(Typeface.DEFAULT, Typeface.ITALIC) else Typeface.DEFAULT
@@ -2297,7 +2298,12 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
                 setPadding(18, 12, 18, 12)
                 background = GradientDrawable().apply {
                     cornerRadius = 18f
-                    setColor(if (item.role == "user") Color.rgb(25, 118, 210) else Color.rgb(89, 89, 89))
+                    setColor(
+                        ContextCompat.getColor(
+                            requireContext(),
+                            if (item.role == "user") R.color.ocean_bubble_sent else R.color.ocean_bubble_received,
+                        ),
+                    )
                     if (selectedForContext) {
                         setStroke(5, Color.rgb(255, 193, 7))
                     }
