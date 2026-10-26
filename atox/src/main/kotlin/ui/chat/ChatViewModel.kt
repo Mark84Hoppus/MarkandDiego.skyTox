@@ -15,6 +15,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -32,13 +33,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.SELF_CHAT_INPUT_MESSAGE
@@ -76,6 +79,9 @@ private const val WAKE_WAIT_OWN_ONLINE_MS = 10_000L
 private const val WAKE_OPEN_STATUS_GRACE_MS = 3_000L
 private const val WAKE_OPEN_STATUS_POLL_MS = 250L
 private const val CHAT_INITIAL_MESSAGE_LIMIT = 30
+private const val CHAT_PAGE_SIZE = 40
+private const val CHAT_LIVE_PAGE_SIZE = 100
+private const val CHAT_MAX_ACTIVE_MESSAGES = 800
 
 enum class CallAvailability {
     Unavailable,
@@ -99,22 +105,33 @@ class ChatViewModel @Inject constructor(
     private val messageRepository: MessageRepository,
     private val tox: Tox,
     private val locationSharingManager: SkyToxLocationSharingManager,
+    private val historyCache: ChatHistoryCache,
 ) : ViewModel() {
     private var publicKey = PublicKey("")
     private var initialTargetMessageId: Long? = null
     private var sentTyping = false
     private val localContact = MutableLiveData<Contact>()
+    private val historyMessages = MutableLiveData<List<Message>>()
+    private val historyMutex = Mutex()
+    private var historyMode = ChatHistoryMode.Latest
+    private var historyTargetId: Long? = null
+    private var historyConversation = ""
+    private var historyGeneration = 0
+    private var historyChangesJob: Job? = null
+    private var historyLoadJob: Job? = null
+    private var loadingOlder = false
+    private var loadingNewer = false
+    private var historyHasOlder = false
+    private var historyHasNewer = false
+    private var historyAnchor: ChatScrollAnchor? = null
+    private var restoredAnchor: ChatScrollAnchor? = null
+    private var scrollToBottomOnNextUpdate = false
 
     val contact: LiveData<Contact> by lazy {
         if (isSelfChat()) localContact else contactManager.get(publicKey).asLiveData()
     }
     val contacts: LiveData<List<Contact>> by lazy { contactManager.getAll().asLiveData() }
-    val messages: LiveData<List<Message>> by lazy {
-        val source = initialTargetMessageId?.let { target ->
-            chatManager.messagesFromContextToLatest(publicKey, target, CHAT_INITIAL_MESSAGE_LIMIT)
-        } ?: chatManager.recentMessagesFor(publicKey, CHAT_INITIAL_MESSAGE_LIMIT)
-        source.distinctUntilChanged().asLiveData()
-    }
+    val messages: LiveData<List<Message>> = historyMessages
     val fileTransfers: LiveData<List<FileTransfer>> by lazy {
         fileTransferManager.transfersFor(publicKey).asLiveData()
     }
@@ -223,14 +240,21 @@ class ChatViewModel @Inject constructor(
         if (pk.string().isEmpty()) {
             Log.i(TAG, "Clearing active chat")
             setTyping(false)
-        } else {
-            Log.i(TAG, "Setting active chat ${pk.fingerprint()}")
+            cacheHistoryWindow()
+            chatManager.activeChat = ""
+            return
         }
 
+        Log.i(TAG, "Setting active chat ${pk.fingerprint()}")
+        val sameWindow = historyConversation == pk.string() &&
+            (targetMessageId == null || targetMessageId == historyTargetId) &&
+            historyMessages.value != null
         publicKey = pk
         initialTargetMessageId = targetMessageId
         notificationHelper.dismissNotifications(publicKey)
         chatManager.activeChat = publicKey.string()
+        historyCache.remove(publicKey.string())
+        if (!sameWindow) startHistory(publicKey, targetMessageId)
         if (isSelfChat()) {
             localContact.value = Contact(
                 publicKey = SKYTOX_SELF_CHAT_PUBLIC_KEY,
@@ -239,6 +263,234 @@ class ChatViewModel @Inject constructor(
                 connectionStatus = ConnectionStatus.UDP,
             )
         }
+    }
+
+    fun loadOlderMessages() {
+        val current = historyMessages.value.orEmpty()
+        if (current.isEmpty() || !historyHasOlder || loadingOlder) return
+        loadingOlder = true
+        val generation = historyGeneration
+        historyLoadJob = viewModelScope.launch {
+            try {
+                historyMutex.withLock {
+                    if (generation != historyGeneration) return@withLock
+                    val raw = chatManager.pageBefore(publicKey, current.first().id, CHAT_PAGE_SIZE + 1)
+                    if (generation != historyGeneration) return@withLock
+                    historyHasOlder = raw.size > CHAT_PAGE_SIZE
+                    var merged = mergeMessages(historyMessages.value.orEmpty(), raw.takeLast(CHAT_PAGE_SIZE))
+                    if (merged.size > CHAT_MAX_ACTIVE_MESSAGES) {
+                        merged = merged.take(CHAT_MAX_ACTIVE_MESSAGES)
+                        historyHasNewer = true
+                        historyMode = ChatHistoryMode.AroundTarget
+                    }
+                    historyMessages.value = merged
+                }
+            } finally {
+                if (generation == historyGeneration) loadingOlder = false
+            }
+        }
+    }
+
+    fun loadNewerMessages() {
+        val current = historyMessages.value.orEmpty()
+        if (current.isEmpty() || !historyHasNewer || loadingNewer) return
+        loadingNewer = true
+        val generation = historyGeneration
+        historyLoadJob = viewModelScope.launch {
+            try {
+                historyMutex.withLock {
+                    if (generation != historyGeneration) return@withLock
+                    val raw = chatManager.pageAfter(publicKey, current.last().id, CHAT_PAGE_SIZE + 1)
+                    if (generation != historyGeneration) return@withLock
+                    historyHasNewer = raw.size > CHAT_PAGE_SIZE
+                    var merged = mergeMessages(historyMessages.value.orEmpty(), raw.take(CHAT_PAGE_SIZE))
+                    if (merged.size > CHAT_MAX_ACTIVE_MESSAGES) {
+                        merged = merged.takeLast(CHAT_MAX_ACTIVE_MESSAGES)
+                        historyHasOlder = true
+                    }
+                    historyMessages.value = merged
+                }
+            } finally {
+                if (generation == historyGeneration) loadingNewer = false
+            }
+        }
+    }
+
+    fun jumpToLatestMessages() {
+        if (loadingNewer) return
+        scrollToBottomOnNextUpdate = true
+        loadLatest(historyGeneration)
+    }
+
+    fun hasOlderMessages(): Boolean = historyHasOlder
+    fun hasNewerMessages(): Boolean = historyHasNewer
+    fun isLoadingOlderMessages(): Boolean = loadingOlder
+    fun isLoadingNewerMessages(): Boolean = loadingNewer
+
+    fun saveHistoryPosition(messageId: Long?, topPx: Int) {
+        historyAnchor = messageId?.let { ChatScrollAnchor(it, topPx) }
+    }
+
+    fun consumeRestoredHistoryPosition(): ChatScrollAnchor? = restoredAnchor.also { restoredAnchor = null }
+
+    fun consumeScrollToBottomRequest(): Boolean = scrollToBottomOnNextUpdate.also {
+        scrollToBottomOnNextUpdate = false
+    }
+
+    private fun startHistory(pk: PublicKey, targetMessageId: Long?) {
+        historyGeneration++
+        historyLoadJob?.cancel()
+        historyChangesJob?.cancel()
+        historyConversation = pk.string()
+        historyTargetId = targetMessageId
+        historyAnchor = null
+        restoredAnchor = null
+        loadingOlder = false
+        loadingNewer = false
+
+        val cached = historyCache.restore(pk.string(), targetMessageId)
+        if (cached != null) {
+            historyMode = cached.mode
+            historyHasOlder = cached.hasOlder
+            historyHasNewer = cached.hasNewer
+            restoredAnchor = cached.anchor
+            historyMessages.value = cached.messages
+            observeHistoryChanges(pk, historyGeneration)
+            return
+        }
+
+        if (targetMessageId == null) {
+            historyMode = ChatHistoryMode.Latest
+            loadLatest(historyGeneration)
+        } else {
+            historyMode = ChatHistoryMode.AroundTarget
+            loadAroundTarget(pk, targetMessageId, historyGeneration)
+        }
+    }
+
+    private fun loadLatest(generation: Int) {
+        historyLoadJob?.cancel()
+        historyLoadJob = viewModelScope.launch {
+            historyMutex.withLock {
+                if (generation != historyGeneration) return@withLock
+                val raw = chatManager.latestPage(publicKey, CHAT_INITIAL_MESSAGE_LIMIT + 1)
+                if (generation != historyGeneration) return@withLock
+                historyMode = ChatHistoryMode.Latest
+                historyTargetId = null
+                historyHasOlder = raw.size > CHAT_INITIAL_MESSAGE_LIMIT
+                historyHasNewer = false
+                historyMessages.value = raw.takeLast(CHAT_INITIAL_MESSAGE_LIMIT)
+            }
+            observeHistoryChanges(publicKey, generation)
+        }
+    }
+
+    private fun loadAroundTarget(pk: PublicKey, targetId: Long, generation: Int) {
+        historyLoadJob?.cancel()
+        historyLoadJob = viewModelScope.launch {
+            historyMutex.withLock {
+                val target = chatManager.targetMessage(pk, targetId)
+                if (generation != historyGeneration) return@withLock
+                if (target == null) {
+                    Log.w(TAG, "Target message $targetId is unavailable; opening latest history")
+                    val raw = chatManager.latestPage(pk, CHAT_INITIAL_MESSAGE_LIMIT + 1)
+                    historyMode = ChatHistoryMode.Latest
+                    historyTargetId = null
+                    historyHasOlder = raw.size > CHAT_INITIAL_MESSAGE_LIMIT
+                    historyHasNewer = false
+                    scrollToBottomOnNextUpdate = true
+                    historyMessages.value = raw.takeLast(CHAT_INITIAL_MESSAGE_LIMIT)
+                    return@withLock
+                }
+                val before = chatManager.pageBefore(pk, targetId, CHAT_INITIAL_MESSAGE_LIMIT + 1)
+                val after = chatManager.pageAfter(pk, targetId, CHAT_INITIAL_MESSAGE_LIMIT + 1)
+                if (generation != historyGeneration) return@withLock
+                historyHasOlder = before.size > CHAT_INITIAL_MESSAGE_LIMIT
+                historyHasNewer = after.size > CHAT_INITIAL_MESSAGE_LIMIT
+                historyMessages.value = mergeMessages(
+                    before.takeLast(CHAT_INITIAL_MESSAGE_LIMIT),
+                    listOf(target) + after.take(CHAT_INITIAL_MESSAGE_LIMIT),
+                )
+            }
+            observeHistoryChanges(pk, generation)
+        }
+    }
+
+    private fun observeHistoryChanges(pk: PublicKey, generation: Int) {
+        historyChangesJob?.cancel()
+        historyChangesJob = viewModelScope.launch {
+            chatManager.observeMessageChanges(pk).collectLatest {
+                refreshHistoryWindow(pk, generation)
+            }
+        }
+    }
+
+    private suspend fun refreshHistoryWindow(pk: PublicKey, generation: Int) = historyMutex.withLock {
+        if (generation != historyGeneration) return@withLock
+        val current = historyMessages.value.orEmpty()
+        if (current.isEmpty()) {
+            val raw = chatManager.latestPage(pk, CHAT_INITIAL_MESSAGE_LIMIT + 1)
+            historyHasOlder = raw.size > CHAT_INITIAL_MESSAGE_LIMIT
+            historyHasNewer = false
+            historyMessages.value = raw.takeLast(CHAT_INITIAL_MESSAGE_LIMIT)
+            return@withLock
+        }
+
+        var refreshed = chatManager.pageRange(pk, current.first().id, current.last().id)
+        if (refreshed.isEmpty()) {
+            val raw = chatManager.latestPage(pk, CHAT_INITIAL_MESSAGE_LIMIT + 1)
+            historyMode = ChatHistoryMode.Latest
+            historyTargetId = null
+            historyHasOlder = raw.size > CHAT_INITIAL_MESSAGE_LIMIT
+            historyHasNewer = false
+            historyMessages.value = raw.takeLast(CHAT_INITIAL_MESSAGE_LIMIT)
+            return@withLock
+        }
+        if (historyMode == ChatHistoryMode.Latest && !historyHasNewer) {
+            var cursor = refreshed.lastOrNull()?.id ?: 0L
+            while (true) {
+                val next = chatManager.pageAfter(pk, cursor, CHAT_LIVE_PAGE_SIZE)
+                if (next.isEmpty()) break
+                refreshed = mergeMessages(refreshed, next)
+                cursor = next.last().id
+                if (next.size < CHAT_LIVE_PAGE_SIZE) break
+            }
+            if (refreshed.size > CHAT_MAX_ACTIVE_MESSAGES) {
+                refreshed = refreshed.takeLast(CHAT_MAX_ACTIVE_MESSAGES)
+                historyHasOlder = true
+            }
+            historyHasNewer = false
+        } else {
+            historyHasNewer = refreshed.lastOrNull()?.let { chatManager.hasMessagesAfter(pk, it.id) } ?: false
+        }
+        historyHasOlder = refreshed.firstOrNull()?.let { chatManager.hasMessagesBefore(pk, it.id) } ?: false
+        if (generation == historyGeneration && refreshed != historyMessages.value) historyMessages.value = refreshed
+    }
+
+    private fun mergeMessages(first: List<Message>, second: List<Message>): List<Message> =
+        (first + second).associateBy { it.id }.values.sortedBy { it.id }
+
+    private fun cacheHistoryWindow() {
+        val key = historyConversation
+        val current = historyMessages.value ?: return
+        historyCache.store(
+            key,
+            ChatHistorySnapshot(
+                messages = current,
+                mode = historyMode,
+                targetId = historyTargetId,
+                hasOlder = historyHasOlder,
+                hasNewer = historyHasNewer,
+                anchor = historyAnchor,
+            ),
+        )
+    }
+
+    override fun onCleared() {
+        cacheHistoryWindow()
+        historyChangesJob?.cancel()
+        historyLoadJob?.cancel()
+        super.onCleared()
     }
 
     fun setTyping(typing: Boolean) {
