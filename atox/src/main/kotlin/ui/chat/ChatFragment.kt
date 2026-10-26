@@ -846,6 +846,9 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private fun updateSelectionUi(adapter: ChatAdapter) = binding.run {
         val selecting = selectedMessageIds.isNotEmpty()
         toolbar.setNavigationIcon(if (selecting) R.drawable.ic_close else R.drawable.ic_back)
+        toolbar.navigationIcon?.mutate()?.setTint(
+            ContextCompat.getColor(requireContext(), R.color.toolbarIconColor),
+        )
         updateToolbarMenuForSelection(selecting)
         toolbar.setNavigationOnClickListener {
             WindowInsetsControllerCompat(requireActivity().window, requireView()).hide(WindowInsetsCompat.Type.ime())
@@ -1629,7 +1632,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private fun tintCallIcons(enabled: Boolean) {
         val color = ContextCompat.getColor(
             requireContext(),
-            if (enabled) android.R.color.white else android.R.color.darker_gray,
+            if (enabled) R.color.toolbarIconColor else R.color.ocean_text_hint,
         )
         binding.toolbar.menu.findItem(R.id.call)?.icon?.mutate()?.setTint(color)
         binding.toolbar.menu.findItem(R.id.video_call)?.icon?.mutate()?.setTint(color)

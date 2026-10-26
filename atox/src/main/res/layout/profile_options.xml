@@ -17,6 +17,7 @@
                 android:layout_height="wrap_content"
                 android:padding="16dp"
                 android:text="@string/profile_settings"
+                android:textColor="@color/ocean_text_primary"
                 android:textSize="16sp"/>
         <View
                 android:layout_width="match_parent"

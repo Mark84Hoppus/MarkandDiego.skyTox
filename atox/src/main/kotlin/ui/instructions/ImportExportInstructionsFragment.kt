@@ -8,6 +8,7 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -167,6 +168,7 @@ class ImportExportInstructionsFragment :
         binding.instructionsContainer.addView(TextView(requireContext()).apply {
             text = title
             textSize = 18f
+            setTextColor(ContextCompat.getColor(requireContext(), R.color.ocean_text_primary))
             setTypeface(typeface, Typeface.BOLD)
             layoutParams = android.widget.LinearLayout.LayoutParams(
                 android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
@@ -178,6 +180,7 @@ class ImportExportInstructionsFragment :
         binding.instructionsContainer.addView(TextView(requireContext()).apply {
             text = body
             textSize = 14f
+            setTextColor(ContextCompat.getColor(requireContext(), R.color.ocean_text_secondary))
             setLineSpacing(6f, 1f)
             setTextIsSelectable(true)
             layoutParams = android.widget.LinearLayout.LayoutParams(

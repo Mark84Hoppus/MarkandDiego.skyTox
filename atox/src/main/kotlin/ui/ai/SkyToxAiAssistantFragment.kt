@@ -1083,6 +1083,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
             text = getString(R.string.ai_instruction_message) + "\n\n" +
                 getString(R.string.ai_web_search_instruction)
             textSize = 16f
+            setTextColor(ContextCompat.getColor(requireContext(), R.color.ocean_text_primary))
             setPadding(48, 24, 48, 8)
         }
         val scroll = ScrollView(requireContext()).apply {
@@ -1857,6 +1858,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
             val rules = TextView(requireContext()).apply {
                 text = aiCustomRules().ifBlank { getString(R.string.ai_custom_rules_empty) }
                 textSize = 18f
+                setTextColor(ContextCompat.getColor(requireContext(), R.color.ocean_text_primary))
                 setPadding(18, 18, 18, 18)
                 background = GradientDrawable().apply {
                     cornerRadius = 12f

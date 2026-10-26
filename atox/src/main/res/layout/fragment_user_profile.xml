@@ -121,6 +121,7 @@
                             android:layout_height="wrap_content"
                             android:padding="16dp"
                             android:text="@string/profile_information"
+                            android:textColor="@color/ocean_text_primary"
                             android:textSize="16sp"/>
                     <View
                             android:layout_width="match_parent"
@@ -138,6 +139,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginBottom="8dp"
                                 android:text="@string/tox_id"
+                                android:textColor="@color/ocean_text_primary"
                                 android:textSize="16sp"
                                 tools:ignore="RelativeOverlap" />
 
@@ -157,6 +159,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_below="@id/profile_share_id_title"
+                                android:textColor="@color/ocean_text_secondary"
                                 android:textSize="14sp"
                                 tools:text="TOX ID GOES HERE"/>
                     </RelativeLayout>

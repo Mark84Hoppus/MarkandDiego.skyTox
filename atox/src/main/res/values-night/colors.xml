@@ -19,6 +19,7 @@
     <color name="ocean_input_hint">#91ACB5</color>
     <color name="ocean_file_transfer_surface">#1C343D</color>
     <color name="ocean_on_bubble">#E4F3F4</color>
+    <color name="toolbarIconColor">#FFFFFF</color>
 
     <color name="colorPrimaryLight">#1C4352</color>
     <color name="colorPrimary">#122F40</color>
