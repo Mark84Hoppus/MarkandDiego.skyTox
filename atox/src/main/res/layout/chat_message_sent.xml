@@ -22,6 +22,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="end"
             android:layout_marginHorizontal="8dp"
+            android:background="@drawable/chat_timestamp_background"
             android:textColor="@color/chatTimestampText"
             tools:text="2020-12-24"/>
 </LinearLayout>

@@ -9,6 +9,7 @@ import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -232,7 +233,10 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
         val topBar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setBackgroundColor(Color.rgb(25, 107, 201))
+            setBackgroundColor(
+                if (isNightMode()) Color.rgb(25, 107, 201)
+                else ContextCompat.getColor(this@SkyToxLocationMapActivity, R.color.ocean_toolbar),
+            )
             setPadding(dp(4), 0, dp(4), 0)
         }
         val back = topButton("<").apply { setOnClickListener { finish() } }
@@ -696,7 +700,10 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
     private fun topButton(label: String) = TextView(this).apply {
         text = label
         gravity = Gravity.CENTER
-        setTextColor(Color.WHITE)
+        setTextColor(
+            if (isNightMode()) Color.WHITE
+            else ContextCompat.getColor(this@SkyToxLocationMapActivity, R.color.ocean_accent),
+        )
         textSize = 16f
         setBackgroundColor(Color.TRANSPARENT)
     }
@@ -704,10 +711,17 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
     private fun topTitle(label: String) = TextView(this).apply {
         text = label
         gravity = Gravity.CENTER
-        setTextColor(Color.WHITE)
+        setTextColor(
+            if (isNightMode()) Color.WHITE
+            else ContextCompat.getColor(this@SkyToxLocationMapActivity, R.color.ocean_text_primary),
+        )
         textSize = 16f
         maxLines = 1
     }
+
+    private fun isNightMode(): Boolean =
+        resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
+            Configuration.UI_MODE_NIGHT_YES
 
     private fun layerSwitch(labelRes: Int, checked: Boolean = false, onChanged: (Boolean) -> Unit) = Switch(this).apply {
         text = getString(labelRes)

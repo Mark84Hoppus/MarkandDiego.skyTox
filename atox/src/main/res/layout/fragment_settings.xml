@@ -41,6 +41,7 @@
                             android:layout_height="wrap_content"
                             android:padding="16dp"
                             android:text="@string/pref_heading_general"
+                            android:textColor="@color/ocean_text_secondary"
                             android:textSize="16sp"/>
                     <View
                             android:layout_width="match_parent"
@@ -386,6 +387,7 @@
                             android:layout_height="wrap_content"
                             android:padding="16dp"
                             android:text="@string/pref_heading_network"
+                            android:textColor="@color/ocean_text_secondary"
                             android:textSize="16sp"/>
                     <View
                             android:layout_width="match_parent"
@@ -428,6 +430,7 @@
                                 android:layout_height="wrap_content"
                                 android:padding="16dp"
                                 android:text="@string/pref_heading_proxy"
+                                android:textColor="@color/ocean_text_secondary"
                                 android:textSize="16sp"/>
                         <TextView android:id="@+id/proxy_status"
                             android:layout_width="wrap_content"
@@ -533,6 +536,7 @@
                             android:layout_height="wrap_content"
                             android:padding="16dp"
                             android:text="@string/pref_heading_change_password"
+                            android:textColor="@color/ocean_text_secondary"
                             android:textSize="16sp"/>
                     <View
                             android:layout_width="match_parent"
@@ -660,6 +664,7 @@
                             android:layout_height="wrap_content"
                             android:padding="16dp"
                             android:text="@string/pref_heading_advanced"
+                            android:textColor="@color/ocean_text_secondary"
                             android:textSize="16sp"/>
                     <View
                             android:layout_width="match_parent"
