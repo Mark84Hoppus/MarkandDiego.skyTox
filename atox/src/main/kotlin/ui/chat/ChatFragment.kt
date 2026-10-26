@@ -151,6 +151,8 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private var chatShellReady = false
     private var initialMessagesReady = false
     private var chatTransitionReleased = false
+    private var messageScrollState = AbsListView.OnScrollListener.SCROLL_STATE_IDLE
+    private var pendingHistoryAnchor: ChatScrollAnchor? = null
 
     companion object {
         private val autoWakeOpenAttemptsByContact = mutableMapOf<String, Int>()
@@ -552,12 +554,19 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         messages.adapter = adapter
         viewModel.messages.observe(viewLifecycleOwner) {
             val wasAtBottom = isMessagesAtBottom()
+            val anchor = pendingHistoryAnchor ?: viewModel.consumeRestoredHistoryPosition()
             adapter.messages = it
             messageCount = it.size
             adapter.notifyDataSetChanged()
             val target = pendingTargetMessageId
             val targetPosition = target?.let { id -> adapter.messages.indexOfFirst { message -> message.id == id } }
-            if (targetPosition != null && targetPosition >= 0) {
+            if (anchor != null) {
+                pendingHistoryAnchor = null
+                messages.post {
+                    val position = adapter.messages.indexOfFirst { message -> message.id == anchor.messageId }
+                    if (position >= 0) messages.setSelectionFromTop(position, anchor.topPx)
+                }
+            } else if (targetPosition != null && targetPosition >= 0) {
                 messages.post {
                     messages.setSelectionFromTop(targetPosition, messages.height / 3)
                     messages.postDelayed({
@@ -565,7 +574,13 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                         if (pendingTargetMessageId == target) pendingTargetMessageId = null
                     }, 350L)
                 }
-            } else if (wasAtBottom && target == null) {
+            } else if (viewModel.consumeScrollToBottomRequest()) {
+                if (target != null) pendingTargetMessageId = null
+                messages.post { messages.setSelection(adapter.count - 1) }
+            } else if (
+                wasAtBottom && target == null &&
+                !viewModel.isLoadingOlderMessages() && !viewModel.isLoadingNewerMessages()
+            ) {
                 messages.post { messages.setSelection(adapter.count - 1) }
             }
             updateScrollToBottomButton()
@@ -615,7 +630,9 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         }
         messages.setOnScrollListener(
             object : AbsListView.OnScrollListener {
-                override fun onScrollStateChanged(view: AbsListView?, scrollState: Int) = Unit
+                override fun onScrollStateChanged(view: AbsListView?, scrollState: Int) {
+                    messageScrollState = scrollState
+                }
 
                 override fun onScroll(
                     view: AbsListView?,
@@ -624,12 +641,35 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                     totalItemCount: Int,
                 ) {
                     updateScrollToBottomButton()
+                    if (messageScrollState == AbsListView.OnScrollListener.SCROLL_STATE_IDLE || totalItemCount == 0) return
+                    if (
+                        firstVisibleItem <= 4 && viewModel.hasOlderMessages() &&
+                        !viewModel.isLoadingOlderMessages()
+                    ) {
+                        val anchorMessage = adapter.messages.getOrNull(firstVisibleItem)
+                        if (anchorMessage != null) {
+                            pendingHistoryAnchor = ChatScrollAnchor(anchorMessage.id, messages.getChildAt(0)?.top ?: 0)
+                            viewModel.loadOlderMessages()
+                        }
+                    }
+                    val lastVisible = firstVisibleItem + visibleItemCount
+                    if (
+                        lastVisible >= totalItemCount - 4 && viewModel.hasNewerMessages() &&
+                        !viewModel.isLoadingNewerMessages()
+                    ) {
+                        viewModel.loadNewerMessages()
+                    }
                 }
             },
         )
         scrollToBottom.setOnClickListener {
-            messages.smoothScrollToPosition(messages.count - 1)
-            messages.postDelayed({ messages.setSelection(messages.count - 1) }, 250)
+            if (viewModel.hasNewerMessages()) {
+                pendingHistoryAnchor = null
+                viewModel.jumpToLatestMessages()
+            } else {
+                messages.smoothScrollToPosition(messages.count - 1)
+                messages.postDelayed({ messages.setSelection(messages.count - 1) }, 250)
+            }
         }
 
         if (!viewModel.isSelfChat()) {
@@ -680,6 +720,9 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         wakeTimer.removeCallbacksAndMessages(null)
         releaseChatTransition()
         viewModel.setDraft(binding.outgoingMessage.text.toString())
+        val first = binding.messages.firstVisiblePosition
+        val anchorId = (binding.messages.adapter as? ChatAdapter)?.messages?.getOrNull(first)?.id
+        viewModel.saveHistoryPosition(anchorId, binding.messages.getChildAt(0)?.top ?: 0)
         viewModel.setActiveChat(PublicKey(""))
         super.onPause()
     }
@@ -1142,7 +1185,8 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     }
 
     private fun updateScrollToBottomButton() = binding.run {
-        val show = messageCount > 0 && messages.lastVisiblePosition < messages.count - 1
+        val show = messageCount > 0 &&
+            (viewModel.hasNewerMessages() || messages.lastVisiblePosition < messages.count - 1)
         scrollToBottom.visibility = if (show) View.VISIBLE else View.GONE
     }
 

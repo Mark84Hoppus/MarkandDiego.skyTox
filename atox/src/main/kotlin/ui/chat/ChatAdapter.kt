@@ -137,7 +137,8 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
 
     override fun getCount(): Int = messages.size
     override fun getItem(position: Int): Any = messages[position]
-    override fun getItemId(position: Int): Long = position.toLong()
+    override fun getItemId(position: Int): Long = messages[position].id
+    override fun hasStableIds(): Boolean = true
     override fun getViewTypeCount(): Int = ChatItemType.entries.size
     override fun getItemViewType(position: Int): Int = with(messages[position]) {
         when (type) {
