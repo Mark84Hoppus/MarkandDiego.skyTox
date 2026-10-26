@@ -66,6 +66,23 @@ class ChatManager @Inject constructor(
     fun messagesFromContextToLatest(publicKey: PublicKey, messageId: Long, contextLimit: Int) =
         messageRepository.getFromContextToLatest(publicKey.string(), messageId, contextLimit)
 
+    suspend fun latestPage(publicKey: PublicKey, limit: Int) =
+        messageRepository.pageLatest(publicKey.string(), limit)
+    suspend fun pageBefore(publicKey: PublicKey, beforeId: Long, limit: Int) =
+        messageRepository.pageBefore(publicKey.string(), beforeId, limit)
+    suspend fun pageAfter(publicKey: PublicKey, afterId: Long, limit: Int) =
+        messageRepository.pageAfter(publicKey.string(), afterId, limit)
+    suspend fun targetMessage(publicKey: PublicKey, targetId: Long) =
+        messageRepository.pageTarget(publicKey.string(), targetId)
+    suspend fun pageRange(publicKey: PublicKey, fromId: Long, toId: Long) =
+        messageRepository.pageRange(publicKey.string(), fromId, toId)
+    suspend fun hasMessagesBefore(publicKey: PublicKey, id: Long) =
+        messageRepository.hasBefore(publicKey.string(), id)
+    suspend fun hasMessagesAfter(publicKey: PublicKey, id: Long) =
+        messageRepository.hasAfter(publicKey.string(), id)
+    fun observeMessageChanges(publicKey: PublicKey) =
+        messageRepository.observeConversationChanges(publicKey.string())
+
     fun sendMessage(publicKey: PublicKey, message: String, type: MessageType = MessageType.Normal) = scope.launch {
         val sentAt = SkyToxMessageTime.outgoingTimestamp()
         if (contactRepository.get(publicKey.string()).first().connectionStatus == ConnectionStatus.None) {

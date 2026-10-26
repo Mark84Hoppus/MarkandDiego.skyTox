@@ -34,6 +34,42 @@ interface MessageDao {
     )
     fun loadFromContextToLatest(conversation: String, messageId: Long, contextLimit: Int): Flow<List<Message>>
 
+    @Query(
+        "SELECT * FROM (SELECT * FROM messages WHERE conversation == :conversation " +
+            "ORDER BY id DESC LIMIT :limit) ORDER BY id ASC",
+    )
+    suspend fun pageLatest(conversation: String, limit: Int): List<Message>
+
+    @Query(
+        "SELECT * FROM (SELECT * FROM messages WHERE conversation == :conversation AND id < :beforeId " +
+            "ORDER BY id DESC LIMIT :limit) ORDER BY id ASC",
+    )
+    suspend fun pageBefore(conversation: String, beforeId: Long, limit: Int): List<Message>
+
+    @Query(
+        "SELECT * FROM messages WHERE conversation == :conversation AND id > :afterId " +
+            "ORDER BY id ASC LIMIT :limit",
+    )
+    suspend fun pageAfter(conversation: String, afterId: Long, limit: Int): List<Message>
+
+    @Query("SELECT * FROM messages WHERE conversation == :conversation AND id == :targetId LIMIT 1")
+    suspend fun pageTarget(conversation: String, targetId: Long): Message?
+
+    @Query(
+        "SELECT * FROM messages WHERE conversation == :conversation AND id >= :fromId AND id <= :toId " +
+            "ORDER BY id ASC",
+    )
+    suspend fun pageRange(conversation: String, fromId: Long, toId: Long): List<Message>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM messages WHERE conversation == :conversation AND id < :id)")
+    suspend fun hasBefore(conversation: String, id: Long): Boolean
+
+    @Query("SELECT EXISTS(SELECT 1 FROM messages WHERE conversation == :conversation AND id > :id)")
+    suspend fun hasAfter(conversation: String, id: Long): Boolean
+
+    @Query("SELECT COUNT(*) FROM messages WHERE conversation == :conversation")
+    fun observeConversationChanges(conversation: String): Flow<Int>
+
     @Query("SELECT * FROM messages")
     fun loadAll(): Flow<List<Message>>
 

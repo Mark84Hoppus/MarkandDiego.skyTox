@@ -31,6 +31,18 @@ class MessageRepository @Inject internal constructor(
     fun getFromContextToLatest(conversation: String, messageId: Long, contextLimit: Int): Flow<List<Message>> =
         messageDao.loadFromContextToLatest(conversation, messageId, contextLimit)
 
+    suspend fun pageLatest(conversation: String, limit: Int) = messageDao.pageLatest(conversation, limit)
+    suspend fun pageBefore(conversation: String, beforeId: Long, limit: Int) =
+        messageDao.pageBefore(conversation, beforeId, limit)
+    suspend fun pageAfter(conversation: String, afterId: Long, limit: Int) =
+        messageDao.pageAfter(conversation, afterId, limit)
+    suspend fun pageTarget(conversation: String, targetId: Long) = messageDao.pageTarget(conversation, targetId)
+    suspend fun pageRange(conversation: String, fromId: Long, toId: Long) =
+        messageDao.pageRange(conversation, fromId, toId)
+    suspend fun hasBefore(conversation: String, id: Long) = messageDao.hasBefore(conversation, id)
+    suspend fun hasAfter(conversation: String, id: Long) = messageDao.hasAfter(conversation, id)
+    fun observeConversationChanges(conversation: String): Flow<Int> = messageDao.observeConversationChanges(conversation)
+
     fun getAll(): Flow<List<Message>> = messageDao.loadAll()
 
     fun getPending(conversation: String): List<Message> = messageDao.loadPending(conversation)
