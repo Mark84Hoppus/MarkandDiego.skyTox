@@ -94,7 +94,9 @@ const val EXTRA_LOCATION_PEER_LAT = "locationPeerLat"
 const val EXTRA_LOCATION_PEER_LON = "locationPeerLon"
 private const val MAP_MIN_ZOOM = 1.0
 private const val MAP_MAX_ZOOM = 19.5
-private const val MAP_DEFAULT_ZOOM = MAP_MAX_ZOOM - 1.0
+private const val MAP_DEFAULT_ZOOM = 18.49
+private const val FOLLOW_CAMERA_MIN_INTERVAL_MS = 500L
+private const val FOLLOW_CAMERA_MIN_DISTANCE_METERS = 3.0
 private const val MOVEMENT_HEADING_MIN_SPEED_MPS = 3_000.0 / 3_600.0
 private const val MOVEMENT_HEADING_MIN_TIME_MS = 5_000L
 private const val TRACK_MIN_DISTANCE_METERS = 6.0
@@ -803,10 +805,13 @@ private class OsmTileLoader(private val view: View) {
         override fun sizeOf(key: OsmTileKey, value: Bitmap): Int = 1
     }
 
-    fun get(key: OsmTileKey): Bitmap? {
+    fun getCached(key: OsmTileKey): Bitmap? {
         synchronized(memoryCache) {
-            memoryCache.get(key)?.let { return it }
+            return memoryCache.get(key)
         }
+    }
+
+    private fun loadFromDisk(key: OsmTileKey): Bitmap? {
         val file = tileFile(key)
         if (!file.isFile || isExpired(file)) {
             if (file.exists()) file.delete()
@@ -859,7 +864,8 @@ private class OsmTileLoader(private val view: View) {
     }
 
     private fun loadOrDownload(key: OsmTileKey): Bitmap? {
-        get(key)?.let { return it }
+        getCached(key)?.let { return it }
+        loadFromDisk(key)?.let { return it }
         return download(key)
     }
 
@@ -1373,6 +1379,7 @@ private class SkyToxMapData(val lines: List<MapLine>, val places: List<MapPlace>
 }
 
 private class SkyToxMapView(context: Context) : View(context) {
+    private var lastFollowCameraUpdateMs = 0L
     var contactPublicKey: String = ""
     var ownLocation: SkyToxSharedLocation? = null
         set(value) {
@@ -1383,7 +1390,7 @@ private class SkyToxMapView(context: Context) : View(context) {
                 followOwnLocation = true
                 centerOn(value!!.latitude, value.longitude, defaultZoom = true)
             } else if (followOwnLocation && value != null) {
-                centerOn(value.latitude, value.longitude, defaultZoom = false)
+                updateFollowCamera(value)
             }
         }
     var peerLocation: SkyToxSharedLocation? = null
@@ -1762,6 +1769,18 @@ private class SkyToxMapView(context: Context) : View(context) {
         onOsmAvailabilityChanged?.invoke()
     }
 
+    private fun updateFollowCamera(location: SkyToxSharedLocation) {
+        val now = System.currentTimeMillis()
+        if (now - lastFollowCameraUpdateMs < FOLLOW_CAMERA_MIN_INTERVAL_MS) return
+        val minDistance = maxOf(
+            FOLLOW_CAMERA_MIN_DISTANCE_METERS,
+            location.accuracy.coerceIn(0f, 48f) * 0.25,
+        )
+        if (distanceMeters(centerLat, centerLon, location.latitude, location.longitude) < minDistance) return
+        lastFollowCameraUpdateMs = now
+        centerOn(location.latitude, location.longitude, defaultZoom = false)
+    }
+
     fun cameraHeightLabel(): String {
         val meters = cameraHeightMeters()
         return if (meters >= 1000) {
@@ -1813,7 +1832,7 @@ private class SkyToxMapView(context: Context) : View(context) {
             val x = ((key.x - layout.startTileX) * layout.tileSize - layout.offsetX).toFloat()
             val y = ((key.y - layout.startTileY) * layout.tileSize - layout.offsetY).toFloat()
             val wrappedKey = OsmTileKey(layout.zoom, ((key.x % n) + n) % n, key.y)
-            val bitmap = osmTileLoader.get(wrappedKey)
+            val bitmap = osmTileLoader.getCached(wrappedKey)
             if (bitmap != null) {
                 canvas.drawBitmap(bitmap, null, RectF(x, y, x + layout.tileSize.toFloat(), y + layout.tileSize.toFloat()), null)
             }
