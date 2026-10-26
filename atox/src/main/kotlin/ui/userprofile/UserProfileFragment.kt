@@ -73,6 +73,7 @@ class UserProfileFragment : BaseFragment<FragmentUserProfileBinding>(FragmentUse
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) = binding.run {
+        profileToolbar.setNavigationIcon(R.drawable.ic_back_invisible)
         ViewCompat.setOnApplyWindowInsetsListener(view) { _, compat ->
             val insets = compat.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
             profileCollapsingToolbar.updatePadding(left = insets.left, right = insets.right)

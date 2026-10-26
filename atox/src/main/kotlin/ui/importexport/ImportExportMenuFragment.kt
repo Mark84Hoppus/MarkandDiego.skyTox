@@ -48,10 +48,12 @@ class ImportExportMenuFragment : BaseFragment<FragmentImportExportMenuBinding>(F
                     viewModel.importAllTextChats(source)
                 }
                 .setNegativeButton(android.R.string.cancel, null)
-                .show()
+                .create()
+                .showRounded(if (viewModel.windowAnimationsEnabled()) R.style.DialogBlockMotion else 0)
         }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) = binding.run {
+        toolbar.setNavigationIcon(R.drawable.ic_back_invisible)
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, compat ->
             val insets = compat.getInsets(WindowInsetsCompat.Type.systemBars())
             toolbar.updatePadding(top = insets.top)
@@ -116,7 +118,8 @@ class ImportExportMenuFragment : BaseFragment<FragmentImportExportMenuBinding>(F
                         viewModel.importAllTextChats(files[which])
                     }
                     .setNegativeButton(android.R.string.cancel, null)
-                    .show()
+                    .create()
+                    .showRounded(if (viewModel.windowAnimationsEnabled()) R.style.DialogBlockMotion else 0)
             }
             .create()
             .showRounded(if (viewModel.windowAnimationsEnabled()) R.style.DialogBlockMotion else 0)

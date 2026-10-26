@@ -58,6 +58,7 @@ class AddContactFragment : BaseFragment<FragmentAddContactBinding>(FragmentAddCo
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) = binding.run {
+        toolbar.setNavigationIcon(R.drawable.ic_back_invisible)
         ViewCompat.setOnApplyWindowInsetsListener(view) { _, compat ->
             val insets = compat.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
             toolbar.updatePadding(left = insets.left, top = insets.top)

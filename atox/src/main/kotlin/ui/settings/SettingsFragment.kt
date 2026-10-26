@@ -117,6 +117,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?): Unit = binding.run {
         val setupStartedAt = SystemClock.elapsedRealtimeNanos()
+        toolbar.setNavigationIcon(R.drawable.ic_back_invisible)
         view.doOnPreDraw {
             Log.d(TAG, "firstPreDrawMs=${(SystemClock.elapsedRealtimeNanos() - setupStartedAt) / 1_000_000}")
         }
