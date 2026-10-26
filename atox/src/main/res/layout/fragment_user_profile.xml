@@ -37,7 +37,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="128dp"
                     app:layout_collapseMode="pin"
-                    app:navigationIcon="@drawable/ic_back"
                     app:popupTheme="@style/ThemeOverlay.AppCompat.Light"/>
             <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/profile_avatar"

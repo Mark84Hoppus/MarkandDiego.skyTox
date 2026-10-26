@@ -11,6 +11,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.os.bundleOf
 import androidx.core.view.ViewCompat
@@ -68,13 +69,6 @@ class AddContactFragment : BaseFragment<FragmentAddContactBinding>(FragmentAddCo
             contacts = it
         }
 
-        toolbar.setNavigationIcon(R.drawable.ic_back)
-        toolbar.setNavigationOnClickListener {
-            WindowInsetsControllerCompat(requireActivity().window, view)
-                .hide(WindowInsetsCompat.Type.ime())
-            requireActivity().onBackPressedDispatcher.onBackPressed()
-        }
-
         toxId.doAfterTextChanged { s ->
             val input = ToxID(s?.toString() ?: "")
             val inputLength = s?.toString()?.length ?: 0
@@ -113,14 +107,22 @@ class AddContactFragment : BaseFragment<FragmentAddContactBinding>(FragmentAddCo
 
         add.setOnClickListener {
             val id = ToxID(toxId.text.toString())
-            viewModel.addContact(id, message.text.toString())
-            WindowInsetsControllerCompat(requireActivity().window, view)
-                .hide(WindowInsetsCompat.Type.ime())
-            findNavController().navigate(
-                R.id.chatFragment,
-                bundleOf(CONTACT_PUBLIC_KEY to id.toPublicKey().string()),
-                navOptions { popUpTo(R.id.contactListFragment) },
-            )
+            add.isEnabled = false
+            viewModel.addContact(id, message.text.toString()) { success ->
+                if (!isAdded || this@AddContactFragment.view == null) return@addContact
+                if (!success) {
+                    add.isEnabled = isAddAllowed()
+                    Toast.makeText(requireContext(), R.string.add_contact_failed, Toast.LENGTH_LONG).show()
+                    return@addContact
+                }
+                WindowInsetsControllerCompat(requireActivity().window, view)
+                    .hide(WindowInsetsCompat.Type.ime())
+                findNavController().navigate(
+                    R.id.chatFragment,
+                    bundleOf(CONTACT_PUBLIC_KEY to id.toPublicKey().string()),
+                    navOptions { popUpTo(R.id.contactListFragment) },
+                )
+            }
         }
 
         val qrIntent = qrScanIntent()

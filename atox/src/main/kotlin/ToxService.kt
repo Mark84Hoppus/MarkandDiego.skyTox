@@ -113,6 +113,7 @@ class ToxService : LifecycleService() {
             .setContentIntent(pendingIntent)
             .setContentTitle(getString(R.string.tox_service_running))
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setVisibility(NotificationCompat.VISIBILITY_SECRET)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setShowWhen(false)

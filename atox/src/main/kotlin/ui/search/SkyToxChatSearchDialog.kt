@@ -17,12 +17,14 @@ import java.text.DateFormat
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import ltd.evilcorp.atox.R
+import ltd.evilcorp.atox.ui.motion.showRounded
 import ltd.evilcorp.domain.feature.search.SkyToxChatSearch
 
 class SkyToxChatSearchDialog(
     private val fragment: Fragment,
     private val search: suspend (String) -> List<SkyToxChatSearch.Result>,
     private val openChat: (String, Long) -> Unit,
+    private val animationsEnabled: Boolean,
 ) {
     private var results = emptyList<SkyToxChatSearch.Result>()
     private var searchJob: Job? = null
@@ -78,7 +80,7 @@ class SkyToxChatSearchDialog(
             input.requestFocus()
             context.getSystemService<InputMethodManager>()?.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
         }
-        dialog.show()
+        dialog.showRounded(if (animationsEnabled) R.style.DialogTopEndMotion else 0)
     }
 
     private fun formatResult(result: SkyToxChatSearch.Result): String {

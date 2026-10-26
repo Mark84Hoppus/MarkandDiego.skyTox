@@ -27,6 +27,7 @@ private const val SKYTOX_PROFILE = "skyTox profile"
 private const val SKYTOX_APP = "skyTox app"
 private const val SKYTOX_LOGS = "skyTox logs"
 private const val SKYTOX_GAMES = "skyTox games"
+private const val SKYTOX_GAME_SAVES = "save games"
 private const val SKYTOX_TRACKS = "skyTox tracks"
 private const val SKYTOX_AI = "skyTox AI"
 private const val SKYTOX_AI_LOCAL_MODEL = "local model"
@@ -57,6 +58,7 @@ object SkyToxPublicFolders {
     val appDir: File get() = File(root, SKYTOX_APP)
     val logsDir: File get() = File(root, SKYTOX_LOGS)
     val gamesDir: File get() = File(root, SKYTOX_GAMES)
+    val gameSavesDir: File get() = File(gamesDir, SKYTOX_GAME_SAVES)
     val tracksDir: File get() = File(root, SKYTOX_TRACKS)
     val aiDir: File get() = File(root, SKYTOX_AI)
     val aiLocalModelDir: File get() = File(aiDir, SKYTOX_AI_LOCAL_MODEL)
@@ -87,6 +89,7 @@ object SkyToxPublicFolders {
             appDir,
             logsDir,
             gamesDir,
+            gameSavesDir,
             tracksDir,
             aiDir,
             aiLocalModelDir,

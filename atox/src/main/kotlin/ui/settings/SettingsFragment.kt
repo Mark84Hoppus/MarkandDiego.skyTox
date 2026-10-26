@@ -128,15 +128,6 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
             compat
         }
 
-        toolbar.apply {
-            setNavigationIcon(R.drawable.ic_back)
-            setNavigationOnClickListener {
-                WindowInsetsControllerCompat(requireActivity().window, view)
-                    .hide(WindowInsetsCompat.Type.ime())
-                requireActivity().onBackPressedDispatcher.onBackPressed()
-            }
-        }
-
         emergencyArchivePassword.setText(vm.getEmergencyArchivePassword())
         emergencyArchiveConfirm.setOnClickListener {
             val password = emergencyArchivePassword.text.toString()

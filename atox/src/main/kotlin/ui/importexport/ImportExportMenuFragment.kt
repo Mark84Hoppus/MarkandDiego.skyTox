@@ -11,6 +11,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
+import androidx.navigation.navOptions
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -18,6 +19,7 @@ import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.databinding.FragmentImportExportMenuBinding
 import ltd.evilcorp.atox.ui.BaseFragment
 import ltd.evilcorp.atox.ui.contactlist.ContactListViewModel
+import ltd.evilcorp.atox.ui.motion.showRounded
 import ltd.evilcorp.atox.vmFactory
 
 class ImportExportMenuFragment : BaseFragment<FragmentImportExportMenuBinding>(FragmentImportExportMenuBinding::inflate) {
@@ -61,9 +63,6 @@ class ImportExportMenuFragment : BaseFragment<FragmentImportExportMenuBinding>(F
             compat
         }
 
-        toolbar.setNavigationIcon(R.drawable.ic_back)
-        toolbar.setNavigationOnClickListener { findNavController().popBackStack() }
-
         viewModel.user.observe(viewLifecycleOwner) { user ->
             if (user != null) backupFileNameHint = user.name + ".tox"
         }
@@ -78,7 +77,20 @@ class ImportExportMenuFragment : BaseFragment<FragmentImportExportMenuBinding>(F
             showAllTextChatsImportPicker()
         }
         importExportInstructions.setOnClickListener {
-            findNavController().navigate(R.id.action_importExportMenuFragment_to_importExportInstructionsFragment)
+            findNavController().navigate(
+                R.id.action_importExportMenuFragment_to_importExportInstructionsFragment,
+                null,
+                navOptions {
+                    if (viewModel.windowAnimationsEnabled()) {
+                        anim {
+                            enter = R.anim.dialog_expand_from_block
+                            exit = R.anim.window_hold
+                            popEnter = R.anim.window_hold
+                            popExit = R.anim.dialog_collapse_to_block
+                        }
+                    }
+                },
+            )
         }
     }
 
@@ -106,6 +118,7 @@ class ImportExportMenuFragment : BaseFragment<FragmentImportExportMenuBinding>(F
                     .setNegativeButton(android.R.string.cancel, null)
                     .show()
             }
-            .show()
+            .create()
+            .showRounded(if (viewModel.windowAnimationsEnabled()) R.style.DialogBlockMotion else 0)
     }
 }

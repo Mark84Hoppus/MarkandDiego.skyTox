@@ -3,6 +3,7 @@
 package ltd.evilcorp.atox
 
 import android.app.NotificationChannel
+import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
@@ -111,6 +112,10 @@ class SkyToxMusicService : Service() {
                 PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PENDING_FLAGS),
             )
             .setOnlyAlertOnce(true)
+            .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setStyle(androidx.media.app.NotificationCompat.MediaStyle().setShowActionsInCompactView(0, 1, 2))
             .setOngoing(playing)
             .addAction(
                 R.drawable.ic_music_previous,
@@ -157,7 +162,10 @@ class SkyToxMusicService : Service() {
     private fun createChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             getSystemService(NotificationManager::class.java).createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, getString(R.string.music), NotificationManager.IMPORTANCE_LOW),
+                NotificationChannel(CHANNEL_ID, getString(R.string.music), NotificationManager.IMPORTANCE_LOW).apply {
+                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                    setShowBadge(false)
+                },
             )
         }
     }

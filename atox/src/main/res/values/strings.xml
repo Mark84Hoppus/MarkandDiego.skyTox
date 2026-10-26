@@ -3,7 +3,8 @@
     <string name="accept">Accept</string>
     <string name="add">Add</string>
     <string name="add_contact">Add contact</string>
-    <string name="add_contact_message_default">Talk to me on skyTox like a reasonable human being.</string>
+    <string name="add_contact_message_default">Talk to me on skyTox like a free person.</string>
+    <string name="add_contact_failed">Could not add this contact</string>
     <string name="add_contact_message_error_empty">Write something to send first</string>
     <string name="app_name" translatable="false">skyTox</string>
     <string name="confirm">Confirm</string>

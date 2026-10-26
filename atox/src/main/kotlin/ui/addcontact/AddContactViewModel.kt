@@ -11,7 +11,8 @@ import java.util.Date
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import ltd.evilcorp.atox.tox.ToxStarter
 import ltd.evilcorp.core.repository.MessageRepository
 import ltd.evilcorp.core.vo.Contact
@@ -36,21 +37,13 @@ class AddContactViewModel @Inject constructor(
     fun isToxRunning() = tox.started
     fun tryLoadTox(): Boolean = toxStarter.tryLoadTox(null) == ToxSaveStatus.Ok
 
-    private fun addToChatLog(publicKey: String, message: String) = scope.launch {
-        messageRepository.add(
-            Message(
-                publicKey,
-                message,
-                Sender.Sent,
-                MessageType.Normal,
-                0,
-                Date().time,
-            ),
-        )
-    }
-
-    fun addContact(toxId: ToxID, message: String) = runBlocking {
-        contactManager.add(toxId, message).join()
-        addToChatLog(toxId.toPublicKey().string(), message)
+    fun addContact(toxId: ToxID, message: String, finished: (Boolean) -> Unit) = scope.launch {
+        val success = runCatching {
+            contactManager.add(toxId, message).join()
+            messageRepository.add(
+                Message(toxId.toPublicKey().string(), message, Sender.Sent, MessageType.Normal, 0, Date().time),
+            )
+        }.isSuccess
+        withContext(Dispatchers.Main) { finished(success) }
     }
 }

@@ -247,6 +247,7 @@ class ContactListFragment :
                         this@ContactListFragment,
                         search = viewModel::searchChats,
                         openChat = { publicKey, messageId -> openChat(publicKey, targetMessageId = messageId) },
+                        animationsEnabled = viewModel.windowAnimationsEnabled(),
                     ).show()
                     true
                 }

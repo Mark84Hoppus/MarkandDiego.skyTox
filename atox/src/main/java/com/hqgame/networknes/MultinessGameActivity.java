@@ -20,6 +20,7 @@ import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Locale;
+import ltd.evilcorp.domain.feature.SkyToxPublicFolders;
 
 public final class MultinessGameActivity extends BaseActivity {
     public static final String EXTRA_ROM_PATH = "romPath";
@@ -271,7 +272,7 @@ public final class MultinessGameActivity extends BaseActivity {
     }
 
     private File getSaveStateDir() {
-        return new File(getFilesDir(), "nes_states");
+        return SkyToxPublicFolders.INSTANCE.getGameSavesDir();
     }
 
     private String stateGameKey() {

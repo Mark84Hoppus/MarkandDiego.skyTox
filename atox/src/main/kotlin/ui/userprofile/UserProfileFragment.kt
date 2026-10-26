@@ -81,12 +81,6 @@ class UserProfileFragment : BaseFragment<FragmentUserProfileBinding>(FragmentUse
             compat
         }
 
-        profileToolbar.apply {
-            setNavigationOnClickListener {
-                activity?.onBackPressed()
-            }
-        }
-
         vm.user.observe(viewLifecycleOwner) { user ->
             currentStatus = user.status
             currentUserName = user.name

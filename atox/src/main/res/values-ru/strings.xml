@@ -3,7 +3,8 @@
     <string name="accept">Принять</string>
     <string name="add">Добавить</string>
     <string name="add_contact">Добавить контакт</string>
-    <string name="add_contact_message_default">Общайся со мной в skyTox, как разумный человек.</string>
+    <string name="add_contact_message_default">Общайся со мной в skyTox, как свободный человек.</string>
+    <string name="add_contact_failed">Не удалось добавить контакт</string>
     <string name="add_contact_message_error_empty">Напишите что-нибудь для отправки</string>
     <string name="confirm">Подтвердить</string>
     <string name="connecting">Подключение…</string>

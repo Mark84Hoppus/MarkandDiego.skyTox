@@ -40,7 +40,7 @@ android {
         applicationId = "markanddiego.skytox"
         minSdk = libs.versions.sdk.min.get().toInt()
         targetSdk = libs.versions.sdk.target.get().toInt()
-        versionCode = 324
+        versionCode = 325
         versionName = "0.8.34"
         if (skytoxUniversal) {
             ndk {
@@ -154,6 +154,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.service)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation("androidx.media:media:1.7.0")
 
     implementation(libs.google.dagger.core)
     ksp(libs.google.dagger.compiler)

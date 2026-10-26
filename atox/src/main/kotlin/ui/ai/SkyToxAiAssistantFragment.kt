@@ -71,6 +71,10 @@ import ltd.evilcorp.atox.databinding.FragmentAiAssistantBinding
 import ltd.evilcorp.atox.ui.BaseFragment
 import ltd.evilcorp.atox.ui.NotificationHelper
 import ltd.evilcorp.atox.ui.markdown.SkyToxMarkdown
+import ltd.evilcorp.atox.ui.motion.expandFrom
+import ltd.evilcorp.atox.ui.motion.showRounded
+import ltd.evilcorp.atox.ui.motion.slideOutRight
+import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.core.repository.FileTransferRepository
 import ltd.evilcorp.core.repository.MessageRepository
 import ltd.evilcorp.core.vo.FileKind
@@ -142,6 +146,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
     @Inject lateinit var messageRepository: MessageRepository
     @Inject lateinit var fileTransferRepository: FileTransferRepository
     @Inject lateinit var notificationHelper: NotificationHelper
+    @Inject lateinit var settings: Settings
 
     private var dialogs: List<File> = emptyList()
     private var activeDialog: File? = null
@@ -191,8 +196,8 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
         toolbar.setNavigationOnClickListener { handleBack() }
         toolbar.setOnMenuItemClickListener(::onToolbarMenuItem)
 
-        newDialog.setOnClickListener { createDialog() }
-        dialogList.setOnItemClickListener { _, _, position, _ -> openDialog(dialogs[position]) }
+        newDialog.setOnClickListener { createDialog(it) }
+        dialogList.setOnItemClickListener { _, item, position, _ -> openDialog(dialogs[position], item) }
         dialogList.setOnItemLongClickListener { _, _, position, _ ->
             showDialogActions(dialogs[position])
             true
@@ -360,22 +365,22 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
             getString(R.string.ai_new_dialog)
         }
 
-    private fun createDialog() {
+    private fun createDialog(source: View) {
         val stamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
         val file = File(SkyToxPublicFolders.aiChatsDir, "chat_$stamp.jsonl")
         file.writeText("", Charsets.UTF_8)
         contextFile(file).writeText(contextJson("").toString(2), Charsets.UTF_8)
-        openDialog(file)
+        openDialog(file, source)
     }
 
-    private fun openDialog(file: File) = binding.run {
+    private fun openDialog(file: File, source: View? = null) = binding.run {
         aiLog("openDialog name=${file.name} size=${file.length()} modelPresent=${modelPresent()} modelBytes=${modelFile().length()}")
         activeDialog = file
         selectedContextTimes.clear()
         clearPendingAttachment()
         dialogListPane.visibility = View.GONE
         aiSettingsPane.visibility = View.GONE
-        chatPane.visibility = View.VISIBLE
+        if (source == null) chatPane.visibility = View.VISIBLE else chatPane.expandFrom(source, settings.windowAnimationsEnabled)
         contextBar.visibility = View.VISIBLE
         webSearchControl.visibility = View.VISIBLE
         refreshToolbar()
@@ -1068,7 +1073,8 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
             .setTitle(R.string.ai_about_model)
             .setMessage(R.string.ai_about_model_message)
             .setPositiveButton(android.R.string.ok, null)
-            .show()
+            .create()
+            .showRounded(if (settings.windowAnimationsEnabled) R.style.DialogTopEndMotion else 0)
     }
 
     private fun showAiInstruction() {
@@ -1085,7 +1091,8 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
             .setTitle(R.string.ai_instruction)
             .setView(scroll)
             .setPositiveButton(android.R.string.ok, null)
-            .show()
+            .create()
+            .showRounded(if (settings.windowAnimationsEnabled) R.style.DialogTopEndMotion else 0)
     }
 
     private fun startModelDownload() = binding.run {
@@ -2211,7 +2218,8 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
     private fun handleBack() {
         if (preparingAiCache) return
         if (activeDialog != null) {
-            showDialogList()
+            binding.dialogListPane.visibility = View.VISIBLE
+            binding.chatPane.slideOutRight(settings.windowAnimationsEnabled) { showDialogList() }
         } else if (binding.aiSettingsPane.visibility == View.VISIBLE) {
             showDialogList()
             Toast.makeText(requireContext(), R.string.saved, Toast.LENGTH_SHORT).show()
