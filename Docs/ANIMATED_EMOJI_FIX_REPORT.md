@@ -29,7 +29,7 @@ Repeated binding of the same message/text/size in the same view reuses its drawa
 
 - Direct user chats only; self-chat and AI remain unchanged.
 - Maximum four running drawables.
-- One Lottie cycle, with at least 20 seconds between starts per message using `SystemClock.uptimeMillis()`.
+- One Lottie cycle, with at least 3 seconds between starts per message using `SystemClock.uptimeMillis()`.
 - Playback stops during scrolling, pause, detach, recycling, or when outside the message-list bounds.
 - No coordinator tick runs when no emoji entries exist.
 - System-disabled animations remain static.
@@ -60,7 +60,7 @@ Results:
 
 ## Known limitations and rollback
 
-Manual Android checks from the task remain required, especially repeated 20-second playback, fast scrolling, 20 open/close cycles and app background/restore. Roll back to tag `backup-0.8.34-331-before-animated-emoji-fix-20261027` or restore `C:\Temp\see\skyTox-backups\skyTox-0.8.34-331-before-animated-emoji-fix-20261027`.
+Manual Android checks from the task remain required, especially repeated 3-second playback, fast scrolling, 20 open/close cycles and app background/restore. Roll back to tag `backup-0.8.34-331-before-animated-emoji-fix-20261027` or restore `C:\Temp\see\skyTox-backups\skyTox-0.8.34-331-before-animated-emoji-fix-20261027`.
 
 ## Requirement status
 
@@ -74,7 +74,7 @@ Manual Android checks from the task remain required, especially repeated 20-seco
 | Reuse safe repeated bindings | DONE |
 | No full refresh during enter transition | DONE |
 | Scroll/background/detach/out-of-view pause | DONE |
-| 20-second monotonic interval and max four | DONE |
+| 3-second monotonic interval and max four | DONE |
 | Matcher unit tests | DONE |
 | Debug APK | DONE |
 | Physical-device smoke test and profiling | NOT DONE (no device) |

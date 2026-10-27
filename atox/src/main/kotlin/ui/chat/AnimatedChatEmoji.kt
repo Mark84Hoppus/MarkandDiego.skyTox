@@ -30,7 +30,7 @@ import ltd.evilcorp.atox.R
 import org.json.JSONObject
 
 private const val EMOJI_INDEX_ASSET = "animated_emoji/index.json"
-private const val ANIMATION_INTERVAL_MS = 20_000L
+private const val ANIMATION_INTERVAL_MS = 3_000L
 private const val MAX_RUNNING_ANIMATIONS = 4
 
 internal object AnimatedEmojiAssets {

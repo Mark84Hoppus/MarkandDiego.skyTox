@@ -105,6 +105,8 @@ It is an independent Android fork of [aTox](https://github.com/evilcorpltd/aTox)
 - **0.8.26:** существенно переработаны аудио- и видеозвонки, рендеринг видео и адаптация качества.
 - **0.8.28–0.8.30:** появились геопозиция, онлайн- и офлайн-карты, метки, навигационный режим, запись и обмен GPX-треками.
 - **0.8.32:** добавлен локальный AI-помощник с поддержкой текста, изображений и простых документов.
+- **0.8.33:** добавлены веб-поиск для локальной Gemma, музыкальный мини-плеер и аварийное удаление аккаунта с защищённым архивом; исправлены дубли файлов, экспорт чатов и сбои аватаров.
+- **0.8.34:** появились анимации окон, темы Deep Ocean Light/Dark, постраничная загрузка истории и анимированные эмодзи в личных чатах; улучшены поиск по сообщениям, музыкальные уведомления, сохранения игр, плавность карты и стабильность файловых передач.
 
 Эта история остается в README только как краткая карта развития. Подробности конкретной сборки находятся в описании соответствующего [релиза](https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases).
 
@@ -227,6 +229,8 @@ A small local model can make mistakes, repeat itself, miss text in images, or co
 - **0.8.26:** major audio/video call and rendering improvements.
 - **0.8.28–0.8.30:** location sharing, online/offline maps, markers, navigation mode, and GPX tracks.
 - **0.8.32:** local AI assistant with text, image, and basic document support.
+- **0.8.33:** web search for local Gemma, a music mini-player, and emergency account removal with a protected recovery archive; file duplication, chat export, and avatar crash issues were fixed.
+- **0.8.34:** window animations, Deep Ocean Light/Dark themes, paged chat history, and animated emoji in direct chats; improved message search, music notifications, game saves, map smoothness, and file-transfer stability.
 
 This timeline is only a compact map of the project. Build-specific details are available on the corresponding [GitHub Releases](https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases) pages.
 

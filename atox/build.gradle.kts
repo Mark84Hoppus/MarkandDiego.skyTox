@@ -109,8 +109,8 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
         val abiVersionCodes = mapOf(
-            "armeabi-v7a" to 304,
-            "arm64-v8a" to 305,
+            "armeabi-v7a" to 332,
+            "arm64-v8a" to 332,
             "x86" to 295,
             "x86_64" to 296,
         )
