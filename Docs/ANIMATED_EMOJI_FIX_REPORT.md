@@ -36,6 +36,8 @@ Repeated binding of the same message/text/size in the same view reuses its drawa
 
 ## Verification
 
+Implementation branch: `fix/animated-emoji-chat-performance`; commit: `0df709e8`.
+
 Commands:
 
 ```powershell
