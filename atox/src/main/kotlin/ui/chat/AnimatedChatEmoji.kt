@@ -7,35 +7,37 @@ import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Rect
+import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.style.ImageSpan
 import android.util.LruCache
 import android.util.TypedValue
+import android.view.ViewGroup
 import android.widget.TextView
 import com.airbnb.lottie.LottieComposition
 import com.airbnb.lottie.LottieCompositionFactory
 import com.airbnb.lottie.LottieDrawable
+import java.lang.ref.WeakReference
 import java.util.Collections
 import java.util.IdentityHashMap
 import java.util.concurrent.Executors
-import org.json.JSONObject
 import ltd.evilcorp.atox.R
+import org.json.JSONObject
 
 private const val EMOJI_INDEX_ASSET = "animated_emoji/index.json"
 private const val ANIMATION_INTERVAL_MS = 20_000L
 private const val MAX_RUNNING_ANIMATIONS = 4
 
-internal data class AnimatedEmojiMatch(val start: Int, val end: Int, val asset: String)
-
 internal object AnimatedEmojiAssets {
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val callbacks = mutableListOf<() -> Unit>()
-    @Volatile private var index: Map<String, String>? = null
+    @Volatile private var index: AnimatedEmojiIndex? = null
     @Volatile private var loading = false
 
     fun load(context: Context, ready: () -> Unit) {
@@ -51,13 +53,15 @@ internal object AnimatedEmojiAssets {
         val appContext = context.applicationContext
         executor.execute {
             val loaded = runCatching {
-                val json = appContext.assets.open(EMOJI_INDEX_ASSET).bufferedReader().use { JSONObject(it.readText()) }
-                buildMap {
+                val json = appContext.assets.open(EMOJI_INDEX_ASSET).bufferedReader().use {
+                    JSONObject(it.readText())
+                }
+                AnimatedEmojiIndex(buildMap {
                     json.keys().forEach { emoji ->
                         put(emoji, "animated_emoji/${json.getString(emoji).replace('\\', '/')}")
                     }
-                }
-            }.getOrDefault(emptyMap())
+                })
+            }.getOrElse { AnimatedEmojiIndex(emptyMap()) }
             index = loaded
             val pending = synchronized(this) {
                 loading = false
@@ -67,39 +71,10 @@ internal object AnimatedEmojiAssets {
         }
     }
 
-    fun matches(text: String): List<AnimatedEmojiMatch> {
-        val paths = index ?: return emptyList()
-        if (paths.isEmpty() || text.isEmpty()) return emptyList()
-        val keys = paths.keys.sortedByDescending(String::length)
-        val result = mutableListOf<AnimatedEmojiMatch>()
-        var offset = 0
-        while (offset < text.length) {
-            val key = keys.firstOrNull { text.startsWith(it, offset) }
-            if (key == null) {
-                offset += Character.charCount(Character.codePointAt(text, offset))
-            } else {
-                result += AnimatedEmojiMatch(offset, offset + key.length, paths.getValue(key))
-                offset += key.length
-            }
-        }
-        return result
-    }
-
-    fun supportedEmojiOnly(text: String, matches: List<AnimatedEmojiMatch>): Boolean {
-        val trimmed = text.trim()
-        if (trimmed.isEmpty() || matches.isEmpty()) return false
-        var offset = text.indexOf(trimmed)
-        val end = offset + trimmed.length
-        for (match in matches) {
-            if (match.end <= offset || match.start >= end) continue
-            if (text.substring(offset, match.start).any { !it.isWhitespace() }) return false
-            offset = match.end
-        }
-        return offset == end || text.substring(offset, end).all(Char::isWhitespace)
-    }
+    fun matches(text: String): List<AnimatedEmojiMatch> = findAnimatedEmojiMatches(text, index)
 }
 
-class EmojiAnimationCoordinator {
+class EmojiAnimationCoordinator(private val visibleContainer: ViewGroup) {
     private data class Entry(
         val messageId: Long,
         val drawables: List<LottieDrawable>,
@@ -118,7 +93,7 @@ class EmojiAnimationCoordinator {
     private val tick = object : Runnable {
         override fun run() {
             startEligibleAnimations()
-            if (active) handler.postDelayed(this, 500L)
+            if (active && entries.isNotEmpty()) handler.postDelayed(this, 500L)
         }
     }
 
@@ -156,18 +131,18 @@ class EmojiAnimationCoordinator {
     }
 
     private fun schedule(delayMs: Long) {
-        if (!active) return
+        if (!active || entries.isEmpty()) return
         handler.removeCallbacks(tick)
         handler.postDelayed(tick, delayMs)
     }
 
     private fun startEligibleAnimations() {
         if (!active || scrolling || !systemAnimationsEnabled()) return
-        val now = System.currentTimeMillis()
-        entries.entries
-            .asSequence()
-            .filter { it.key.isShown && it.key.getGlobalVisibleRect(Rect()) }
-            .sortedByDescending { it.value.emojiOnly }
+        entries.keys.filter { !it.isAttachedToWindow }.forEach(::unregister)
+        val now = SystemClock.uptimeMillis()
+        entries.entries.asSequence()
+            .filter { isVisibleInsideContainer(it.key) }
+            .sortedWith(compareBy({ it.value.lastPlayedAt }, { !it.value.emojiOnly }))
             .forEach { (_, entry) ->
                 if (now - entry.lastPlayedAt < ANIMATION_INTERVAL_MS) return@forEach
                 var started = false
@@ -191,6 +166,15 @@ class EmojiAnimationCoordinator {
             }
     }
 
+    private fun isVisibleInsideContainer(view: TextView): Boolean {
+        if (!view.isShown) return false
+        val viewRect = Rect()
+        val containerRect = Rect()
+        return view.getGlobalVisibleRect(viewRect) &&
+            visibleContainer.getGlobalVisibleRect(containerRect) &&
+            Rect.intersects(viewRect, containerRect)
+    }
+
     private fun finished(drawable: LottieDrawable) {
         running.remove(drawable)
         drawable.removeAllAnimatorListeners()
@@ -209,86 +193,167 @@ class EmojiAnimationCoordinator {
         Build.VERSION.SDK_INT < Build.VERSION_CODES.O || ValueAnimator.areAnimatorsEnabled()
 }
 
+private class TextViewDrawableCallback(view: TextView) : Drawable.Callback {
+    private val viewRef = WeakReference(view)
+
+    override fun invalidateDrawable(who: Drawable) {
+        viewRef.get()?.postInvalidate()
+    }
+
+    override fun scheduleDrawable(who: Drawable, what: Runnable, `when`: Long) {
+        viewRef.get()?.postDelayed(what, (`when` - SystemClock.uptimeMillis()).coerceAtLeast(0L))
+    }
+
+    override fun unscheduleDrawable(who: Drawable, what: Runnable) {
+        viewRef.get()?.removeCallbacks(what)
+    }
+}
+
 internal class AnimatedEmojiRenderer(
     private val context: Context,
     private val coordinator: EmojiAnimationCoordinator,
     private val enabled: Boolean,
     onAssetsReady: () -> Unit,
 ) {
-    private val compositions = object : LruCache<String, LottieComposition>(24) {}
+    private data class Binding(
+        val messageId: Long,
+        val renderedText: String,
+        val size: Int,
+        val matches: List<AnimatedEmojiMatch>,
+        val drawables: List<LottieDrawable>,
+        @Suppress("unused") val callback: Drawable.Callback,
+    )
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val compositions = object : LruCache<String, LottieComposition>(32) {}
+    private val pendingLoads = mutableMapOf<String, MutableList<(LottieComposition?) -> Unit>>()
+    private val bindings = IdentityHashMap<TextView, Binding>()
 
     init {
         if (enabled) AnimatedEmojiAssets.load(context, onAssetsReady)
     }
 
-    fun reset(view: TextView, defaultTextSizePx: Float) {
+    fun resetStyle(view: TextView, defaultTextSizePx: Float) {
+        view.setTextSize(TypedValue.COMPLEX_UNIT_PX, defaultTextSizePx)
+    }
+
+    fun clear(view: TextView) {
         coordinator.unregister(view)
         view.setTag(R.id.animated_emoji_bind_token, null)
-        view.setTextSize(TypedValue.COMPLEX_UNIT_PX, defaultTextSizePx)
+        bindings.remove(view)?.drawables?.forEach { drawable ->
+            drawable.cancelAnimation()
+            drawable.removeAllAnimatorListeners()
+            drawable.callback = null
+        }
     }
 
     fun bind(view: TextView, messageId: Long) {
         if (!enabled) return
         val rendered = view.text.toString()
         val matches = AnimatedEmojiAssets.matches(rendered)
-        if (matches.isEmpty()) return
-        val emojiOnly = AnimatedEmojiAssets.supportedEmojiOnly(rendered, matches)
+        if (matches.isEmpty()) {
+            clear(view)
+            return
+        }
+        val emojiOnly = isSupportedEmojiOnly(rendered, matches)
         val size = emojiSizePx(view, if (emojiOnly) matches.size else 0)
         if (emojiOnly) {
             view.background = null
             view.setPadding(0, 0, 0, 0)
         }
-        val token = "$messageId:${System.nanoTime()}"
+
+        val previous = bindings[view]
+        if (previous != null && previous.messageId == messageId &&
+            previous.renderedText == rendered && previous.size == size && previous.matches == matches
+        ) {
+            applySpans(view, rendered, previous.matches, previous.drawables)
+            coordinator.register(view, messageId, previous.drawables, emojiOnly)
+            return
+        }
+        clear(view)
+        val token = Any()
         view.setTag(R.id.animated_emoji_bind_token, token)
         val loaded = arrayOfNulls<LottieComposition>(matches.size)
         var remaining = matches.size
         matches.forEachIndexed { index, match ->
-            val cached = compositions.get(match.asset)
-            if (cached != null) {
-                loaded[index] = cached
+            loadComposition(match.asset) { composition ->
+                if (view.getTag(R.id.animated_emoji_bind_token) != token) return@loadComposition
+                loaded[index] = composition
                 remaining--
-                if (remaining == 0) apply(view, token, messageId, matches, loaded, size, emojiOnly)
-            } else {
-                LottieCompositionFactory.fromAsset(context, match.asset)
-                    .addListener { composition ->
-                        compositions.put(match.asset, composition)
-                        loaded[index] = composition
-                        remaining--
-                        if (remaining == 0) apply(view, token, messageId, matches, loaded, size, emojiOnly)
-                    }
-                    .addFailureListener {
-                        remaining--
-                        if (remaining == 0) apply(view, token, messageId, matches, loaded, size, emojiOnly)
-                    }
+                if (remaining == 0) {
+                    apply(view, token, messageId, rendered, matches, loaded, size, emojiOnly)
+                }
             }
         }
     }
 
+    private fun loadComposition(asset: String, callback: (LottieComposition?) -> Unit) {
+        compositions.get(asset)?.let {
+            callback(it)
+            return
+        }
+        pendingLoads[asset]?.let {
+            it += callback
+            return
+        }
+        pendingLoads[asset] = mutableListOf(callback)
+        fun complete(composition: LottieComposition?) {
+            mainHandler.post {
+                if (composition != null) compositions.put(asset, composition)
+                pendingLoads.remove(asset).orEmpty().forEach { it(composition) }
+            }
+        }
+        LottieCompositionFactory.fromAsset(context.applicationContext, asset)
+            .addListener { complete(it) }
+            .addFailureListener { complete(null) }
+    }
+
     private fun apply(
         view: TextView,
-        token: String,
+        token: Any,
         messageId: Long,
+        rendered: String,
         matches: List<AnimatedEmojiMatch>,
         loaded: Array<LottieComposition?>,
         size: Int,
         emojiOnly: Boolean,
     ) {
-        if (view.getTag(R.id.animated_emoji_bind_token) != token) return
-        val text = SpannableStringBuilder(view.text)
+        if (view.getTag(R.id.animated_emoji_bind_token) !== token) return
+        val callback = TextViewDrawableCallback(view)
+        val drawableMatches = mutableListOf<AnimatedEmojiMatch>()
         val drawables = mutableListOf<LottieDrawable>()
         matches.forEachIndexed { index, match ->
             val composition = loaded[index] ?: return@forEachIndexed
-            val drawable = LottieDrawable().apply {
+            drawableMatches += match
+            drawables += LottieDrawable().apply {
                 setComposition(composition)
                 setBounds(0, 0, size, size)
-                callback = view
+                this.callback = callback
                 progress = 0f
             }
-            drawables += drawable
-            text.setSpan(ImageSpan(drawable, ImageSpan.ALIGN_BASELINE), match.start, match.end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        if (drawables.isEmpty()) return
+        bindings[view] = Binding(messageId, rendered, size, drawableMatches, drawables, callback)
+        applySpans(view, rendered, drawableMatches, drawables)
+        coordinator.register(view, messageId, drawables, emojiOnly)
+    }
+
+    private fun applySpans(
+        view: TextView,
+        rendered: String,
+        matches: List<AnimatedEmojiMatch>,
+        drawables: List<LottieDrawable>,
+    ) {
+        val text = SpannableStringBuilder(rendered)
+        matches.zip(drawables).forEach { (match, drawable) ->
+            text.setSpan(
+                ImageSpan(drawable, ImageSpan.ALIGN_BASELINE),
+                match.start,
+                match.end,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+            )
         }
         view.text = text
-        coordinator.register(view, messageId, drawables, emojiOnly)
         view.invalidate()
     }
 

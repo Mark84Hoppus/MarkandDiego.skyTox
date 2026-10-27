@@ -154,6 +154,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private var messageScrollState = AbsListView.OnScrollListener.SCROLL_STATE_IDLE
     private var pendingHistoryAnchor: ChatScrollAnchor? = null
     private var emojiAnimationCoordinator: EmojiAnimationCoordinator? = null
+    private var pendingEmojiVisibleRefresh = false
 
     companion object {
         private val autoWakeOpenAttemptsByContact = mutableMapOf<String, Int>()
@@ -515,13 +516,20 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         ongoingCall.endCall.setOnClickListener { viewModel.onEndCall() }
         ongoingCall.info.setOnClickListener { navigateToCallScreen() }
 
-        val emojiCoordinator = if (viewModel.isSelfChat()) null else EmojiAnimationCoordinator()
+        val emojiCoordinator = if (viewModel.isSelfChat()) null else EmojiAnimationCoordinator(messages)
         emojiAnimationCoordinator = emojiCoordinator
         val adapter = ChatAdapter(
             layoutInflater,
             resources,
             emojiCoordinator = emojiCoordinator,
             animatedEmojiEnabled = emojiCoordinator != null,
+            onAnimatedEmojiAssetsReady = {
+                if (chatTransitionReleased || !waitForInitialChatContent) {
+                    messages.post { messages.invalidateViews() }
+                } else {
+                    pendingEmojiVisibleRefresh = true
+                }
+            },
         )
         updateSelectionUi(adapter)
         adapter.expandedTextMessageIds = expandedTextMessageIds.toSet()
@@ -756,6 +764,10 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         chatTransitionReleased = true
         transitionTimer.removeCallbacksAndMessages(null)
         startPostponedEnterTransition()
+        if (pendingEmojiVisibleRefresh) {
+            pendingEmojiVisibleRefresh = false
+            binding.messages.post { binding.messages.invalidateViews() }
+        }
     }
 
     override fun onResume() = binding.run {

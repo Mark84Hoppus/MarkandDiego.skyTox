@@ -127,9 +127,10 @@ class ChatAdapter(
     private val resources: Resources,
     private val emojiCoordinator: EmojiAnimationCoordinator? = null,
     animatedEmojiEnabled: Boolean = false,
+    onAnimatedEmojiAssetsReady: () -> Unit = {},
 ) : BaseAdapter() {
     private val animatedEmoji = emojiCoordinator?.let { coordinator ->
-        AnimatedEmojiRenderer(inflater.context, coordinator, animatedEmojiEnabled) { notifyDataSetChanged() }
+        AnimatedEmojiRenderer(inflater.context, coordinator, animatedEmojiEnabled, onAnimatedEmojiAssetsReady)
     }
     var messages: List<Message> = listOf()
     var fileTransfers: List<FileTransfer> = listOf()
@@ -200,7 +201,7 @@ class ChatAdapter(
                     onVisibleMessageLongClick?.invoke(vh.message, message) ?: false
                 }
                 vh.message.typeface = Typeface.DEFAULT
-                animatedEmoji?.reset(vh.message, vh.defaultTextSizePx)
+                animatedEmoji?.resetStyle(vh.message, vh.defaultTextSizePx)
                 vh.message.setPadding(dp(8), dp(8), dp(8), dp(8))
                 vh.message.setBackgroundResource(
                     if (type == ChatItemType.SentMessage || type == ChatItemType.SentAction) {
@@ -212,6 +213,7 @@ class ChatAdapter(
 
                 val locationPayload = SkyToxLocationProtocol.decode(message.message)
                 if (locationPayload?.kind == SkyToxLocationPayload.Kind.OneShot) {
+                    animatedEmoji?.clear(vh.message)
                     vh.message.typeface = Typeface.DEFAULT_BOLD
                     vh.message.setPadding(dp(10), dp(8), dp(10), dp(8))
                     vh.message.text = resources.getString(R.string.location_message_open_map)
@@ -220,6 +222,7 @@ class ChatAdapter(
                         onLocationClick?.invoke(message, locationPayload)
                     }
                 } else if (SkyToxCodeMessage.isCode(message.message)) {
+                    animatedEmoji?.clear(vh.message)
                     val code = SkyToxCodeMessage.decode(message.message).orEmpty()
                     vh.message.typeface = Typeface.create(Typeface.MONOSPACE, Typeface.ITALIC)
                     vh.message.setPadding(dp(10), dp(8), dp(10), dp(8))

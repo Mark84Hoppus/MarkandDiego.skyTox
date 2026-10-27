@@ -40,7 +40,7 @@ android {
         applicationId = "markanddiego.skytox"
         minSdk = libs.versions.sdk.min.get().toInt()
         targetSdk = libs.versions.sdk.target.get().toInt()
-        versionCode = 331
+        versionCode = 332
         versionName = "0.8.34"
         if (skytoxUniversal) {
             ndk {
@@ -170,6 +170,8 @@ dependencies {
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.17.1")
 
     debugImplementation(libs.square.leakcanary)
+
+    testImplementation(kotlin("test-junit"))
 
     androidTestImplementation(kotlin("test-junit"))
     androidTestImplementation(libs.test.rules)
