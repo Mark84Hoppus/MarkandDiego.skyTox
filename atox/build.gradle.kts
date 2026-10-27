@@ -40,7 +40,7 @@ android {
         applicationId = "markanddiego.skytox"
         minSdk = libs.versions.sdk.min.get().toInt()
         targetSdk = libs.versions.sdk.target.get().toInt()
-        versionCode = 330
+        versionCode = 331
         versionName = "0.8.34"
         if (skytoxUniversal) {
             ndk {
@@ -165,6 +165,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jsoup:jsoup:1.18.3")
     implementation("net.lingala.zip4j:zip4j:2.11.5")
+    implementation("com.airbnb.android:lottie:6.7.1")
 
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.17.1")
 

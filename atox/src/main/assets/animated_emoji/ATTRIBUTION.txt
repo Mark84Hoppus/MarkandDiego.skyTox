@@ -1,0 +1,9 @@
+Noto Animated Emoji
+Copyright Google LLC
+
+Source: https://github.com/googlefonts/noto-emoji
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+
+The assets in this directory were repackaged for offline use in skyTox. Their
+animation content was not modified.

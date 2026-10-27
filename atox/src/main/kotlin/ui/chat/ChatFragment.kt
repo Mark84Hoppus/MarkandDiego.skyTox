@@ -153,6 +153,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private var chatTransitionReleased = false
     private var messageScrollState = AbsListView.OnScrollListener.SCROLL_STATE_IDLE
     private var pendingHistoryAnchor: ChatScrollAnchor? = null
+    private var emojiAnimationCoordinator: EmojiAnimationCoordinator? = null
 
     companion object {
         private val autoWakeOpenAttemptsByContact = mutableMapOf<String, Int>()
@@ -514,7 +515,14 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         ongoingCall.endCall.setOnClickListener { viewModel.onEndCall() }
         ongoingCall.info.setOnClickListener { navigateToCallScreen() }
 
-        val adapter = ChatAdapter(layoutInflater, resources)
+        val emojiCoordinator = if (viewModel.isSelfChat()) null else EmojiAnimationCoordinator()
+        emojiAnimationCoordinator = emojiCoordinator
+        val adapter = ChatAdapter(
+            layoutInflater,
+            resources,
+            emojiCoordinator = emojiCoordinator,
+            animatedEmojiEnabled = emojiCoordinator != null,
+        )
         updateSelectionUi(adapter)
         adapter.expandedTextMessageIds = expandedTextMessageIds.toSet()
         adapter.onLongTextToggle = { messageId ->
@@ -632,6 +640,9 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             object : AbsListView.OnScrollListener {
                 override fun onScrollStateChanged(view: AbsListView?, scrollState: Int) {
                     messageScrollState = scrollState
+                    emojiAnimationCoordinator?.setScrolling(
+                        scrollState != AbsListView.OnScrollListener.SCROLL_STATE_IDLE,
+                    )
                 }
 
                 override fun onScroll(
@@ -714,7 +725,14 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         }
     }
 
+    override fun onDestroyView() {
+        emojiAnimationCoordinator?.clear()
+        emojiAnimationCoordinator = null
+        super.onDestroyView()
+    }
+
     override fun onPause() {
+        emojiAnimationCoordinator?.setActive(false)
         stopVoiceRecording(send = false)
         stopAudioPlayback()
         wakeTimer.removeCallbacksAndMessages(null)
@@ -741,6 +759,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     }
 
     override fun onResume() = binding.run {
+        emojiAnimationCoordinator?.setActive(true)
         viewModel.setActiveChat(PublicKey(contactPubKey), pendingTargetMessageId)
         viewModel.setTyping(outgoingMessage.text.isNotEmpty())
         updateWakeContactMenuItem()

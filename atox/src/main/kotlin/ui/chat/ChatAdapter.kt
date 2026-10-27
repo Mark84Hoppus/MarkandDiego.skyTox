@@ -95,6 +95,7 @@ private val timeFormatter = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, Da
 private class MessageViewHolder(row: View) {
     val message: TextView = row.findViewById(R.id.message)
     val timestamp: TextView = row.findViewById(R.id.timestamp)
+    val defaultTextSizePx: Float = message.textSize
 }
 
 private class FileTransferViewHolder(row: View) {
@@ -121,7 +122,15 @@ private class FileTransferViewHolder(row: View) {
     val audioDuration: TextView = row.findViewById(R.id.audioDuration)
 }
 
-class ChatAdapter(private val inflater: LayoutInflater, private val resources: Resources) : BaseAdapter() {
+class ChatAdapter(
+    private val inflater: LayoutInflater,
+    private val resources: Resources,
+    private val emojiCoordinator: EmojiAnimationCoordinator? = null,
+    animatedEmojiEnabled: Boolean = false,
+) : BaseAdapter() {
+    private val animatedEmoji = emojiCoordinator?.let { coordinator ->
+        AnimatedEmojiRenderer(inflater.context, coordinator, animatedEmojiEnabled) { notifyDataSetChanged() }
+    }
     var messages: List<Message> = listOf()
     var fileTransfers: List<FileTransfer> = listOf()
     var playingAudioId: Int = Int.MIN_VALUE
@@ -191,6 +200,7 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                     onVisibleMessageLongClick?.invoke(vh.message, message) ?: false
                 }
                 vh.message.typeface = Typeface.DEFAULT
+                animatedEmoji?.reset(vh.message, vh.defaultTextSizePx)
                 vh.message.setPadding(dp(8), dp(8), dp(8), dp(8))
                 vh.message.setBackgroundResource(
                     if (type == ChatItemType.SentMessage || type == ChatItemType.SentAction) {
@@ -231,6 +241,7 @@ class ChatAdapter(private val inflater: LayoutInflater, private val resources: R
                             onLongTextToggle?.invoke(message.id)
                         }
                     }
+                    if (message.type == MessageType.Normal) animatedEmoji?.bind(vh.message, message.id)
                 }
                 vh.timestamp.text = if (!unsent) {
                     timeFormatter.format(message.timestamp)
