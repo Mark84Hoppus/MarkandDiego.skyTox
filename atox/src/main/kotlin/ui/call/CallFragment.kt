@@ -18,6 +18,9 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.SurfaceHolder
 import android.view.View
 import android.view.Surface
@@ -60,6 +63,7 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
     private val ringbackHandler = Handler(Looper.getMainLooper())
     private var ringbackTone: ToneGenerator? = null
     private var ringbackRunning = false
+    private var answeredFeedbackPlayed = false
     private val ringbackRunnable = object : Runnable {
         override fun run() {
             if (!ringbackRunning) return
@@ -152,6 +156,10 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
         vm.remoteCallAccepted.asLiveData().observe(viewLifecycleOwner) { accepted ->
             if (accepted) {
                 stopOutgoingRingback()
+                if (!incomingCall && !answeredFeedbackPlayed) {
+                    answeredFeedbackPlayed = true
+                    vibrateCallAnswered()
+                }
             }
         }
 
@@ -296,6 +304,22 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
         ringbackHandler.removeCallbacks(ringbackRunnable)
         ringbackTone?.release()
         ringbackTone = null
+    }
+
+    private fun vibrateCallAnswered() {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            requireContext().getSystemService(VibratorManager::class.java).defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            requireContext().getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
+        val pattern = longArrayOf(0, 160, 90, 280)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(pattern, -1)
+        }
     }
 
     private fun showIncomingCallControls() = binding.run {

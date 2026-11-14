@@ -26,13 +26,16 @@ class SkyToxMusicService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Android 8+ requires a service started with startForegroundService() to
+        // publish its foreground notification even when there is nothing to play.
+        publishState()
         when (intent?.action ?: ACTION_TOGGLE) {
             ACTION_TOGGLE -> toggle()
             ACTION_NEXT -> playRelative(1)
             ACTION_PREVIOUS -> playRelative(-1)
             ACTION_RANDOM -> {
                 random = !random
-                if (active) publishState() else stopSelf()
+                if (active) publishState() else closePlayer()
             }
             ACTION_CLOSE -> {
                 closePlayer()
@@ -63,7 +66,7 @@ class SkyToxMusicService : Service() {
                 files = loadFiles()
                 if (files.isEmpty()) {
                     Toast.makeText(this, R.string.music_no_files, Toast.LENGTH_LONG).show()
-                    stopSelf()
+                    closePlayer()
                     return
                 }
                 index = index.coerceIn(files.indices)

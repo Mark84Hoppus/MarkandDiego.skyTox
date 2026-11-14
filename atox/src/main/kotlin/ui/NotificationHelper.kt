@@ -22,6 +22,9 @@ import android.graphics.Rect
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationChannelCompat
@@ -60,12 +63,19 @@ private const val TAG = "NotificationHelper"
 private const val MESSAGE = "skyTox messages"
 private const val FRIEND_REQUEST = "skyTox friend requests"
 private const val CALL = "skyTox calls"
-private const val INCOMING_CALLS = "skyTox incoming calls fullscreen"
+private const val INCOMING_CALLS = "skyTox incoming calls fullscreen v2"
+private val INCOMING_CALL_VIBRATION = longArrayOf(0, 900, 350, 900, 350, 1_400, 500)
 
 @Singleton
 class NotificationHelper @Inject constructor(private val context: Context) {
     private val notifier = NotificationManagerCompat.from(context)
     private val notifierOld = context.getSystemService<NotificationManager>()!!
+    private val callVibrator: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        context.getSystemService<VibratorManager>()?.defaultVibrator
+    } else {
+        @Suppress("DEPRECATION")
+        context.getSystemService<Vibrator>()
+    }
 
     init {
         createNotificationChannel()
@@ -102,6 +112,7 @@ class NotificationHelper @Inject constructor(private val context: Context) {
                 ).apply {
                     description = context.getString(R.string.calls)
                     enableVibration(true)
+                    vibrationPattern = INCOMING_CALL_VIBRATION
                     enableLights(true)
                     setSound(ringtone, attrs)
                     lockscreenVisibility = Notification.VISIBILITY_PUBLIC
@@ -286,7 +297,10 @@ class NotificationHelper @Inject constructor(private val context: Context) {
         notifier.notify(friendRequest.publicKey.hashCode(), notificationBuilder.build())
     }
 
-    fun dismissCallNotification(pk: PublicKey) = notifier.cancel(pk.string().hashCode() + CALL.hashCode())
+    fun dismissCallNotification(pk: PublicKey) {
+        notifier.cancel(pk.string().hashCode() + CALL.hashCode())
+        callVibrator?.cancel()
+    }
 
     fun showOngoingCallNotification(contact: Contact) {
         if (ActivityCompat.checkSelfPermission(
@@ -407,6 +421,7 @@ class NotificationHelper @Inject constructor(private val context: Context) {
                 ),
             )
             .setSound(RingtoneManager.getActualDefaultRingtoneUri(context, RingtoneManager.TYPE_RINGTONE))
+            .setVibrate(INCOMING_CALL_VIBRATION)
             .setSilent(status == UserStatus.Busy)
             .build()
             .apply {
@@ -414,6 +429,14 @@ class NotificationHelper @Inject constructor(private val context: Context) {
             }
 
         notifier.notify(c.publicKey.hashCode() + CALL.hashCode(), notification)
+        if (status != UserStatus.Busy && callVibrator?.hasVibrator() == true) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                callVibrator.vibrate(VibrationEffect.createWaveform(INCOMING_CALL_VIBRATION, 0))
+            } else {
+                @Suppress("DEPRECATION")
+                callVibrator.vibrate(INCOMING_CALL_VIBRATION, 0)
+            }
+        }
     }
 
     private fun deepLinkToChat(publicKey: PublicKey, focusMessageBox: Boolean = false) = NavDeepLinkBuilder(context)

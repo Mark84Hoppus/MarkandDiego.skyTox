@@ -97,6 +97,20 @@
                 app:exitAnim="@anim/fade_out"
                 app:popEnterAnim="@anim/fade_in"
                 app:popExitAnim="@anim/slide_out_right"/>
+        <action
+                android:id="@+id/action_contactListFragment_to_sosFragment"
+                app:destination="@id/sosFragment"
+                app:enterAnim="@anim/slide_in_right"
+                app:exitAnim="@anim/fade_out"
+                app:popEnterAnim="@anim/fade_in"
+                app:popExitAnim="@anim/slide_out_right"/>
+        <action
+                android:id="@+id/action_contactListFragment_to_radioFragment"
+                app:destination="@id/radioFragment"
+                app:enterAnim="@anim/slide_in_right"
+                app:exitAnim="@anim/fade_out"
+                app:popEnterAnim="@anim/fade_in"
+                app:popExitAnim="@anim/slide_out_right"/>
     </fragment>
 
     <fragment android:id="@+id/friendRequestFragment"
@@ -186,4 +200,14 @@
             android:name="ltd.evilcorp.atox.ui.ai.SkyToxAiAssistantFragment"
             android:label="ai_assistant"
             tools:layout="@layout/fragment_ai_assistant"/>
+    <fragment
+            android:id="@+id/sosFragment"
+            android:name="ltd.evilcorp.atox.ui.sos.SosFragment"
+            android:label="sos"
+            tools:layout="@layout/fragment_sos"/>
+    <fragment
+            android:id="@+id/radioFragment"
+            android:name="ltd.evilcorp.atox.ui.radio.RadioFragment"
+            android:label="radio"
+            tools:layout="@layout/fragment_radio"/>
 </navigation>

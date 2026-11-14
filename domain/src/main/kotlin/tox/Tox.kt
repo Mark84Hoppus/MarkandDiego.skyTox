@@ -27,6 +27,7 @@ import ltd.evilcorp.core.vo.MessageType
 import ltd.evilcorp.core.vo.PublicKey
 import ltd.evilcorp.core.vo.UserStatus
 import ltd.evilcorp.domain.feature.ContactNameCache
+import ltd.evilcorp.domain.feature.SkyToxCrashLogger
 
 private const val TAG = "Tox"
 private const val SLOW_ITERATION_LIMIT_MS = 10
@@ -71,6 +72,14 @@ class Tox @Inject constructor(
     }
 
     private lateinit var tox: ToxWrapper
+    /** toxcore is single-owner. Callbacks run re-entrantly from iterate(). */
+    private val nativeLock = Any()
+    private var iterateWindowStartedAt = 0L
+    private var iterateCount = 0L
+    private var iterateTotalMs = 0L
+    private var iterateMaxMs = 0L
+    private var previousIterateStartedAt = 0L
+    private var iterateGapMaxMs = 0L
 
     fun start(saveOption: SaveOptions, password: String?, listener: ToxEventListener, avListener: ToxAvEventListener) {
         tox = if (password == null) {
@@ -127,8 +136,27 @@ class Tox @Inject constructor(
                 }
 
                 val before = System.currentTimeMillis()
-                tox.iterate()
+                if (previousIterateStartedAt != 0L) {
+                    iterateGapMaxMs = maxOf(iterateGapMaxMs, before - previousIterateStartedAt)
+                }
+                previousIterateStartedAt = before
+                synchronized(nativeLock) { tox.iterate() }
                 val timeTaken = System.currentTimeMillis() - before
+                iterateCount++
+                iterateTotalMs += timeTaken
+                iterateMaxMs = maxOf(iterateMaxMs, timeTaken)
+                if (iterateWindowStartedAt == 0L) iterateWindowStartedAt = before
+                if (before - iterateWindowStartedAt >= 10_000L) {
+                    SkyToxCrashLogger.fileTransfer(
+                        "perf tox_iterate count=$iterateCount avg_ms=${iterateTotalMs / iterateCount.coerceAtLeast(1)} " +
+                            "max_ms=$iterateMaxMs gap_max_ms=$iterateGapMaxMs",
+                    )
+                    iterateWindowStartedAt = before
+                    iterateCount = 0
+                    iterateTotalMs = 0
+                    iterateMaxMs = 0
+                    iterateGapMaxMs = 0
+                }
                 val iterationInterval = tox.iterationInterval()
                 if (timeTaken > SLOW_ITERATION_LIMIT_MS && timeTaken > iterationInterval) {
                     Log.w(TAG, "Tox thread overran: $timeTaken/$iterationInterval.")
@@ -176,26 +204,26 @@ class Tox @Inject constructor(
 
     fun startFileTransfer(pk: PublicKey, fileNumber: Int) {
         Log.i(TAG, "Starting file transfer $fileNumber from ${pk.fingerprint()}")
-        tox.startFileTransfer(pk, fileNumber)
+        synchronized(nativeLock) { tox.startFileTransfer(pk, fileNumber) }
     }
 
     fun seekFileTransfer(pk: PublicKey, fileNumber: Int, position: Long) {
         Log.i(TAG, "Seeking file transfer $fileNumber from ${pk.fingerprint()} to $position")
-        tox.seekFileTransfer(pk, fileNumber, position)
+        synchronized(nativeLock) { tox.seekFileTransfer(pk, fileNumber, position) }
     }
 
     fun stopFileTransfer(pk: PublicKey, fileNumber: Int) {
         Log.i(TAG, "Stopping file transfer $fileNumber from ${pk.fingerprint()}")
-        tox.stopFileTransfer(pk, fileNumber)
+        synchronized(nativeLock) { tox.stopFileTransfer(pk, fileNumber) }
     }
 
     fun sendFile(pk: PublicKey, fileKind: FileKind, fileSize: Long, fileName: String, fileId: ByteArray) =
-        tox.sendFile(pk, fileKind, fileSize, fileName, fileId)
+        synchronized(nativeLock) { tox.sendFile(pk, fileKind, fileSize, fileName, fileId) }
 
     fun getFileFileId(pk: PublicKey, fileNumber: Int): ByteArray = tox.getFileFileId(pk, fileNumber)
 
     fun sendFileChunk(pk: PublicKey, fileNo: Int, pos: Long, data: ByteArray): Result<Unit> =
-        tox.sendFileChunk(pk, fileNo, pos, data)
+        synchronized(nativeLock) { tox.sendFileChunk(pk, fileNo, pos, data) }
 
     fun getName() = tox.getName()
     fun setName(name: String) {

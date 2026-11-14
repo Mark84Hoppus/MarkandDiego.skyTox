@@ -55,6 +55,7 @@ import ltd.evilcorp.atox.ui.chat.CONTACT_PUBLIC_KEY
 import ltd.evilcorp.atox.ui.motion.topLevelWindowMotion
 import ltd.evilcorp.atox.tox.ToxStarter
 import ltd.evilcorp.domain.feature.SkyToxPublicFolders
+import ltd.evilcorp.domain.feature.SkyToxCrashLogger
 
 private const val TAG = "MainActivity"
 private const val SCHEME = "tox:"
@@ -80,6 +81,8 @@ class MainActivity : AppCompatActivity() {
     private var mainNavController: NavController? = null
     private val musicHandler = Handler(Looper.getMainLooper())
     private var musicAvailabilityListener: ((Boolean) -> Unit)? = null
+    private var splashController: SkyToxSplashController? = null
+    private var startupPermissionsRequested = false
     private val collapseMusicPanel = Runnable { collapseMusicPanel() }
     private val musicStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) = updateMusicControls()
@@ -119,9 +122,17 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
         setupBottomNavigation()
-        requestLegacyStorageAccessIfNeeded()
-        requestAllFilesAccessIfNeeded()
-        requestOverlayAccessForLegacyIncomingCallsIfNeeded()
+        splashController = SkyToxSplashController(this)
+        val splashShown = splashController?.showIfEligible(
+            intent,
+            savedInstanceState,
+            settings.appLockMode != AppLockMode.None,
+        ) {
+            requestStartupPermissionsOnce()
+        } == true
+        if (!splashShown) {
+            requestStartupPermissionsOnce()
+        }
 
         // Only handle intent the first time it triggers the app.
         if (savedInstanceState != null) return
@@ -141,6 +152,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onStop() {
+        splashController?.dismiss(immediate = true, runCompletion = false)
+        super.onStop()
+    }
+
     override fun onResume() {
         super.onResume()
         autoAway.onForeground()
@@ -151,6 +167,14 @@ class MainActivity : AppCompatActivity() {
             toxStarter.ensureToxServiceRunning()
         }
         maybePromptAppLock()
+        if (splashController?.isShowing != true) requestStartupPermissionsOnce()
+    }
+
+    private fun requestStartupPermissionsOnce() {
+        if (startupPermissionsRequested || isFinishing || isDestroyed) return
+        startupPermissionsRequested = true
+        requestLegacyStorageAccessIfNeeded()
+        requestAllFilesAccessIfNeeded()
     }
 
     private fun setupBottomNavigation() {
@@ -331,6 +355,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        splashController?.release()
+        splashController = null
         musicHandler.removeCallbacksAndMessages(null)
         runCatching { unregisterReceiver(musicStateReceiver) }
         super.onDestroy()
@@ -437,7 +463,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestLegacyStorageAccessIfNeeded() {
-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) return
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+            requestOverlayAccessForLegacyIncomingCallsIfNeeded()
+            return
+        }
         val permissions = arrayOf(
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -445,7 +474,24 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
         if (permissions.isNotEmpty()) {
+            SkyToxCrashLogger.diagnostic("startup.permission legacy_storage_request count=${permissions.size}")
             ActivityCompat.requestPermissions(this, permissions.toTypedArray(), REQUEST_LEGACY_STORAGE)
+        } else {
+            requestOverlayAccessForLegacyIncomingCallsIfNeeded()
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_LEGACY_STORAGE) {
+            SkyToxCrashLogger.diagnostic(
+                "startup.permission legacy_storage_result granted=${grantResults.count { it == PackageManager.PERMISSION_GRANTED }} total=${grantResults.size}",
+            )
+            requestOverlayAccessForLegacyIncomingCallsIfNeeded()
         }
     }
 

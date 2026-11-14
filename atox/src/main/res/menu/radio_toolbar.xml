@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item android:id="@+id/create_radio_channel" android:title="@string/radio_create_channel" app:showAsAction="never"/>
+    <item android:id="@+id/manual_radio_endpoint" android:title="@string/radio_manual_endpoint" app:showAsAction="never"/>
+    <item android:id="@+id/refresh_radio_network" android:title="@string/radio_refresh_network" app:showAsAction="never"/>
+</menu>

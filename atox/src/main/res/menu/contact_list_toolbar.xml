@@ -2,10 +2,24 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+            android:id="@+id/open_sos"
+            android:contentDescription="@string/sos_title"
+            android:icon="@drawable/ic_sos"
+            android:orderInCategory="0"
+            android:title="@string/sos_title"
+            app:showAsAction="always"/>
+    <item
+            android:id="@+id/open_radio"
+            android:contentDescription="@string/radio_title"
+            android:icon="@drawable/ic_radio"
+            android:orderInCategory="1"
+            android:title="@string/radio_title"
+            app:showAsAction="always"/>
+    <item
             android:id="@+id/open_music"
             android:contentDescription="@string/music"
             android:icon="@drawable/ic_music_note"
-            android:orderInCategory="1"
+            android:orderInCategory="2"
             android:title="@string/music"
             app:showAsAction="always"/>
     <item

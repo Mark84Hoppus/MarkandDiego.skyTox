@@ -43,6 +43,7 @@ import ltd.evilcorp.domain.tox.Tox
 import ltd.evilcorp.domain.tox.ToxSaveStatus
 import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.atox.ui.location.SkyToxLocationSharingManager
+import ltd.evilcorp.atox.ui.sos.SosCoordinator
 
 private const val TAG = "ToxService"
 private const val NOTIFICATION_ID = 1984
@@ -86,6 +87,9 @@ class ToxService : LifecycleService() {
 
     @Inject
     lateinit var locationSharingManager: SkyToxLocationSharingManager
+
+    @Inject
+    lateinit var sosCoordinator: SosCoordinator
 
     private fun createNotificationChannel() {
         val channel = NotificationChannelCompat.Builder(channelId, NotificationManagerCompat.IMPORTANCE_LOW)
@@ -162,6 +166,14 @@ class ToxService : LifecycleService() {
             SkyToxCrashLogger.diagnostic("toxservice.location_share active=${it != null}")
             startForegroundForCurrentState()
             scheduleWakeModeStopIfNeeded()
+        }
+
+        lifecycleScope.launch {
+            sosCoordinator.active.collect {
+                SkyToxCrashLogger.diagnostic("toxservice.sos active=$it")
+                startForegroundForCurrentState()
+                scheduleWakeModeStopIfNeeded()
+            }
         }
 
         lifecycleScope.launch(Dispatchers.Default) {
@@ -253,6 +265,11 @@ class ToxService : LifecycleService() {
                 scheduleWakeModeStopIfNeeded()
                 return@postDelayed
             }
+            if (sosCoordinator.active.value) {
+                SkyToxCrashLogger.diagnostic("toxservice.wake auto_stop_deferred active_sos=true")
+                scheduleWakeModeStopIfNeeded()
+                return@postDelayed
+            }
             SkyToxCrashLogger.diagnostic("toxservice.wake auto_stop_now")
             stopSelf()
         }, WAKE_MODE_ACTIVE_WINDOW_MS)
@@ -262,7 +279,8 @@ class ToxService : LifecycleService() {
         val notification = notificationFor(connectionStatus)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             var serviceType = ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-            if (locationSharingManager.hasActiveSharing() && locationSharingManager.canUseLocation()) {
+            if ((locationSharingManager.hasActiveSharing() && locationSharingManager.canUseLocation()) ||
+                (sosCoordinator.active.value && sosCoordinator.hasLocationPermission())) {
                 serviceType = serviceType or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
             }
             startForeground(NOTIFICATION_ID, notification, serviceType)

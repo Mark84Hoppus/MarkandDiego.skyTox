@@ -1376,12 +1376,20 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             .setTitle(R.string.location_track_load_title)
             .setPositiveButton(android.R.string.yes) { _, _ ->
                 lifecycleScope.launch(Dispatchers.IO) {
-                    val status = requireContext().contentResolver.openInputStream(uri)?.use {
-                        SkyToxTrackStore.importAndSaveGpx(it)
+                    val status = requireContext().contentResolver.openInputStream(uri)?.use { input ->
+                        val bytes = input.readBytes()
+                        if (runCatching {
+                                ltd.evilcorp.atox.ui.location.SkyToxMarkerStore.import(requireContext(), bytes.inputStream())
+                            }.getOrDefault(false)) {
+                            SkyToxTrackImportStatus.MarkerImported
+                        } else {
+                            SkyToxTrackStore.importAndSaveGpx(bytes.inputStream())
+                        }
                     } ?: SkyToxTrackImportStatus.Failed
                     withContext(Dispatchers.Main) {
                         val message = when (status) {
                             SkyToxTrackImportStatus.Imported -> R.string.location_track_loaded
+                            SkyToxTrackImportStatus.MarkerImported -> R.string.location_marker_imported
                             SkyToxTrackImportStatus.AlreadyExists -> R.string.location_track_already_exists
                             SkyToxTrackImportStatus.Failed -> R.string.location_track_import_failed
                         }

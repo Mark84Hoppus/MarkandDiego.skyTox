@@ -73,6 +73,7 @@ import ltd.evilcorp.atox.ui.motion.ChatWindowMotion
 import ltd.evilcorp.atox.ui.motion.chatWindowMotion
 import ltd.evilcorp.atox.ui.motion.openTopToolbarWindow
 import ltd.evilcorp.atox.ui.search.SkyToxChatSearchDialog
+import ltd.evilcorp.atox.ui.radio.RadioRuntime
 import ltd.evilcorp.atox.vmFactory
 import ltd.evilcorp.core.vo.ConnectionStatus
 import ltd.evilcorp.core.vo.Contact
@@ -218,6 +219,26 @@ class ContactListFragment :
         }
         toolbar.setOnMenuItemClickListener {
             when (it.itemId) {
+                R.id.open_sos -> {
+                    openTopToolbarWindow(
+                        findNavController(),
+                        R.id.action_contactListFragment_to_sosFragment,
+                        it.itemId,
+                        toolbar,
+                        viewModel.windowAnimationsEnabled(),
+                    )
+                    true
+                }
+                R.id.open_radio -> {
+                    openTopToolbarWindow(
+                        findNavController(),
+                        R.id.action_contactListFragment_to_radioFragment,
+                        it.itemId,
+                        toolbar,
+                        viewModel.windowAnimationsEnabled(),
+                    )
+                    true
+                }
                 R.id.open_music -> {
                     (requireActivity() as? MainActivity)?.showMusicWidget()
                     true
@@ -258,6 +279,7 @@ class ContactListFragment :
         viewModel.user.observe(viewLifecycleOwner) { user ->
             if (user == null) return@observe
 
+            RadioRuntime.nickname = user.name.ifBlank { "skyTox" }
             backupFileNameHint = user.name + ".tox"
 
             navHeader!!.apply {

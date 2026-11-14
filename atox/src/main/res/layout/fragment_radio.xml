@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/ocean_background">
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar" android:layout_width="0dp" android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary" android:theme="@style/AppTheme.AppBarOverlay"
+        app:menu="@menu/radio_toolbar" app:popupTheme="@style/AppTheme.PopupOverlay"
+        app:title="@string/radio_title" app:layout_constraintTop_toTopOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"/>
+    <ScrollView
+        android:layout_width="0dp" android:layout_height="0dp" android:fillViewport="true"
+        app:layout_constraintTop_toBottomOf="@id/toolbar" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center_horizontal" android:padding="16dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp" android:gravity="center" android:text="@string/radio_local_wifi_title" android:textColor="@color/ocean_text_primary" android:textSize="18sp" android:textStyle="bold"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="10dp" android:text="@string/radio_development_security_warning" android:textColor="@color/ocean_text_secondary" android:textSize="13sp"/>
+            <LinearLayout android:id="@+id/statusCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/radio_card" android:padding="20dp">
+                <TextView android:id="@+id/listTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/radio_channels" android:textColor="@color/ocean_text_primary" android:textSize="22sp" android:textStyle="bold"/>
+                <TextView android:id="@+id/statusTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="@string/radio_scanning" android:textColor="@color/ocean_text_primary" android:textSize="20sp" android:textStyle="bold"/>
+                <TextView android:id="@+id/statusSubtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="@string/radio_scan_hint" android:textColor="@color/ocean_text_secondary" android:textSize="16sp"/>
+                <TextView android:id="@+id/networkEndpoint" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:textColor="@color/ocean_text_secondary" android:textSize="14sp"/>
+            </LinearLayout>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="horizontal" android:weightSum="2">
+                <androidx.appcompat.widget.AppCompatButton android:id="@+id/hotspotButton" android:layout_width="0dp" android:layout_height="58dp" android:layout_weight="1" android:layout_marginEnd="6dp" android:background="@drawable/radio_action_button" android:drawableStart="@drawable/ic_radio_hotspot" android:drawableTint="@color/ocean_text_primary" android:drawablePadding="7dp" android:gravity="center" android:minHeight="0dp" android:minWidth="0dp" android:paddingHorizontal="10dp" android:text="@string/radio_hotspot_short" android:textAllCaps="false" android:textColor="@color/ocean_text_primary" android:textSize="12sp"/>
+                <androidx.appcompat.widget.AppCompatButton android:id="@+id/showConnectionButton" android:layout_width="0dp" android:layout_height="58dp" android:layout_weight="1" android:layout_marginStart="6dp" android:background="@drawable/radio_action_button" android:drawableStart="@drawable/ic_radio_qr_12" android:drawableTint="@color/ocean_text_primary" android:drawablePadding="7dp" android:gravity="center" android:minHeight="0dp" android:minWidth="0dp" android:paddingHorizontal="10dp" android:text="@string/radio_scan_qr_short" android:textAllCaps="false" android:textColor="@color/ocean_text_primary" android:textSize="12sp"/>
+            </LinearLayout>
+            <FrameLayout android:id="@+id/pttFrame" android:layout_width="195dp" android:layout_height="195dp" android:layout_marginTop="80dp" android:background="@drawable/radio_ptt_outer" android:elevation="12dp" android:padding="13dp">
+                <TextView android:id="@+id/pttButton" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/radio_ptt_theme" android:clickable="false" android:focusable="false" android:gravity="center" android:text="PTT" android:textColor="@color/ocean_on_accent" android:textSize="40sp" android:textStyle="bold"/>
+            </FrameLayout>
+            <LinearLayout android:id="@+id/items" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="28dp" android:orientation="vertical"/>
+        </LinearLayout>
+    </ScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -64,14 +64,21 @@ class AvatarImageView @JvmOverloads constructor(context: Context, attrs: Attribu
         doOnPreDraw {
             if (avatarUri.isNotEmpty()) {
                 setImageURI(avatarUri.toUri())
+                if (drawable == null) setGeneratedAvatar()
             } else if (width > 0 && height > 0) {
-                setImageBitmap(AvatarFactory.create(resources, name, publicKey, Px(min(width, height))))
+                setGeneratedAvatar()
             } else {
                 // TODO(robinlinden): When does this even happen?
                 Log.w(TAG, "Got 0-size drawing area: $width $height")
             }
         }
         invalidate()
+    }
+
+    private fun setGeneratedAvatar() {
+        if (width > 0 && height > 0) {
+            setImageBitmap(AvatarFactory.create(resources, name, publicKey, Px(min(width, height))))
+        }
     }
 
     override fun onDraw(canvas: Canvas) {

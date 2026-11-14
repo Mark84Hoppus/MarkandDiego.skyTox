@@ -13,6 +13,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
@@ -137,6 +138,7 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
     private lateinit var distanceText: TextView
     private lateinit var locateButton: TextView
     private lateinit var osmButton: MapToolButton
+    private lateinit var pencilButton: MapToolButton
     private lateinit var trackButton: MapToolButton
     private lateinit var trackActionButton: TextView
     private lateinit var trackPanel: LinearLayout
@@ -193,6 +195,8 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
             setStoredMarkers(loadStoredMarkers())
             onMarkerLongPress = { lat, lon -> handleMarkerLongPress(lat, lon) }
             onTrackLongPress = { track -> showTrackActions(track) }
+            onDrawingStateChanged = { updatePencilUi() }
+            onDrawnRouteCompleted = { points -> saveDrawnRoute(points) }
             onOsmAvailabilityChanged = { updateOsmButton() }
             onOfflineLoadingChanged = { loading ->
                 mapLoadingPanel.visibility = if (loading) View.VISIBLE else View.GONE
@@ -328,6 +332,19 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
         osmParams.setMargins(0, 0, dp(24), dp(82))
         root.addView(osmButton, osmParams)
 
+        pencilButton = MapToolButton(this, MapToolButton.Kind.Pencil).apply {
+            contentDescription = getString(R.string.location_draw_route)
+            setOnClickListener {
+                closeLayerPanel()
+                closeTrackPanel()
+                if (mapView.drawingActive) mapView.cancelDrawing() else mapView.armDrawing()
+                updatePencilUi()
+            }
+        }
+        val pencilParams = FrameLayout.LayoutParams(dp(42), dp(42), Gravity.END or Gravity.CENTER_VERTICAL)
+        pencilParams.setMargins(0, 0, dp(24), dp(136))
+        root.addView(pencilButton, pencilParams)
+
         peerDirectionButton = PeerDirectionButton(this).apply {
             visibility = View.GONE
         }
@@ -390,6 +407,8 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
             trackPanel.layoutParams = trackPanelParams
             osmParams.setMargins(0, 0, dp(24) + insets.right, dp(82))
             osmButton.layoutParams = osmParams
+            pencilParams.setMargins(0, 0, dp(24) + insets.right, dp(136))
+            pencilButton.layoutParams = pencilParams
             speedParams.setMargins(insets.left, -dp(76), 0, 0)
             speedText.layoutParams = speedParams
             altitudeParams.setMargins(insets.left, 0, 0, 0)
@@ -440,9 +459,15 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
         }
     }
 
+    override fun onStop() {
+        if (::mapView.isInitialized && mapView.drawingActive) mapView.cancelDrawing()
+        super.onStop()
+    }
+
     override fun onDestroy() {
         uiHandler.removeCallbacksAndMessages(null)
         if (::mapView.isInitialized) {
+            mapView.cancelDrawing()
             saveActiveTrackIfNeeded()
             mapView.release()
         }
@@ -595,15 +620,50 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
         if (::mapView.isInitialized) mapView.setSavedTracks(savedTracks)
     }
 
+    private fun saveDrawnRoute(points: List<TrackPoint>) {
+        val name = "${getString(R.string.location_drawn_route)} ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}"
+        val route = SkyToxTrackStore.fromDrawing(points, name) ?: return
+        mapView.setPendingDrawnTrack(route)
+        scope.launch(Dispatchers.IO) {
+            val saved = runCatching { SkyToxTrackStore.save(route) }
+            withContext(Dispatchers.Main) {
+                mapView.setPendingDrawnTrack(null)
+                if (saved.isSuccess) {
+                    reloadSavedTracks()
+                    Toast.makeText(this@SkyToxLocationMapActivity, R.string.location_route_saved, Toast.LENGTH_SHORT).show()
+                } else {
+                    mapView.setPendingDrawnTrack(route)
+                    Toast.makeText(this@SkyToxLocationMapActivity, R.string.location_route_save_failed, Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun updatePencilUi() {
+        if (!::pencilButton.isInitialized) return
+        pencilButton.active = mapView.drawingActive
+        pencilButton.alpha = if (mapView.drawingActive) 1f else 0.72f
+    }
+
     private fun importTrack(uri: Uri) {
         scope.launch(Dispatchers.IO) {
-            val status = contentResolver.openInputStream(uri)?.use { SkyToxTrackStore.importAndSaveGpx(it) }
-                ?: SkyToxTrackImportStatus.Failed
+            val status = contentResolver.openInputStream(uri)?.use { input ->
+                val bytes = input.readBytes()
+                if (runCatching { SkyToxMarkerStore.import(this@SkyToxLocationMapActivity, bytes.inputStream()) }.getOrDefault(false)) {
+                    SkyToxTrackImportStatus.MarkerImported
+                } else {
+                    SkyToxTrackStore.importAndSaveGpx(bytes.inputStream())
+                }
+            } ?: SkyToxTrackImportStatus.Failed
             withContext(Dispatchers.Main) {
                 when (status) {
                     SkyToxTrackImportStatus.Imported -> {
                         reloadSavedTracks()
                         Toast.makeText(this@SkyToxLocationMapActivity, R.string.location_track_loaded, Toast.LENGTH_SHORT).show()
+                    }
+                    SkyToxTrackImportStatus.MarkerImported -> {
+                        mapView.setStoredMarkers(loadStoredMarkers())
+                        Toast.makeText(this@SkyToxLocationMapActivity, R.string.location_marker_imported, Toast.LENGTH_SHORT).show()
                     }
                     SkyToxTrackImportStatus.AlreadyExists -> {
                         Toast.makeText(this@SkyToxLocationMapActivity, R.string.location_track_already_exists, Toast.LENGTH_SHORT).show()
@@ -666,12 +726,16 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
         val existing = mapView.markerNear(lat, lon)
         if (existing != null) {
             AlertDialog.Builder(this)
-                .setTitle(R.string.delete)
-                .setPositiveButton(android.R.string.yes) { _, _ ->
-                    mapView.removeMarker(existing.id)
-                    saveStoredMarkers(mapView.userMarkers())
+                .setTitle(existing.name)
+                .setItems(arrayOf(getString(R.string.share), getString(R.string.delete))) { _, which ->
+                    when (which) {
+                        0 -> shareMarker(existing)
+                        1 -> {
+                            mapView.removeMarker(existing.id)
+                            saveStoredMarkers(mapView.userMarkers())
+                        }
+                    }
                 }
-                .setNegativeButton(android.R.string.cancel, null)
                 .show()
             return
         }
@@ -691,6 +755,37 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private fun shareMarker(marker: UserMapMarker) {
+        val markerFile = runCatching { SkyToxMarkerStore.export(this, marker) }.getOrElse {
+            Toast.makeText(this, R.string.location_marker_export_failed, Toast.LENGTH_LONG).show()
+            return
+        }
+        scope.launch {
+            contactRepository.getAll().take(1).collect { contacts ->
+                withContext(Dispatchers.Main) {
+                    val candidates = contacts.sortedBy { it.name.lowercase(Locale.getDefault()) }
+                    if (candidates.isEmpty()) {
+                        Toast.makeText(this@SkyToxLocationMapActivity, R.string.no_contacts_to_forward, Toast.LENGTH_SHORT).show()
+                        return@withContext
+                    }
+                    AlertDialog.Builder(this@SkyToxLocationMapActivity)
+                        .setTitle(R.string.forward_to)
+                        .setItems(candidates.map { it.name.ifBlank { getString(R.string.contact_default_name) } }.toTypedArray()) { _, which ->
+                            scope.launch(Dispatchers.IO) {
+                                fileTransferManager.create(
+                                    PublicKey(candidates[which].publicKey),
+                                    markerFile.toUri(),
+                                    settings.pendingFileRetention.millis,
+                                    settings.pendingQueueLimit.bytes,
+                                )
+                            }
+                        }
+                        .show()
+                }
+            }
+        }
     }
 
     private fun topButton(label: String) = TextView(this).apply {
@@ -742,35 +837,11 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
     }
 
     private fun loadStoredMarkers(): List<UserMapMarker> {
-        val raw = getSharedPreferences("skytox_location_map", MODE_PRIVATE).getString("markers", "[]").orEmpty()
-        return runCatching {
-            val items = org.json.JSONArray(raw)
-            List(items.length()) { index ->
-                val item = items.getJSONObject(index)
-                UserMapMarker(
-                    item.getString("id"),
-                    item.getString("name"),
-                    item.getDouble("lat"),
-                    item.getDouble("lon"),
-                )
-            }
-        }.getOrDefault(emptyList())
+        return SkyToxMarkerStore.load(this)
     }
 
     private fun saveStoredMarkers(markers: List<UserMapMarker>) {
-        val items = org.json.JSONArray()
-        markers.forEach { marker ->
-            items.put(JSONObject().apply {
-                put("id", marker.id)
-                put("name", marker.name)
-                put("lat", marker.lat)
-                put("lon", marker.lon)
-            })
-        }
-        getSharedPreferences("skytox_location_map", MODE_PRIVATE)
-            .edit()
-            .putString("markers", items.toString())
-            .apply()
+        SkyToxMarkerStore.save(this, markers)
     }
 
     private fun dp(value: Int) = (value * resources.displayMetrics.density).roundToInt()
@@ -934,7 +1005,7 @@ private class OsmTileLoader(private val view: View) {
 }
 
 private class MapToolButton(context: Context, private val kind: Kind) : View(context) {
-    enum class Kind { Layers, Track, Menu }
+    enum class Kind { Layers, Track, Pencil, Menu }
 
     var active = false
         set(value) {
@@ -961,6 +1032,7 @@ private class MapToolButton(context: Context, private val kind: Kind) : View(con
         when (kind) {
             Kind.Layers -> drawLayers(canvas)
             Kind.Track -> drawTrackIcon(canvas)
+            Kind.Pencil -> drawPencil(canvas)
             Kind.Menu -> drawMenu(canvas)
         }
     }
@@ -1003,6 +1075,22 @@ private class MapToolButton(context: Context, private val kind: Kind) : View(con
         canvas.save()
         canvas.rotate(-60f, cx, cy)
         canvas.drawPath(path, iconPaint)
+        canvas.restore()
+    }
+
+    private fun drawPencil(canvas: Canvas) {
+        val cx = width / 2f
+        val cy = height / 2f
+        canvas.save()
+        canvas.rotate(-45f, cx, cy)
+        canvas.drawRect(cx - 4.5f, cy - 15f, cx + 4.5f, cy + 12f, iconPaint)
+        val tip = Path().apply {
+            moveTo(cx - 4.5f, cy - 15f)
+            lineTo(cx, cy - 22f)
+            lineTo(cx + 4.5f, cy - 15f)
+        }
+        canvas.drawPath(tip, iconPaint)
+        canvas.drawLine(cx - 4.5f, cy + 7f, cx + 4.5f, cy + 7f, iconPaint)
         canvas.restore()
     }
 }
@@ -1102,7 +1190,14 @@ data class TrackPoint(
     val accuracy: Float,
     val altitude: Double = Double.NaN,
 )
-data class SkyToxRecordedTrack(val id: String, val name: String, val file: File, val points: List<TrackPoint>)
+enum class SkyToxTrackKind { GPS_RECORDED, USER_DRAWN }
+data class SkyToxRecordedTrack(
+    val id: String,
+    val name: String,
+    val file: File,
+    val points: List<TrackPoint>,
+    val kind: SkyToxTrackKind = SkyToxTrackKind.GPS_RECORDED,
+)
 private data class MovementSample(val lat: Double, val lon: Double, val timestamp: Long)
 private data class OsmTileKey(val z: Int, val x: Int, val y: Int)
 private data class OsmTileLayout(
@@ -1115,7 +1210,7 @@ private data class OsmTileLayout(
     val keys: List<OsmTileKey>,
 )
 
-enum class SkyToxTrackImportStatus { Imported, AlreadyExists, Failed }
+enum class SkyToxTrackImportStatus { Imported, MarkerImported, AlreadyExists, Failed }
 
 object SkyToxTrackStore {
     private val displayStamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
@@ -1150,6 +1245,18 @@ object SkyToxTrackStore {
                 SkyToxTrackImportStatus.Imported
             }
         }.getOrDefault(SkyToxTrackImportStatus.Failed)
+    }
+
+    fun fromDrawing(points: List<TrackPoint>, name: String): SkyToxRecordedTrack? {
+        if (points.size < 2) return null
+        val id = System.currentTimeMillis().toString()
+        return SkyToxRecordedTrack(
+            id = id,
+            name = name,
+            file = File(SkyToxPublicFolders.tracksDir, "${name.sanitizeFileName()}.gpx"),
+            points = points.map { it.copy(timestamp = 0L, accuracy = 0f, altitude = Double.NaN) },
+            kind = SkyToxTrackKind.USER_DRAWN,
+        )
     }
 
     fun importGpx(input: java.io.InputStream): SkyToxRecordedTrack {
@@ -1192,6 +1299,8 @@ object SkyToxTrackStore {
             var insideTrackName = false
             var insideEle = false
             var insideTime = false
+            var kind = SkyToxTrackKind.GPS_RECORDED
+            var insideSkyToxKind = false
             while (parser.eventType != XmlPullParser.END_DOCUMENT) {
                 when (parser.eventType) {
                     XmlPullParser.START_TAG -> when (parser.name) {
@@ -1204,17 +1313,20 @@ object SkyToxTrackStore {
                         }
                         "ele" -> insideEle = true
                         "time" -> insideTime = true
+                        "kind" -> insideSkyToxKind = true
                     }
                     XmlPullParser.TEXT -> {
                         val text = parser.text.orEmpty().trim()
                         if (insideTrackName && text.isNotBlank()) name = text
                         if (insideEle) currentEle = text.toDoubleOrNull() ?: Double.NaN
                         if (insideTime) currentTime = runCatching { gpxTime.parse(text)?.time ?: 0L }.getOrDefault(0L)
+                        if (insideSkyToxKind && text == SkyToxTrackKind.USER_DRAWN.name) kind = SkyToxTrackKind.USER_DRAWN
                     }
                     XmlPullParser.END_TAG -> when (parser.name) {
                         "name" -> insideTrackName = false
                         "ele" -> insideEle = false
                         "time" -> insideTime = false
+                        "kind" -> insideSkyToxKind = false
                         "trkpt" -> if (!currentLat.isNaN() && !currentLon.isNaN()) {
                             points += TrackPoint(currentLat, currentLon, currentTime, 0f, currentEle)
                         }
@@ -1222,20 +1334,23 @@ object SkyToxTrackStore {
                 }
                 parser.next()
             }
-            return SkyToxRecordedTrack(file.absolutePath, name, file, points)
+            return SkyToxRecordedTrack(file.absolutePath, name, file, points, kind)
         }
     }
 
     private fun toGpx(track: SkyToxRecordedTrack): String = buildString {
         appendLine("""<?xml version="1.0" encoding="UTF-8"?>""")
-        appendLine("""<gpx version="1.1" creator="skyTox" xmlns="http://www.topografix.com/GPX/1/1">""")
+        appendLine("""<gpx version="1.1" creator="skyTox" xmlns="http://www.topografix.com/GPX/1/1" xmlns:skytox="https://skytox.uk/gpx/1">""")
         appendLine("  <trk>")
         appendLine("    <name>${track.name.escapeXml()}</name>")
+        appendLine("    <extensions><skytox:kind>${track.kind.name}</skytox:kind></extensions>")
         appendLine("    <trkseg>")
         track.points.forEach { point ->
             append("""      <trkpt lat="${point.lat}" lon="${point.lon}">""")
             if (!point.altitude.isNaN()) append("<ele>${point.altitude}</ele>")
-            append("<time>${gpxTime.format(Date(point.timestamp.takeIf { it > 0L } ?: System.currentTimeMillis()))}</time>")
+            if (track.kind == SkyToxTrackKind.GPS_RECORDED) {
+                append("<time>${gpxTime.format(Date(point.timestamp.takeIf { it > 0L } ?: System.currentTimeMillis()))}</time>")
+            }
             appendLine("</trkpt>")
         }
         appendLine("    </trkseg>")
@@ -1263,6 +1378,7 @@ object SkyToxTrackStore {
 
     private fun SkyToxRecordedTrack.signature(): String {
         val digest = MessageDigest.getInstance("SHA-256")
+        digest.update(trackKindBytes())
         points.forEach { point ->
             val row = "${"%.6f".format(Locale.US, point.lat)},${"%.6f".format(Locale.US, point.lon)},${point.timestamp / 1000}\n"
             digest.update(row.toByteArray(Charsets.UTF_8))
@@ -1270,8 +1386,87 @@ object SkyToxTrackStore {
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
+    private fun SkyToxRecordedTrack.trackKindBytes() = kind.name.toByteArray(Charsets.UTF_8)
+
     private fun String.sanitizeFileName() = replace(Regex("""[\\/:*?"<>|]"""), "-")
     private fun String.escapeXml() = replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
+}
+
+object SkyToxMarkerStore {
+    private const val PREFS = "skytox_location_map"
+    private const val KEY = "markers"
+
+    fun load(context: Context): List<UserMapMarker> {
+        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, "[]").orEmpty()
+        return runCatching {
+            val items = org.json.JSONArray(raw)
+            List(items.length()) { index ->
+                val item = items.getJSONObject(index)
+                UserMapMarker(item.getString("id"), item.getString("name"), item.getDouble("lat"), item.getDouble("lon"))
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    fun save(context: Context, markers: List<UserMapMarker>) {
+        val items = org.json.JSONArray()
+        markers.forEach { marker ->
+            items.put(JSONObject().apply {
+                put("id", marker.id); put("name", marker.name); put("lat", marker.lat); put("lon", marker.lon)
+            })
+        }
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, items.toString()).apply()
+    }
+
+    fun export(context: Context, marker: UserMapMarker): File {
+        val dir = File(context.cacheDir, "shared-map-markers").apply { mkdirs() }
+        val safeName = marker.name.replace(Regex("""[\\/:*?"<>|]"""), "-").ifBlank { "marker" }
+        return File(dir, "$safeName.gpx").apply {
+            writeText(
+                """<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="skyTox" xmlns="http://www.topografix.com/GPX/1/1" xmlns:skytox="https://skytox.uk/gpx/1">
+  <wpt lat="${marker.lat}" lon="${marker.lon}"><name>${marker.name.escapeMarkerXml()}</name><extensions><skytox:kind>USER_MARKER</skytox:kind></extensions></wpt>
+</gpx>
+""".trimIndent(),
+                Charsets.UTF_8,
+            )
+        }
+    }
+
+    fun import(context: Context, input: java.io.InputStream): Boolean {
+        val parser = Xml.newPullParser().apply { setInput(input, Charsets.UTF_8.name()) }
+        var lat = Double.NaN
+        var lon = Double.NaN
+        var name = ""
+        var insideWaypoint = false
+        var insideName = false
+        while (parser.eventType != XmlPullParser.END_DOCUMENT) {
+            when (parser.eventType) {
+                XmlPullParser.START_TAG -> when (parser.name) {
+                    "wpt" -> {
+                        insideWaypoint = true
+                        lat = parser.getAttributeValue(null, "lat")?.toDoubleOrNull() ?: Double.NaN
+                        lon = parser.getAttributeValue(null, "lon")?.toDoubleOrNull() ?: Double.NaN
+                    }
+                    "name" -> if (insideWaypoint) insideName = true
+                }
+                XmlPullParser.TEXT -> if (insideName) name += parser.text.orEmpty()
+                XmlPullParser.END_TAG -> when (parser.name) {
+                    "name" -> insideName = false
+                    "wpt" -> insideWaypoint = false
+                }
+            }
+            parser.next()
+        }
+        if (!lat.isFinite() || !lon.isFinite() || lat !in -85.0..85.0 || lon !in -180.0..180.0) return false
+        val markers = load(context).toMutableList()
+        val normalizedName = name.trim().ifBlank { context.getString(R.string.location_marker_default_name) }
+        if (markers.any { kotlin.math.abs(it.lat - lat) < 0.000001 && kotlin.math.abs(it.lon - lon) < 0.000001 && it.name == normalizedName }) return true
+        markers += UserMapMarker(System.currentTimeMillis().toString(), normalizedName, lat, lon)
+        save(context, markers)
+        return true
+    }
+
+    private fun String.escapeMarkerXml() = replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 }
 
 private class SkyToxMapData(val lines: List<MapLine>, val places: List<MapPlace>) {
@@ -1398,6 +1593,8 @@ private class SkyToxMapView(context: Context) : View(context) {
     var onCameraChanged: (() -> Unit)? = null
     var onMarkerLongPress: ((Double, Double) -> Unit)? = null
     var onTrackLongPress: ((SkyToxRecordedTrack) -> Unit)? = null
+    var onDrawingStateChanged: (() -> Unit)? = null
+    var onDrawnRouteCompleted: ((List<TrackPoint>) -> Unit)? = null
     var onOsmAvailabilityChanged: (() -> Unit)? = null
     var onOfflineLoadingChanged: ((Boolean) -> Unit)? = null
     var onMapTouched: (() -> Unit)? = null
@@ -1428,6 +1625,9 @@ private class SkyToxMapView(context: Context) : View(context) {
     private val markers = mutableListOf<UserMapMarker>()
     private val track = mutableListOf<TrackPoint>()
     private val savedTracks = mutableListOf<SkyToxRecordedTrack>()
+    private val drawingController = MapDrawingController(3f * resources.displayMetrics.density)
+    private var pendingDrawnTrack: SkyToxRecordedTrack? = null
+    private var drawingGestureBlockedUntilUp = false
     private val movementSamples = mutableListOf<MovementSample>()
     private var suspiciousTrackPoint: TrackPoint? = null
     private var offlineMapLoadGeneration = 0
@@ -1507,6 +1707,15 @@ private class SkyToxMapView(context: Context) : View(context) {
     private val markerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(223, 54, 92); style = Paint.Style.FILL }
     private val markerTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; textSize = 44f; setShadowLayer(4f, 0f, 1f, Color.BLACK) }
     private val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(223, 54, 92); style = Paint.Style.STROKE; strokeWidth = 5f; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND }
+    private val drawnTrackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.rgb(35, 160, 220)
+        style = Paint.Style.STROKE
+        strokeWidth = 5f
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+        pathEffect = DashPathEffect(floatArrayOf(18f, 10f), 0f)
+    }
+    private val drawingPreviewPaint = Paint(drawnTrackPaint).apply { color = Color.argb(225, 20, 190, 235); strokeWidth = 7f }
     private val whitePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; style = Paint.Style.FILL }
 
     fun setOfflineLayers(layers: OfflineLayerState) {
@@ -1546,6 +1755,32 @@ private class SkyToxMapView(context: Context) : View(context) {
     fun setSavedTracks(items: List<SkyToxRecordedTrack>) {
         savedTracks.clear()
         savedTracks += items
+        invalidate()
+    }
+
+    val drawingActive: Boolean get() = drawingController.state != MapDrawingController.State.IDLE
+
+    fun armDrawing() {
+        scroller.forceFinished(true)
+        dragX = 0f
+        dragY = 0f
+        velocityTracker?.recycle()
+        velocityTracker = null
+        drawingController.arm()
+        invalidate()
+        onDrawingStateChanged?.invoke()
+    }
+
+    fun cancelDrawing() {
+        drawingController.cancel()
+        drawingGestureBlockedUntilUp = false
+        parent?.requestDisallowInterceptTouchEvent(false)
+        invalidate()
+        onDrawingStateChanged?.invoke()
+    }
+
+    fun setPendingDrawnTrack(track: SkyToxRecordedTrack?) {
+        pendingDrawnTrack = track
         invalidate()
     }
 
@@ -1887,11 +2122,19 @@ private class SkyToxMapView(context: Context) : View(context) {
     }
 
     private fun drawTrack(canvas: Canvas) {
-        if (tracksVisible) savedTracks.forEach { drawTrackPoints(canvas, it.points) }
-        drawTrackPoints(canvas, track)
+        if (tracksVisible) savedTracks.forEach {
+            drawTrackPoints(canvas, it.points, if (it.kind == SkyToxTrackKind.USER_DRAWN) drawnTrackPaint else trackPaint)
+        }
+        pendingDrawnTrack?.let { drawTrackPoints(canvas, it.points, drawnTrackPaint) }
+        drawTrackPoints(canvas, track, trackPaint)
+        drawTrackPoints(
+            canvas,
+            drawingController.preview().map { TrackPoint(it.lat, it.lon, 0L, 0f) },
+            drawingPreviewPaint,
+        )
     }
 
-    private fun drawTrackPoints(canvas: Canvas, points: List<TrackPoint>) {
+    private fun drawTrackPoints(canvas: Canvas, points: List<TrackPoint>, paint: Paint) {
         if (points.size < 2) return
         val path = Path()
         points.forEachIndexed { index, point ->
@@ -1900,7 +2143,7 @@ private class SkyToxMapView(context: Context) : View(context) {
             val y = xy.second + dragY
             if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
         }
-        canvas.drawPath(path, trackPaint)
+        canvas.drawPath(path, paint)
     }
 
     private fun drawUserMarkers(canvas: Canvas) {
@@ -1981,6 +2224,7 @@ private class SkyToxMapView(context: Context) : View(context) {
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (drawingActive || drawingGestureBlockedUntilUp) return handleDrawingTouch(event)
         velocityTracker?.addMovement(event)
         if (event.pointerCount == 1 && !scaler.isInProgress) {
             gestureDetector.onTouchEvent(event)
@@ -2056,6 +2300,60 @@ private class SkyToxMapView(context: Context) : View(context) {
             }
         }
         return true
+    }
+
+    private fun handleDrawingTouch(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                parent?.requestDisallowInterceptTouchEvent(true)
+                scroller.forceFinished(true)
+                followOwnLocation = false
+                dragX = 0f
+                dragY = 0f
+                drawingController.onDown(event.getPointerId(0), drawingPoint(event.x, event.y))
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val pointerId = event.getPointerId(0)
+                val pointerIndex = event.findPointerIndex(pointerId).coerceAtLeast(0)
+                repeat(event.historySize) { history ->
+                    drawingController.onMove(
+                        pointerId,
+                        drawingPoint(event.getHistoricalX(pointerIndex, history), event.getHistoricalY(pointerIndex, history)),
+                    )
+                }
+                drawingController.onMove(pointerId, drawingPoint(event.getX(pointerIndex), event.getY(pointerIndex)))
+            }
+            MotionEvent.ACTION_POINTER_DOWN -> {
+                drawingController.cancel()
+                drawingGestureBlockedUntilUp = true
+                onDrawingStateChanged?.invoke()
+            }
+            MotionEvent.ACTION_UP -> {
+                if (!drawingGestureBlockedUntilUp) {
+                    val points = drawingController.onUp(event.getPointerId(0), drawingPoint(event.x, event.y))
+                    if (points.isNotEmpty()) {
+                        onDrawnRouteCompleted?.invoke(points.map { TrackPoint(it.lat, it.lon, 0L, 0f) })
+                    }
+                }
+                drawingGestureBlockedUntilUp = false
+                parent?.requestDisallowInterceptTouchEvent(false)
+                onDrawingStateChanged?.invoke()
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                drawingController.cancel()
+                drawingGestureBlockedUntilUp = false
+                parent?.requestDisallowInterceptTouchEvent(false)
+                onDrawingStateChanged?.invoke()
+            }
+        }
+        invalidate()
+        return true
+    }
+
+    private fun drawingPoint(x: Float, y: Float): DrawingPoint {
+        val mapPoint = screenPointToMapPoint(x, y)
+        val latLon = screenToLatLon(mapPoint.first, mapPoint.second)
+        return DrawingPoint(latLon.first, latLon.second, x, y)
     }
 
     override fun computeScroll() {

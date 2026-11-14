@@ -20,3 +20,4 @@ pluginManagement {
 include(":atox")
 include(":core")
 include(":domain")
+include(":radio")

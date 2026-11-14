@@ -19,6 +19,8 @@ fun openTopToolbarWindow(
         Settings.Global.getFloat(anchor.context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
     }.getOrDefault(1f)
     val enterAnimation = when (sourceItemId) {
+        R.id.open_sos -> R.anim.window_expand_from_sos
+        R.id.open_radio -> R.anim.window_expand_from_radio
         R.id.open_ai_assistant -> R.anim.window_expand_from_ai
         R.id.open_games -> R.anim.window_expand_from_games
         else -> null

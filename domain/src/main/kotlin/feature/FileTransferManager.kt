@@ -27,12 +27,17 @@ import java.net.URLConnection
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.max
 import kotlin.collections.forEach as kForEach
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.take
@@ -70,6 +75,9 @@ private const val TOX_FILE_ID_BYTES = 32
 private const val THUMB_SIZE = 960
 private const val THUMB_QUALITY = 60
 private const val CHUNK_RETRY_DELAY_MS = 500L
+private const val CHUNK_RETRY_MAX_DELAY_MS = 5_000L
+private const val CHUNK_RETRY_MAX_ATTEMPTS = 12
+private val STALLED_RECOVERY_DELAYS_MS = longArrayOf(10_000L, 30_000L, 60_000L)
 private const val DEFAULT_PENDING_RETENTION_MS = 7L * 24L * 60L * 60L * 1000L
 private const val DEFAULT_PENDING_QUEUE_LIMIT_BYTES = 2L * 1024L * 1024L * 1024L
 
@@ -77,10 +85,33 @@ private const val DEFAULT_PENDING_QUEUE_LIMIT_BYTES = 2L * 1024L * 1024L * 1024L
 private const val FINGERPRINT_LEN = 8
 private fun String.fingerprint() = take(FINGERPRINT_LEN)
 
-@Suppress("ArrayInDataClass")
-private data class Chunk(val pos: Long, val data: ByteArray)
+private data class ChunkRequest(
+    val pos: Long,
+    val length: Int,
+    var data: ByteArray? = null,
+    val queuedAt: Long = System.currentTimeMillis(),
+)
 
-private data class OutgoingFile(val uri: Uri, val unsentChunks: MutableList<Chunk>, var retrying: Boolean = false)
+private data class IncomingChunk(
+    val position: Long,
+    val data: ByteArray,
+    val queuedAt: Long = System.currentTimeMillis(),
+)
+
+private data class OutgoingFile(
+    val uri: Uri,
+    val generation: Long,
+    val lock: Any = Any(),
+    val requests: ArrayDeque<ChunkRequest> = ArrayDeque(),
+    var workerJob: Job? = null,
+)
+
+private data class IncomingFile(
+    val generation: Long,
+    val lock: Any = Any(),
+    val chunks: ArrayDeque<IncomingChunk> = ArrayDeque(),
+    var workerJob: Job? = null,
+)
 
 @Singleton
 class FileTransferManager @Inject constructor(
@@ -92,13 +123,21 @@ class FileTransferManager @Inject constructor(
     private val fileTransferRepository: FileTransferRepository,
     private val tox: Tox,
 ) {
-    private val fileTransfers: MutableList<FileTransfer> = mutableListOf()
-    private val outgoingFiles = mutableMapOf<Pair<String, Int>, OutgoingFile>()
+    private val fileTransfers: MutableList<FileTransfer> = CopyOnWriteArrayList()
+    private val outgoingFiles = ConcurrentHashMap<Pair<String, Int>, OutgoingFile>()
+    private val incomingFiles = ConcurrentHashMap<Pair<String, Int>, IncomingFile>()
+    private val transferGeneration = AtomicLong(1)
+    private val stalledRecoveryCycles = ConcurrentHashMap<Int, Int>()
+    private val stateLock = Any()
     private val outgoingCacheRoot by lazy { context.cacheDir.canonicalFile }
     private val storage by lazy { AtoxStorage() }
 
     private fun activeTransfer(publicKey: String, fileNumber: Int): FileTransfer? =
-        fileTransfers.lastOrNull { it.publicKey == publicKey && it.fileNumber == fileNumber }
+        synchronized(stateLock) {
+            fileTransfers.lastOrNull { it.publicKey == publicKey && it.fileNumber == fileNumber }
+        }
+
+    private fun newOutgoingFile(uri: Uri) = OutgoingFile(uri, transferGeneration.get())
 
     private fun removeStaleActiveTransfer(publicKey: String, fileNumber: Int) {
         val stale = fileTransfers.filter { it.publicKey == publicKey && it.fileNumber == fileNumber }
@@ -110,7 +149,9 @@ class FileTransferManager @Inject constructor(
                 setProgress(ft, ft.interruptedProgress())
             }
             if (ft.outgoing) {
-                outgoingFiles.remove(Pair(publicKey, fileNumber))
+                outgoingFiles.remove(Pair(publicKey, fileNumber))?.workerJob?.cancel()
+            } else {
+                incomingFiles.remove(Pair(publicKey, fileNumber))?.workerJob?.cancel()
             }
             fileTransfers.remove(ft)
         }
@@ -123,7 +164,16 @@ class FileTransferManager @Inject constructor(
     }
 
     fun reset() {
-        fileTransfers.clear()
+        transferGeneration.incrementAndGet()
+        synchronized(stateLock) {
+            outgoingFiles.values.forEach { it.workerJob?.cancel() }
+            incomingFiles.values.forEach { it.workerJob?.cancel() }
+            outgoingFiles.clear()
+            incomingFiles.clear()
+            fileTransfers.clear()
+            stalledRecoveryCycles.clear()
+        }
+        SkyToxCrashLogger.fileTransfer("runtime reset transfers=0 outgoing=0 retries=0")
         scope.launch {
             fileTransferRepository.resetTransientData()
         }
@@ -142,9 +192,10 @@ class FileTransferManager @Inject constructor(
 
             fileTransfers.remove(ft)
             if (ft.outgoing) {
-                outgoingFiles.remove(Pair(pk, ft.fileNumber))
-            } else if (ft.fileKind != FileKind.Data.ordinal) {
-                File(ft.destination).delete()
+                outgoingFiles.remove(Pair(pk, ft.fileNumber))?.workerJob?.cancel()
+            } else {
+                incomingFiles.remove(Pair(pk, ft.fileNumber))?.workerJob?.cancel()
+                if (ft.fileKind != FileKind.Data.ordinal) File(ft.destination).delete()
             }
         }
     }
@@ -189,7 +240,7 @@ class FileTransferManager @Inject constructor(
 
             fileTransferRepository.add(resumed)
             fileTransfers.add(resumed)
-            outgoingFiles[Pair(pk, resumed.fileNumber)] = OutgoingFile(uri, mutableListOf())
+            outgoingFiles[Pair(pk, resumed.fileNumber)] = newOutgoingFile(uri)
             SkyToxCrashLogger.fileTransfer("resume_outgoing started ft=${resumed.id} fileNo=${resumed.fileNumber}")
         }
     }
@@ -224,7 +275,7 @@ class FileTransferManager @Inject constructor(
 
         fileTransferRepository.add(started)
         fileTransfers.add(started)
-        outgoingFiles[Pair(started.publicKey, started.fileNumber)] = OutgoingFile(uri, mutableListOf())
+        outgoingFiles[Pair(started.publicKey, started.fileNumber)] = newOutgoingFile(uri)
         SkyToxCrashLogger.fileTransfer("resume_queued started ft=${started.id} fileNo=${started.fileNumber}")
     }
 
@@ -388,16 +439,20 @@ class FileTransferManager @Inject constructor(
         tox.stopFileTransfer(PublicKey(ft.publicKey), ft.fileNumber)
         val uri = ft.destination.toUri()
         if (ft.outgoing) {
-            outgoingFiles.remove(Pair(ft.publicKey, ft.fileNumber))
+            outgoingFiles.remove(Pair(ft.publicKey, ft.fileNumber))?.workerJob?.cancel()
+            stalledRecoveryCycles.remove(ft.id)
             deleteOutgoingCacheFile(uri)
             releaseFilePermission(uri)
         } else {
+            incomingFiles.remove(Pair(ft.publicKey, ft.fileNumber))?.workerJob?.cancel()
             File(uri.path!!).delete()
         }
     }
 
     private fun setDestination(ft: FileTransfer, destination: Uri) {
-        fileTransfers[fileTransfers.indexOf(ft)].destination = destination.toString()
+        synchronized(stateLock) {
+            fileTransfers.elementAtOrNull(fileTransfers.indexOf(ft))?.destination = destination.toString()
+        }
         if (ft.fileKind == FileKind.Data.ordinal) {
             fileTransferRepository.setDestination(ft.id, destination.toString())
         }
@@ -405,15 +460,19 @@ class FileTransferManager @Inject constructor(
 
     private fun setThumbnail(ft: FileTransfer, thumbnail: Uri?) {
         val thumbnailString = thumbnail?.toString() ?: ""
-        fileTransfers.elementAtOrNull(fileTransfers.indexOf(ft))?.thumbnail = thumbnailString
+        synchronized(stateLock) {
+            fileTransfers.elementAtOrNull(fileTransfers.indexOf(ft))?.thumbnail = thumbnailString
+        }
         if (ft.fileKind == FileKind.Data.ordinal) {
             fileTransferRepository.setThumbnail(ft.id, thumbnailString)
         }
     }
 
     private fun setProgress(ft: FileTransfer, progress: Long) {
-        val id = fileTransfers.indexOf(ft)
-        fileTransfers.elementAtOrNull(id)?.progress = progress
+        synchronized(stateLock) {
+            val id = fileTransfers.indexOf(ft)
+            fileTransfers.elementAtOrNull(id)?.progress = progress
+        }
         if (ft.fileKind == FileKind.Data.ordinal) {
             fileTransferRepository.updateProgress(ft.id, progress)
         }
@@ -433,6 +492,51 @@ class FileTransferManager @Inject constructor(
             return
         }
 
+        val key = Pair(publicKey, fileNumber)
+        val incoming = incomingFiles.computeIfAbsent(key) { IncomingFile(transferGeneration.get()) }
+        if (incoming.generation != transferGeneration.get()) return
+        synchronized(incoming.lock) {
+            incoming.chunks.addLast(IncomingChunk(position, data))
+        }
+        ensureIncomingWorker(key, incoming)
+    }
+
+    private fun ensureIncomingWorker(key: Pair<String, Int>, incoming: IncomingFile) {
+        synchronized(incoming.lock) {
+            if (incoming.workerJob?.isActive == true) return
+            incoming.workerJob = scope.launch(Dispatchers.IO) {
+                try {
+                    while (incoming.generation == transferGeneration.get() && incomingFiles[key] === incoming) {
+                        val chunk = synchronized(incoming.lock) { incoming.chunks.firstOrNull() } ?: break
+                        writeIncomingChunk(key.first, key.second, chunk.position, chunk.data, chunk.queuedAt)
+                        synchronized(incoming.lock) {
+                            if (incoming.chunks.firstOrNull() === chunk) incoming.chunks.removeFirst()
+                        }
+                        if (activeTransfer(key.first, key.second) == null) break
+                    }
+                } finally {
+                    val restart = synchronized(incoming.lock) {
+                        incoming.workerJob = null
+                        incoming.chunks.isNotEmpty()
+                    }
+                    if (restart && incoming.generation == transferGeneration.get() && incomingFiles[key] === incoming) {
+                        ensureIncomingWorker(key, incoming)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun writeIncomingChunk(
+        publicKey: String,
+        fileNumber: Int,
+        position: Long,
+        data: ByteArray,
+        queuedAt: Long,
+    ) {
+        val ft = activeTransfer(publicKey, fileNumber) ?: return
+        val writeStarted = System.currentTimeMillis()
+
         runCatching {
             RandomAccessFile(File(ft.destination.toUri().path!!), "rwd").use {
                 it.seek(position)
@@ -445,7 +549,15 @@ class FileTransferManager @Inject constructor(
             return
         }
 
+        if (activeTransfer(publicKey, fileNumber) !== ft) return
+
         setProgress(ft, max(ft.transferredBytes(), position + data.size))
+        val writeMs = System.currentTimeMillis() - writeStarted
+        if (writeMs >= 50 || writeStarted - queuedAt >= 100) {
+            SkyToxCrashLogger.fileTransfer(
+                "incoming chunk_committed ft=${ft.id} write_ms=$writeMs callback_queue_ms=${writeStarted - queuedAt}",
+            )
+        }
 
         if (ft.isComplete()) {
             Log.i(TAG, "Finished ${ft.fileNumber} for ${ft.publicKey.fingerprint()}")
@@ -458,6 +570,7 @@ class FileTransferManager @Inject constructor(
                 setThumbnail(ft, createThumbnail(ft, ft.destination.toUri()))
             }
             fileTransfers.remove(ft)
+            synchronized(stateLock) { incomingFiles.remove(Pair(publicKey, fileNumber)) }
         }
     }
 
@@ -546,7 +659,7 @@ class FileTransferManager @Inject constructor(
 
         removeStaleActiveTransfer(ft.publicKey, ft.fileNumber)
         fileTransfers.add(ft)
-        outgoingFiles[Pair(ft.publicKey, ft.fileNumber)] = OutgoingFile(source, mutableListOf())
+        outgoingFiles[Pair(ft.publicKey, ft.fileNumber)] = newOutgoingFile(source)
 
         val id = fileTransferRepository.add(ft).toInt()
         ft.id = id
@@ -602,7 +715,7 @@ class FileTransferManager @Inject constructor(
             file.toString(),
         )
         fileTransfers.add(ft)
-        outgoingFiles[Pair(ft.publicKey, ft.fileNumber)] = OutgoingFile(file, mutableListOf())
+        outgoingFiles[Pair(ft.publicKey, ft.fileNumber)] = newOutgoingFile(file)
     }
 
     fun clearAvatar(pk: PublicKey) {
@@ -619,7 +732,10 @@ class FileTransferManager @Inject constructor(
         )
     }
 
-    // TODO(robinlinden): An error when sending the last chunk in a transfer will stall it.
+    /**
+     * toxcore asks for chunks from inside tox.iterate(). Only enqueue here: URI I/O,
+     * Room writes and retry delays must never block the iterate callback.
+     */
     fun sendChunk(pk: String, fileNo: Int, pos: Long, length: Int) {
         val ft = activeTransfer(pk, fileNo)
         if (ft == null) {
@@ -629,78 +745,131 @@ class FileTransferManager @Inject constructor(
             return
         }
 
-        if (length == 0) {
-            Log.i(TAG, "Finished outgoing ft ${pk.fingerprint()} $fileNo ${ft.isComplete()}")
-            SkyToxCrashLogger.fileTransfer("outgoing complete ft=${ft.id} contact=${pk.fingerprint()} fileNo=$fileNo size=${ft.fileSize}")
-            setProgress(ft, ft.fileSize)
-            fileTransfers.remove(ft)
-            outgoingFiles.remove(Pair(pk, fileNo))
-            deleteOutgoingCacheFile(ft.destination.toUri())
-            releaseFilePermission(ft.destination.toUri())
-            return
-        }
-
         val file = outgoingFiles[Pair(pk, fileNo)] ?: run {
             SkyToxCrashLogger.fileTransfer("outgoing missing_source_state ft=${ft.id} contact=${pk.fingerprint()} fileNo=$fileNo")
             return
         }
-
-        while (file.unsentChunks.isNotEmpty()) {
-            val chunk = file.unsentChunks.first()
-            Log.i(TAG, "Resending chunk @ ${chunk.pos} to ${pk.fingerprint()} ($fileNo)}")
-            if (tox.sendFileChunk(PublicKey(pk), fileNo, chunk.pos, chunk.data).isFailure) {
-                SkyToxCrashLogger.fileTransfer("outgoing resend_failed ft=${ft.id} pos=${chunk.pos} size=${chunk.data.size}")
-                scheduleChunkRetry(pk, fileNo)
-                return
+        if (file.generation != transferGeneration.get()) return
+        synchronized(file.lock) {
+            if (file.requests.none { it.pos == pos && it.length == length }) {
+                file.requests.addLast(ChunkRequest(pos, length))
             }
-            setProgress(ft, max(ft.transferredBytes(), chunk.pos + chunk.data.size))
-            file.unsentChunks.removeAt(0)
         }
-
-        val bytes = readChunk(file.uri, pos, length) ?: run {
-            SkyToxCrashLogger.fileTransfer("outgoing read_failed ft=${ft.id} pos=$pos len=$length")
-            reject(ft)
-            return
-        }
-
-        if (tox.sendFileChunk(PublicKey(pk), fileNo, pos, bytes).isFailure) {
-            SkyToxCrashLogger.fileTransfer("outgoing send_chunk_failed ft=${ft.id} pos=$pos len=${bytes.size}")
-            file.queueUnsent(Chunk(pos, bytes))
-            scheduleChunkRetry(pk, fileNo)
-            return
-        }
-
-        setProgress(ft, max(ft.transferredBytes(), pos + bytes.size))
+        ensureOutgoingWorker(pk, fileNo, file)
     }
 
-    private fun OutgoingFile.queueUnsent(chunk: Chunk) {
-        if (unsentChunks.none { it.pos == chunk.pos }) {
-            unsentChunks.add(chunk)
-        }
-    }
-
-    private fun scheduleChunkRetry(pk: String, fileNo: Int) {
+    private fun ensureOutgoingWorker(pk: String, fileNo: Int, file: OutgoingFile) {
         val key = Pair(pk, fileNo)
-        val file = outgoingFiles[key] ?: return
-        if (file.retrying) return
+        synchronized(file.lock) {
+            if (file.workerJob?.isActive == true) return
+            file.workerJob = scope.launch(Dispatchers.IO) {
+                var attempts = 0
+                var retryDelay = CHUNK_RETRY_DELAY_MS
+                try {
+                    while (file.generation == transferGeneration.get() && outgoingFiles[key] === file) {
+                        val request = synchronized(file.lock) { file.requests.firstOrNull() } ?: break
+                        val ft = activeTransfer(pk, fileNo) ?: break
+                        if (request.length == 0) {
+                            completeOutgoing(ft, key, file)
+                            break
+                        }
 
-        file.retrying = true
-        scope.launch {
-            while (true) {
-                delay(CHUNK_RETRY_DELAY_MS)
-                val current = outgoingFiles[key] ?: break
-                val ft = activeTransfer(pk, fileNo) ?: break
-                val chunk = current.unsentChunks.firstOrNull() ?: break
+                        val readStarted = System.currentTimeMillis()
+                        val bytes = request.data ?: readChunk(file.uri, request.pos, request.length)?.also { request.data = it }
+                        val readMs = System.currentTimeMillis() - readStarted
+                        if (bytes == null) {
+                            SkyToxCrashLogger.fileTransfer("outgoing read_failed ft=${ft.id} pos=${request.pos} len=${request.length}")
+                            reject(ft)
+                            break
+                        }
+                        if (file.generation != transferGeneration.get() || outgoingFiles[key] !== file) break
 
-                if (tox.sendFileChunk(PublicKey(pk), fileNo, chunk.pos, chunk.data).isFailure) {
-                    continue
+                        val sendStarted = System.currentTimeMillis()
+                        val result = tox.sendFileChunk(PublicKey(pk), fileNo, request.pos, bytes)
+                        val sendMs = System.currentTimeMillis() - sendStarted
+                        if (result.isFailure) {
+                            attempts++
+                            if (attempts == 1 || attempts % 4 == 0) {
+                                SkyToxCrashLogger.fileTransfer(
+                                    "outgoing retry ft=${ft.id} attempts=$attempts read_ms=$readMs send_ms=$sendMs " +
+                                        "queue=${synchronized(file.lock) { file.requests.size }}",
+                                )
+                            }
+                            if (attempts >= CHUNK_RETRY_MAX_ATTEMPTS) {
+                                stallAndRecover(ft, key, file, attempts)
+                                break
+                            }
+                            delay(retryDelay)
+                            retryDelay = (retryDelay * 2).coerceAtMost(CHUNK_RETRY_MAX_DELAY_MS)
+                            continue
+                        }
+
+                        synchronized(file.lock) {
+                            if (file.requests.firstOrNull() === request) file.requests.removeFirst()
+                        }
+                        setProgress(ft, max(ft.transferredBytes(), request.pos + bytes.size))
+                        if (attempts > 0 || readMs >= 50 || sendMs >= 50) {
+                            SkyToxCrashLogger.fileTransfer(
+                                "outgoing chunk_accepted ft=${ft.id} attempts=$attempts read_ms=$readMs send_ms=$sendMs " +
+                                    "callback_queue_ms=${readStarted - request.queuedAt}",
+                            )
+                        }
+                        attempts = 0
+                        retryDelay = CHUNK_RETRY_DELAY_MS
+                    }
+                } finally {
+                    val restart = synchronized(file.lock) {
+                        file.workerJob = null
+                        file.requests.isNotEmpty()
+                    }
+                    if (restart && file.generation == transferGeneration.get() && outgoingFiles[key] === file) {
+                        ensureOutgoingWorker(pk, fileNo, file)
+                    }
                 }
-
-                SkyToxCrashLogger.fileTransfer("outgoing retry_sent ft=${ft.id} pos=${chunk.pos} len=${chunk.data.size}")
-                setProgress(ft, max(ft.transferredBytes(), chunk.pos + chunk.data.size))
-                current.unsentChunks.removeAt(0)
             }
-            outgoingFiles[key]?.retrying = false
+        }
+    }
+
+    private fun completeOutgoing(ft: FileTransfer, key: Pair<String, Int>, file: OutgoingFile) {
+        Log.i(TAG, "Finished outgoing ft ${key.first.fingerprint()} ${key.second}")
+        SkyToxCrashLogger.fileTransfer("outgoing complete ft=${ft.id} contact=${key.first.fingerprint()} fileNo=${key.second} size=${ft.fileSize}")
+        setProgress(ft, ft.fileSize)
+        synchronized(stateLock) {
+            fileTransfers.remove(ft)
+            outgoingFiles.remove(key)
+            stalledRecoveryCycles.remove(ft.id)
+        }
+        synchronized(file.lock) { file.requests.clear() }
+        deleteOutgoingCacheFile(ft.destination.toUri())
+        releaseFilePermission(ft.destination.toUri())
+    }
+
+    private fun stallAndRecover(ft: FileTransfer, key: Pair<String, Int>, file: OutgoingFile, attempts: Int) {
+        val cycle = stalledRecoveryCycles.merge(ft.id, 1, Int::plus) ?: 1
+        SkyToxCrashLogger.fileTransfer(
+            "outgoing retry_stalled ft=${ft.id} contact=${key.first.fingerprint()} fileNo=${key.second} " +
+                "attempts=$attempts cycle=$cycle queued=${synchronized(file.lock) { file.requests.size }}",
+        )
+        setProgress(ft, ft.interruptedProgress())
+        synchronized(stateLock) {
+            fileTransfers.remove(ft)
+            outgoingFiles.remove(key)
+        }
+        synchronized(file.lock) { file.requests.clear() }
+        runCatching { tox.stopFileTransfer(PublicKey(key.first), key.second) }
+
+        val delayMs = STALLED_RECOVERY_DELAYS_MS.getOrNull(cycle - 1) ?: return
+        val expectedGeneration = transferGeneration.get()
+        scope.launch {
+            delay(delayMs)
+            if (transferGeneration.get() != expectedGeneration) return@launch
+            val online = contactRepository.get(key.first).firstOrNull()?.connectionStatus != ConnectionStatus.None
+            if (online) {
+                SkyToxCrashLogger.fileTransfer("outgoing stalled_reannounce ft=${ft.id} cycle=$cycle delay_ms=$delayMs")
+                resumeOutgoingForContact(key.first)
+            } else {
+                SkyToxCrashLogger.fileTransfer("outgoing stalled_wait_offline ft=${ft.id} cycle=$cycle")
+            }
         }
     }
 
@@ -740,10 +909,12 @@ class FileTransferManager @Inject constructor(
         setProgress(ft, FT_REJECTED)
         val uri = ft.destination.toUri()
         if (ft.outgoing) {
-            outgoingFiles.remove(Pair(ft.publicKey, ft.fileNumber))
+            outgoingFiles.remove(Pair(ft.publicKey, ft.fileNumber))?.workerJob?.cancel()
+            stalledRecoveryCycles.remove(ft.id)
             deleteOutgoingCacheFile(uri)
             releaseFilePermission(uri)
         } else {
+            incomingFiles.remove(Pair(ft.publicKey, ft.fileNumber))?.workerJob?.cancel()
             deleteStoredFile(uri)
         }
     }

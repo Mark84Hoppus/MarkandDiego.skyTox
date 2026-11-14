@@ -102,7 +102,10 @@ class ActionReceiver : BroadcastReceiver() {
                     callManager.endCall(pk)
                     notificationHelper.dismissCallNotification(pk)
                 }
-                Action.CallIgnore -> callManager.removePendingCall(pk)
+                Action.CallIgnore -> {
+                    callManager.removePendingCall(pk)
+                    notificationHelper.dismissCallNotification(pk)
+                }
                 Action.MarkAsRead -> {
                     contactRepository.setHasUnreadMessages(pk.string(), false)
                     notificationHelper.dismissNotifications(pk)
