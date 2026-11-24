@@ -8,6 +8,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.preference.PreferenceManager
 import javax.inject.Inject
 import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.atox.tox.ToxStarter
@@ -29,15 +30,17 @@ class BootReceiver : BroadcastReceiver() {
         }
 
         (context.applicationContext as App).component.inject(this)
-        if (!settings.keepAwakeEnabled) {
+        val sosActive = PreferenceManager.getDefaultSharedPreferences(context)
+            .getBoolean("sos_active", false)
+        if (!settings.keepAwakeEnabled && !sosActive) {
             ToxKeepAliveScheduler.cancel(context)
             SkyToxCrashLogger.diagnostic("boot.skip mode=wake")
             Log.i(TAG, "Keep-awake disabled, skipping boot start")
             return
         }
 
-        ToxKeepAliveScheduler.schedule(context)
-        SkyToxCrashLogger.diagnostic("boot.start mode=keep_awake")
+        if (settings.keepAwakeEnabled) ToxKeepAliveScheduler.schedule(context)
+        SkyToxCrashLogger.diagnostic("boot.start keepAwake=${settings.keepAwakeEnabled} sos=$sosActive")
 
         when (toxStarter.ensureToxServiceRunning()) {
             ToxSaveStatus.Ok -> Log.i(TAG, "Tox service started after boot")

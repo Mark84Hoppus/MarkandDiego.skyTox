@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ltd.evilcorp.atox.ui.media.SwipeDismissFrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/swipeRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
+
+    <FrameLayout
+        android:id="@+id/viewerContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ltd.evilcorp.atox.ui.media.ZoomableImageView
+            android:id="@+id/mediaImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/black"
+            android:contentDescription="@string/media_viewer_image" />
+
+        <androidx.media3.ui.PlayerView
+            android:id="@+id/mediaPlayer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/black"
+            android:visibility="gone" />
+
+        <ProgressBar
+            android:id="@+id/mediaLoading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:indeterminateTint="@android:color/white" />
+
+        <LinearLayout
+            android:id="@+id/mediaErrorPanel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="32dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/mediaErrorText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textColor="@android:color/white"
+                android:textSize="18sp" />
+
+            <Button
+                android:id="@+id/mediaOpenExternal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:text="@string/media_viewer_open_external" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <ImageButton
+        android:id="@+id/mediaClose"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|start"
+        android:layout_margin="12dp"
+        android:background="@drawable/media_viewer_close_background"
+        android:contentDescription="@string/media_viewer_close"
+        android:padding="12dp"
+        android:src="@drawable/ic_close"
+        app:tint="@android:color/white" />
+</ltd.evilcorp.atox.ui.media.SwipeDismissFrameLayout>

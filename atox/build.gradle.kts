@@ -40,8 +40,8 @@ android {
         applicationId = "markanddiego.skytox"
         minSdk = libs.versions.sdk.min.get().toInt()
         targetSdk = libs.versions.sdk.target.get().toInt()
-        versionCode = 353
-        versionName = "0.8.35"
+        versionCode = 357
+        versionName = "0.8.36"
         if (skytoxUniversal) {
             ndk {
                 abiFilters += listOf("armeabi-v7a", "arm64-v8a")
@@ -109,8 +109,8 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
         val abiVersionCodes = mapOf(
-        "armeabi-v7a" to 353,
-        "arm64-v8a" to 353,
+            "armeabi-v7a" to 357,
+            "arm64-v8a" to 357,
             "x86" to 295,
             "x86_64" to 296,
         )
@@ -156,6 +156,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.service)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation("androidx.media:media:1.7.0")
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
 
     implementation(libs.google.dagger.core)
     ksp(libs.google.dagger.compiler)

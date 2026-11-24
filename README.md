@@ -44,6 +44,7 @@ It is an independent Android fork of [aTox](https://github.com/evilcorpltd/aTox)
 
 - Передача изображений, видео, документов, архивов и других файлов между контактами.
 - Миниатюры изображений, видео и документов в истории чата.
+- Встроенный просмотр фотографий и видео с масштабированием изображений и системным полноэкранным воспроизведением.
 - Очередь исходящих файлов для временно недоступного контакта.
 - Продолжение прерванной передачи и защита от кратковременных разрывов соединения.
 - Публичные папки `skyTox files` для полученных изображений, видео, записей, документов, игр, карт и диагностических файлов.
@@ -59,7 +60,7 @@ It is an independent Android fork of [aTox](https://github.com/evilcorpltd/aTox)
 - Темная тема и интерфейс, приспособленный к старым и новым версиям Android.
 - Подписанные сборки для `armeabi-v7a`, `arm64-v8a` и универсальная APK.
 - Встроенная проверка обновлений через GitHub Releases.
-- Трёхсекундная видеозаставка при первом запуске после установки или обновления; при обычных последующих запусках она не повторяется.
+- Трёхсекундная видеозаставка при запуске нового процесса приложения; при возврате в уже работающее приложение она не повторяется и может быть отключена в настройках.
 - Музыкальный мини-плеер поверх экранов приложения: файлы `.mp3` пользователь добавляет в папку `skyTox music`, после чего доступны воспроизведение, пауза, предыдущий/следующий трек и случайный порядок.
 - Аварийное удаление локального аккаунта долгим удержанием логотипа и тройным подтверждением. Перед очисткой в `Downloads/0.zip` создаётся защищённый паролем архив профиля Tox и текстовой истории чатов; пароль задаётся в настройках, значение по умолчанию — `0000`.
 
@@ -83,7 +84,7 @@ It is an independent Android fork of [aTox](https://github.com/evilcorpltd/aTox)
 - Голос рации кодируется Opus; перед входящей передачей воспроизводится короткий характерный шум, а отдельная диагностика помогает разбирать особенности разных устройств.
 - SOS-кнопка включается и выключается осознанным двухсекундным удержанием, защищая от случайного нажатия.
 - Активный SOS каждые пять минут отправляет друзьям сообщение о помощи с актуальными координатами и использует push-пробуждение, чтобы повысить вероятность своевременной доставки.
-- Полученные координаты SOS можно открыть в установленном на телефоне картографическом приложении.
+- Полученные координаты SOS можно открыть во внешнем навигаторе или на встроенной карте skyTox; повторное сообщение обновляет существующую метку вместо создания копий.
 
 ### Игры
 
@@ -123,6 +124,7 @@ It is an independent Android fork of [aTox](https://github.com/evilcorpltd/aTox)
 - **0.8.33:** добавлены веб-поиск для локальной Gemma, музыкальный мини-плеер и аварийное удаление аккаунта с защищённым архивом; исправлены дубли файлов, экспорт чатов и сбои аватаров.
 - **0.8.34:** появились анимации окон, темы Deep Ocean Light/Dark, постраничная загрузка истории и анимированные эмодзи в личных чатах; улучшены поиск по сообщениям, музыкальные уведомления, сохранения игр, плавность карты и стабильность файловых передач.
 - **0.8.35:** добавлены локальная Wi-Fi/LAN-рация, SOS-рассылка координат, рисование и обмен маршрутами и метками на карте, а также однократная видеозаставка после установки или обновления.
+- **0.8.36:** добавлен встроенный просмотр фотографий и видео, новый наглядный прогресс файловых передач и плавная подгрузка истории; улучшены трансляция геопозиции, открытие SOS-координат в skyTox и внешних картах, музыкальное управление и переходы между треками. Заставка теперь корректно показывается после запуска нового процесса, обои оптимизированы без потери разрешения, а на карте восстановлена атрибуция OpenStreetMap.
 
 Эта история остается в README только как краткая карта развития. Подробности конкретной сборки находятся в описании соответствующего [релиза](https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases).
 
@@ -185,6 +187,7 @@ There is no central “turn it off” button. The author may stop publishing upd
 
 - Images, videos, documents, archives, and other file types.
 - Thumbnails for images, videos, and documents in chat history.
+- Built-in photo and video viewer with image zooming and system-aware full-screen playback.
 - Outgoing queue for temporarily offline contacts.
 - Interrupted-transfer recovery and protection against brief connection drops.
 - Public `skyTox files` folders for received media, documents, recordings, games, maps, and diagnostics.
@@ -200,7 +203,7 @@ There is no central “turn it off” button. The author may stop publishing upd
 - Dark theme and compatibility work for both older and newer Android devices.
 - Signed `armeabi-v7a`, `arm64-v8a`, and universal APK builds.
 - Built-in update checks through GitHub Releases.
-- A three-second video intro shown on the first launch after installation or an update; it does not replay during normal later launches.
+- A three-second video intro shown when a new application process starts; it does not replay when returning to an already running app and can be disabled in Settings.
 - A floating music mini-player: users place `.mp3` files in `skyTox music` and can play, pause, skip, return to the previous track, or enable random order from any screen.
 - Emergency local-account removal by holding the skyTox logo and confirming with three taps. Before cleanup, skyTox creates `Downloads/0.zip`, a password-protected archive containing the Tox profile and text chat history; the password is configured in Settings and defaults to `0000`.
 
@@ -224,7 +227,7 @@ There is no central “turn it off” button. The author may stop publishing upd
 - Radio speech uses Opus; a short radio-style noise precedes incoming audio, while dedicated diagnostics help investigate device-specific behavior.
 - The SOS button requires a deliberate two-second hold both to activate and deactivate, reducing accidental alerts.
 - While active, SOS sends friends a help message with current coordinates every five minutes and uses push wake-up to improve timely delivery.
-- Received SOS coordinates can be opened with a compatible map application installed on the phone.
+- Received SOS coordinates can open in an external navigation app or on the built-in skyTox map; later messages update the existing marker instead of creating duplicates.
 
 ### Games
 
@@ -263,6 +266,7 @@ A small local model can make mistakes, repeat itself, miss text in images, or co
 - **0.8.33:** web search for local Gemma, a music mini-player, and emergency account removal with a protected recovery archive; file duplication, chat export, and avatar crash issues were fixed.
 - **0.8.34:** window animations, Deep Ocean Light/Dark themes, paged chat history, and animated emoji in direct chats; improved message search, music notifications, game saves, map smoothness, and file-transfer stability.
 - **0.8.35:** local Wi-Fi/LAN radio, recurring SOS location alerts, freehand route and marker sharing on maps, and a one-time video intro after installation or update.
+- **0.8.36:** built-in photo and video viewing, a clearer animated file-transfer progress display, and smoother chat-history loading; improved live location, opening SOS coordinates in skyTox or external maps, music controls, and track transitions. The intro now follows the application-process lifecycle, wallpapers are optimized without reducing resolution, and OpenStreetMap attribution is visible again.
 
 This timeline is only a compact map of the project. Build-specific details are available on the corresponding [GitHub Releases](https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases) pages.
 

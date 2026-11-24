@@ -124,9 +124,7 @@ class MainActivity : AppCompatActivity() {
         setupBottomNavigation()
         splashController = SkyToxSplashController(this)
         val splashShown = splashController?.showIfEligible(
-            intent,
-            savedInstanceState,
-            settings.appLockMode != AppLockMode.None,
+            settings.launchAnimationEnabled,
         ) {
             requestStartupPermissionsOnce()
         } == true

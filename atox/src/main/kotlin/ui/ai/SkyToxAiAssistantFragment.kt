@@ -51,6 +51,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStreamReader
 import java.nio.charset.Charset
+import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -89,7 +90,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 private const val MODEL_FILE_NAME = "gemma-4-E2B-it.litertlm"
-private const val MODEL_DOWNLOAD_URL = "http://185.237.186.73/skytox-ai/gemma-4-E2B-it.litertlm"
+private const val MODEL_DOWNLOAD_URL = "https://push.skytox.uk/skytox-ai/gemma-4-E2B-it.litertlm"
 private const val MODEL_FILE_BYTES = 2_588_147_712L
 private const val MODEL_SHA256 = "181938105E0EEFD105961417E8DA75903EACDA102C4FCE9CE90F50B97139A63C"
 private const val TERMS_VERSION = "2026-04-01"
@@ -509,7 +510,7 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
 
     private fun sendUserMessage() {
         binding.run {
-        val text = aiInput.text.toString().trim().lowercase(Locale.ROOT)
+        val text = aiInput.text.toString().trim()
         val file = activeDialog ?: return
         if (text.length < MIN_AI_MESSAGE_CHARS || !modelPresent() || generating || globalGenerating) return
         if (!localAiSupported()) {
@@ -1148,37 +1149,54 @@ class SkyToxAiAssistantFragment : BaseFragment<FragmentAiAssistantBinding>(Fragm
 
     private fun downloadModelDirectly(target: File): Boolean {
         val temp = File(target.parentFile, "$MODEL_FILE_NAME.part")
+        val backup = File(target.parentFile, "$MODEL_FILE_NAME.bak")
+        var connection: HttpURLConnection? = null
         return runCatching {
-            val connection = (URL(MODEL_DOWNLOAD_URL).openConnection() as HttpURLConnection).apply {
+            temp.delete()
+            connection = (URL(MODEL_DOWNLOAD_URL).openConnection() as HttpURLConnection).apply {
                 connectTimeout = 20_000
                 readTimeout = 60_000
                 instanceFollowRedirects = true
             }
-            val code = connection.responseCode
+            val code = connection!!.responseCode
             if (code == 423 || code == 429 || code == 503) {
                 AiModelDownloadState.serverBusy = true
                 error("AI model server is busy: $code")
             }
             if (code !in 200..299) error("Unexpected HTTP $code")
-            connection.inputStream.use { input ->
-                temp.outputStream().use { output ->
+            val digest = MessageDigest.getInstance("SHA-256")
+            connection!!.inputStream.use { input ->
+                FileOutputStream(temp).use { output ->
                     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
                     var copied = 0L
                     while (true) {
                         val read = input.read(buffer)
                         if (read < 0) break
                         output.write(buffer, 0, read)
+                        digest.update(buffer, 0, read)
                         copied += read
                         val progress = ((copied * 100) / MODEL_FILE_BYTES).toInt().coerceIn(0, 100)
                         AiModelDownloadState.progress = progress
                     }
+                    output.flush()
+                    output.fd.sync()
                 }
             }
             if (temp.length() != MODEL_FILE_BYTES) error("Unexpected model size ${temp.length()}")
-            if (target.exists()) target.delete()
-            temp.renameTo(target)
+            val actualHash = digest.digest().joinToString("") { "%02X".format(it) }
+            if (actualHash != MODEL_SHA256) error("Unexpected model SHA-256")
+            backup.delete()
+            if (target.exists() && !target.renameTo(backup)) error("Cannot preserve current model")
+            if (!temp.renameTo(target)) {
+                backup.renameTo(target)
+                error("Cannot install downloaded model")
+            }
+            backup.delete()
         }.onFailure {
             temp.delete()
+            if (!target.exists() && backup.exists()) backup.renameTo(target)
+        }.also {
+            connection?.disconnect()
         }.isSuccess
     }
 
@@ -2367,8 +2385,13 @@ private object AiModelDownloadState {
         progress = 0
         @Suppress("OPT_IN_USAGE")
         job = GlobalScope.launch(Dispatchers.IO) {
-            finished = block(target)
-            running = false
+            try {
+                finished = block(target)
+            } catch (_: Throwable) {
+                finished = false
+            } finally {
+                running = false
+            }
         }
     }
 }

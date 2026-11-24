@@ -96,10 +96,26 @@
                 android:exported="false" />
 
         <activity
+                android:name=".ui.media.MediaViewerActivity"
+                android:exported="false"
+                android:theme="@style/AppTheme.MediaViewer" />
+
+        <activity
                 android:name=".ui.location.SkyToxLocationMapActivity"
                 android:exported="false"
                 android:screenOrientation="portrait"
                 android:theme="@style/AppTheme" />
+
+        <activity
+                android:name=".ui.location.SkyToxGeoOpenActivity"
+                android:exported="true"
+                android:theme="@style/AppTheme">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="geo" />
+            </intent-filter>
+        </activity>
 
         <activity
                 android:name="com.hqgame.networknes.MultinessGameActivity"

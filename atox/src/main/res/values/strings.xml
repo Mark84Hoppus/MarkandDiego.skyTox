@@ -66,6 +66,7 @@
     <string name="atox_connected_with_udp">Connected (UDP)</string>
     <string name="read_qr">QR</string>
     <string name="pref_heading_theme">Theme</string>
+    <string name="pref_launch_animation">Startup animation</string>
     <string name="pref_window_animations">Window animations</string>
     <string name="pref_theme_follow_system">Follow system</string>
     <string name="pref_theme_light">Light</string>
@@ -175,6 +176,7 @@
     <string name="attach_file">Attach file</string>
     <string name="voice_message">Voice message</string>
     <string name="voice_record_failed">Could not record voice message</string>
+    <string name="voice_gesture_hint">Swipe left to cancel · up to lock</string>
     <string name="play_audio">Play audio</string>
     <string name="delete">Delete</string>
     <string name="notification_file_transfer">Incoming file transfer \"%1$s\"</string>
@@ -557,6 +559,8 @@ skyTox validates the JSON structure before importing. An all-chats backup cannot
     <string name="sos_permission_required">Location permission is required for SOS.</string>
     <string name="sos_no_contacts">There are no contacts to notify.</string>
     <string name="sos_started_message">SOS! User %1$s sent a call for help. Coordinates: %2$s</string>
+    <string name="sos_location_unavailable">location is being determined</string>
+    <string name="sos_location_details">Location accuracy: about %1$d m</string>
     <string name="sos_stopped_message">User %1$s cancelled the SOS call.</string>
     <string name="location_draw_route">Draw route</string>
     <string name="location_drawing_cancelled">Drawing cancelled</string>
@@ -565,4 +569,11 @@ skyTox validates the JSON structure before importing. An all-chats backup cannot
     <string name="location_route_save_failed">Could not save route</string>
     <string name="location_marker_imported">Map marker imported</string>
     <string name="location_marker_export_failed">Could not export map marker</string>
+    <string name="location_message_coordinates">Location: %1$.6f, %2$.6f\nTap to open</string>
+    <string name="sos_location_chat_message">SOS! User %1$s sent a call for help.\nCoordinates: %2$.6f, %3$.6f\nTap to open</string>
+    <string name="media_viewer_image">Opened image</string>
+    <string name="media_viewer_cannot_display">The image could not be displayed in skyTox.</string>
+    <string name="media_viewer_cannot_play">The video could not be played in skyTox.</string>
+    <string name="media_viewer_open_external">Open with another app</string>
+    <string name="media_viewer_close">Close viewer</string>
 </resources>

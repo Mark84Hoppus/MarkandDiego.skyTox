@@ -14,8 +14,11 @@ data class SkyToxLocationPayload(
     val accuracy: Float,
     val timestamp: Long,
     val altitude: Double = Double.NaN,
+    val source: Source = Source.Location,
+    val label: String = "",
 ) {
     enum class Kind { OneShot, Live, Stop }
+    enum class Source { Location, Sos }
 }
 
 object SkyToxLocationProtocol {
@@ -29,13 +32,15 @@ object SkyToxLocationProtocol {
         }
         val raw = String.format(
             Locale.US,
-            "%s|%.6f|%.6f|%.1f|%d|%.1f",
+            "%s|%.6f|%.6f|%.1f|%d|%.1f|%s|%s",
             kind,
             payload.latitude,
             payload.longitude,
             payload.accuracy,
             payload.timestamp,
             payload.altitude,
+            if (payload.source == SkyToxLocationPayload.Source.Sos) "sos" else "location",
+            Base64.encodeToString(payload.label.toByteArray(Charsets.UTF_8), Base64.NO_WRAP or Base64.URL_SAFE),
         )
         return PREFIX + Base64.encodeToString(raw.toByteArray(Charsets.UTF_8), Base64.NO_WRAP or Base64.URL_SAFE)
     }
@@ -47,7 +52,7 @@ object SkyToxLocationProtocol {
             Base64.NO_WRAP or Base64.URL_SAFE,
         ).toString(Charsets.UTF_8)
         val parts = raw.split("|")
-        if (parts.size !in 5..6) return null
+        if (parts.size !in 5..8) return null
         SkyToxLocationPayload(
             kind = when (parts[0]) {
                 "one" -> SkyToxLocationPayload.Kind.OneShot
@@ -60,6 +65,10 @@ object SkyToxLocationProtocol {
             accuracy = parts[3].toFloat(),
             timestamp = parts[4].toLong(),
             altitude = parts.getOrNull(5)?.toDoubleOrNull() ?: Double.NaN,
+            source = if (parts.getOrNull(6) == "sos") SkyToxLocationPayload.Source.Sos else SkyToxLocationPayload.Source.Location,
+            label = parts.getOrNull(7)?.let {
+                runCatching { Base64.decode(it, Base64.NO_WRAP or Base64.URL_SAFE).toString(Charsets.UTF_8) }.getOrDefault("")
+            }.orEmpty(),
         )
     }.getOrNull()
 }

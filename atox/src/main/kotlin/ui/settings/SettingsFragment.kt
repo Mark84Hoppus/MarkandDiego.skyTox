@@ -154,6 +154,11 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(FragmentSettingsB
             if (it != vm.getTheme()) vm.setTheme(it)
         }
 
+        settingLaunchAnimation.isChecked = vm.getLaunchAnimationEnabled()
+        settingLaunchAnimation.setOnCheckedChangeListener { _, enabled ->
+            vm.setLaunchAnimationEnabled(enabled)
+        }
+
         settingWindowAnimations.isChecked = vm.getWindowAnimationsEnabled()
         settingWindowAnimations.setOnCheckedChangeListener { _, enabled ->
             vm.setWindowAnimationsEnabled(enabled)

@@ -65,6 +65,7 @@
     <string name="atox_connected_with_udp">Подключено (UDP)</string>
     <string name="read_qr">QR-код</string>
     <string name="pref_heading_theme">Тема</string>
+    <string name="pref_launch_animation">Анимация при запуске</string>
     <string name="pref_window_animations">Анимация окон</string>
     <string name="pref_heading_ft_auto_accept">Автоматически принимаемые файлы</string>
     <string name="pref_heading_type">Тип</string>
@@ -244,6 +245,7 @@
     <string name="app_lock_not_set">Защита не установлена</string>
     <string name="overlay_permission_needed_for_calls">Разрешите skyTox показываться поверх других окон, чтобы входящие звонки открывались на этой версии Android</string>
     <string name="voice_recording">Запись %1$s</string>
+    <string name="voice_gesture_hint">Влево — отмена · вверх — фиксация</string>
     <string name="send_encrypted_message">Отправить зашифрованное сообщение</string>
     <string name="wake_contact">Разбудить</string>
     <string name="wake_contact_waiting">Ожидание</string>
@@ -477,6 +479,8 @@
     <string name="sos_permission_required">Для SOS требуется доступ к геопозиции.</string>
     <string name="sos_no_contacts">Нет контактов для оповещения.</string>
     <string name="sos_started_message">SOS! Пользователь %1$s отправил призыв о помощи. Координаты: %2$s</string>
+    <string name="sos_location_unavailable">местоположение определяется</string>
+    <string name="sos_location_details">Точность местоположения: около %1$d м</string>
     <string name="sos_stopped_message">Пользователь %1$s отменил призыв SOS.</string>
     <string name="location_draw_route">Рисовать маршрут</string>
     <string name="location_drawing_cancelled">Рисование отменено</string>
@@ -485,4 +489,11 @@
     <string name="location_route_save_failed">Не удалось сохранить маршрут</string>
     <string name="location_marker_imported">Метка карты импортирована</string>
     <string name="location_marker_export_failed">Не удалось экспортировать метку</string>
+    <string name="media_viewer_image">Открытое изображение</string>
+    <string name="media_viewer_cannot_display">Не удалось показать изображение в skyTox.</string>
+    <string name="media_viewer_cannot_play">Не удалось воспроизвести видео в skyTox.</string>
+    <string name="media_viewer_open_external">Открыть другим приложением</string>
+    <string name="media_viewer_close">Закрыть просмотрщик</string>
+    <string name="location_message_coordinates">Геопозиция: %1$.6f, %2$.6f\nНажмите, чтобы открыть</string>
+    <string name="sos_location_chat_message">SOS! Пользователь %1$s отправил призыв о помощи.\nКоординаты: %2$.6f, %3$.6f\nНажмите, чтобы открыть</string>
 </resources>

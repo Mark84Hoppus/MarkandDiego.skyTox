@@ -64,6 +64,10 @@ class Settings @Inject constructor(private val ctx: Context) {
         get() = preferences.getBoolean("window_animations_enabled", true)
         set(enabled) = preferences.edit { putBoolean("window_animations_enabled", enabled) }
 
+    var launchAnimationEnabled: Boolean
+        get() = preferences.getBoolean("launch_animation_enabled", true)
+        set(enabled) = preferences.edit { putBoolean("launch_animation_enabled", enabled) }
+
     var appLanguage: String
         get() = preferences.getString("app_language", null) ?: "ru"
         set(language) {

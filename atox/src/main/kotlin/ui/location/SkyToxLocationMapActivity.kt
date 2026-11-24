@@ -21,6 +21,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.JsonReader
 import android.util.LruCache
 import android.util.Xml
@@ -30,6 +31,7 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.VelocityTracker
 import android.view.View
+import android.view.Choreographer
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
@@ -48,6 +50,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import java.io.File
 import java.io.FileOutputStream
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.io.InputStreamReader
@@ -93,9 +97,11 @@ const val EXTRA_LOCATION_CONTACT_NAME = "locationContactName"
 const val EXTRA_LOCATION_CONTACT_AVATAR_URI = "locationContactAvatarUri"
 const val EXTRA_LOCATION_PEER_LAT = "locationPeerLat"
 const val EXTRA_LOCATION_PEER_LON = "locationPeerLon"
+private const val EXTRA_LOCATION_FOCUS_SHARED_MARKER = "locationFocusSharedMarker"
 private const val MAP_MIN_ZOOM = 1.0
 private const val MAP_MAX_ZOOM = 19.5
 private const val MAP_DEFAULT_ZOOM = 18.49
+private const val MAP_SHARED_MARKER_ZOOM = 17.0
 private const val FOLLOW_CAMERA_MIN_INTERVAL_MS = 500L
 private const val FOLLOW_CAMERA_MIN_DISTANCE_METERS = 3.0
 private const val MOVEMENT_HEADING_MIN_SPEED_MPS = 3_000.0 / 3_600.0
@@ -113,6 +119,27 @@ private const val TRACK_HAIRPIN_ANGLE_DEGREES = 120.0
 private const val OSM_TILE_CACHE_MAX_BYTES = 150L * 1024L * 1024L
 private const val OSM_TILE_CACHE_MAX_AGE_MS = 24L * 60L * 60L * 1000L
 private const val OSM_TILE_PREFETCH_MARGIN = 1
+private const val MAX_GPX_IMPORT_BYTES = 16L * 1024L * 1024L
+private const val MAX_GPX_POINTS = 50_000
+private const val MAX_GPX_NAME_CHARS = 160
+
+private fun InputStream.readBytesLimited(maxBytes: Long): ByteArray {
+    val output = ByteArrayOutputStream()
+    copyLimitedTo(output, maxBytes)
+    return output.toByteArray()
+}
+
+private fun InputStream.copyLimitedTo(output: java.io.OutputStream, maxBytes: Long) {
+    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+    var copied = 0L
+    while (true) {
+        val read = read(buffer)
+        if (read < 0) return
+        copied += read
+        require(copied <= maxBytes) { "Imported map file is too large" }
+        output.write(buffer, 0, read)
+    }
+}
 
 class SkyToxLocationMapActivity : AppCompatActivity() {
     @Inject
@@ -138,6 +165,7 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
     private lateinit var distanceText: TextView
     private lateinit var locateButton: TextView
     private lateinit var osmButton: MapToolButton
+    private lateinit var osmAttribution: TextView
     private lateinit var pencilButton: MapToolButton
     private lateinit var trackButton: MapToolButton
     private lateinit var trackActionButton: TextView
@@ -154,10 +182,10 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
     private val locationUiTicker = object : Runnable {
         override fun run() {
             if (::mapView.isInitialized) {
-                updateSpeed(mapView.ownLocation)
+                updateSpeed(mapView.visualOwnLocation ?: mapView.ownLocation)
                 updateTrackUi()
             }
-            uiHandler.postDelayed(this, 1_000L)
+            uiHandler.postDelayed(this, 100L)
         }
     }
     private var offlineLayerState = OfflineLayerState()
@@ -165,12 +193,13 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
     private var contactName = ""
     private var contactAvatarUri = ""
     private var savedTracks = listOf<SkyToxRecordedTrack>()
+    private var locationLeaseHeld = false
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { result ->
         if (result.values.any { it }) {
-            sharingManager.requestOwnLocationOnly()
+            acquireLocationLease()
             updateShareButton()
         }
     }
@@ -301,6 +330,20 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
         locateParams.setMargins(0, 0, dp(18), dp(24))
         root.addView(locateButton, locateParams)
 
+        osmAttribution = TextView(this).apply {
+            text = "\u00A9 OpenStreetMap contributors"
+            textSize = 10f
+            setTextColor(Color.rgb(35, 45, 50))
+            setPadding(dp(4), dp(1), dp(4), dp(1))
+            setBackgroundColor(Color.argb(190, 255, 255, 255))
+            setOnClickListener {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.openstreetmap.org/copyright")))
+            }
+        }
+        val attributionParams = FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM or Gravity.START)
+        attributionParams.setMargins(dp(4), 0, 0, dp(2))
+        root.addView(osmAttribution, attributionParams)
+
         trackButton = MapToolButton(this, MapToolButton.Kind.Track).apply {
             alpha = 0.55f
             setOnClickListener {
@@ -397,6 +440,8 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
             layerPanel.layoutParams = layerPanelParams
             locateParams.setMargins(0, 0, dp(18) + insets.right, dp(24) + insets.bottom)
             locateButton.layoutParams = locateParams
+            attributionParams.setMargins(dp(4) + insets.left, 0, 0, dp(2) + insets.bottom)
+            osmAttribution.layoutParams = attributionParams
             peerParams.setMargins(dp(18) + insets.left, 0, 0, dp(24) + insets.bottom)
             peerButton.layoutParams = peerParams
             directionParams.setMargins(0, dp(64) + insets.top, dp(8) + insets.right, 0)
@@ -426,7 +471,14 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
         val peerLon = intent.getDoubleExtra(EXTRA_LOCATION_PEER_LON, Double.NaN)
         if (!peerLat.isNaN() && !peerLon.isNaN()) {
             mapView.peerLocation = SkyToxSharedLocation(contactPublicKey, peerLat, peerLon, 0f, System.currentTimeMillis())
-            mapView.centerOn(peerLat, peerLon, defaultZoom = true)
+            mapView.centerOn(
+                peerLat,
+                peerLon,
+                defaultZoom = !intent.getBooleanExtra(EXTRA_LOCATION_FOCUS_SHARED_MARKER, false),
+                requestedZoom = MAP_SHARED_MARKER_ZOOM.takeIf {
+                    intent.getBooleanExtra(EXTRA_LOCATION_FOCUS_SHARED_MARKER, false)
+                },
+            )
         }
 
         sharingManager.ownLocation().observe(this) {
@@ -461,7 +513,16 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
 
     override fun onStop() {
         if (::mapView.isInitialized && mapView.drawingActive) mapView.cancelDrawing()
+        if (locationLeaseHeld) {
+            sharingManager.releaseOwnLocation()
+            locationLeaseHeld = false
+        }
         super.onStop()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (sharingManager.canUseLocation()) acquireLocationLease()
     }
 
     override fun onDestroy() {
@@ -476,10 +537,16 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
 
     private fun ensureLocationPermission() {
         if (sharingManager.canUseLocation()) {
-            sharingManager.requestOwnLocationOnly()
+            acquireLocationLease()
             return
         }
         permissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+    }
+
+    private fun acquireLocationLease() {
+        if (locationLeaseHeld) return
+        sharingManager.acquireOwnLocation()
+        locationLeaseHeld = true
     }
 
     private fun toggleSharing() {
@@ -558,6 +625,9 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
         osmButton.isEnabled = true
         osmButton.alpha = if (mapView.osmEnabled) 1f else 0.65f
         osmButton.active = mapView.osmEnabled
+        if (::osmAttribution.isInitialized) {
+            osmAttribution.visibility = if (mapView.osmEnabled) View.VISIBLE else View.GONE
+        }
     }
 
     private fun updateLayerSwitches() {
@@ -647,14 +717,14 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
 
     private fun importTrack(uri: Uri) {
         scope.launch(Dispatchers.IO) {
-            val status = contentResolver.openInputStream(uri)?.use { input ->
-                val bytes = input.readBytes()
+            val status = runCatching { contentResolver.openInputStream(uri)?.use { input ->
+                val bytes = input.readBytesLimited(MAX_GPX_IMPORT_BYTES)
                 if (runCatching { SkyToxMarkerStore.import(this@SkyToxLocationMapActivity, bytes.inputStream()) }.getOrDefault(false)) {
                     SkyToxTrackImportStatus.MarkerImported
                 } else {
                     SkyToxTrackStore.importAndSaveGpx(bytes.inputStream())
                 }
-            } ?: SkyToxTrackImportStatus.Failed
+            } ?: SkyToxTrackImportStatus.Failed }.getOrDefault(SkyToxTrackImportStatus.Failed)
             withContext(Dispatchers.Main) {
                 when (status) {
                     SkyToxTrackImportStatus.Imported -> {
@@ -853,6 +923,7 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
             name: String,
             avatarUri: String = "",
             payload: SkyToxLocationPayload? = null,
+            focusSharedMarker: Boolean = false,
         ) {
             context.startActivity(Intent(context, SkyToxLocationMapActivity::class.java).apply {
                 putExtra(EXTRA_LOCATION_CONTACT_PUBLIC_KEY, publicKey)
@@ -862,6 +933,7 @@ class SkyToxLocationMapActivity : AppCompatActivity() {
                     putExtra(EXTRA_LOCATION_PEER_LAT, payload.latitude)
                     putExtra(EXTRA_LOCATION_PEER_LON, payload.longitude)
                 }
+                putExtra(EXTRA_LOCATION_FOCUS_SHARED_MARKER, focusSharedMarker)
                 if (context !is Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             })
         }
@@ -1261,15 +1333,18 @@ object SkyToxTrackStore {
 
     fun importGpx(input: java.io.InputStream): SkyToxRecordedTrack {
         val temp = File.createTempFile("skytox-track-import", ".gpx")
-        temp.outputStream().use { out -> input.copyTo(out) }
-        val parsed = readGpx(temp)
-        temp.delete()
-        val name = parsed.name.ifBlank { newTrackName(System.currentTimeMillis()) }
-        return parsed.copy(
-            id = System.currentTimeMillis().toString(),
-            name = name,
-            file = File(SkyToxPublicFolders.tracksDir, "${name.sanitizeFileName()}.gpx"),
-        )
+        try {
+            temp.outputStream().use { out -> input.copyLimitedTo(out, MAX_GPX_IMPORT_BYTES) }
+            val parsed = readGpx(temp)
+            val name = parsed.name.take(MAX_GPX_NAME_CHARS).ifBlank { newTrackName(System.currentTimeMillis()) }
+            return parsed.copy(
+                id = System.currentTimeMillis().toString(),
+                name = name,
+                file = File(SkyToxPublicFolders.tracksDir, "${name.sanitizeFileName()}.gpx"),
+            )
+        } finally {
+            temp.delete()
+        }
     }
 
     fun fromActive(points: List<TrackPoint>): SkyToxRecordedTrack? {
@@ -1284,7 +1359,7 @@ object SkyToxTrackStore {
         )
     }
 
-    private fun newTrackName(timestamp: Long): String = displayStamp.format(Date(timestamp))
+    private fun newTrackName(timestamp: Long): String = synchronized(displayStamp) { displayStamp.format(Date(timestamp)) }
 
     private fun readGpx(file: File): SkyToxRecordedTrack {
         file.inputStream().use { input ->
@@ -1317,9 +1392,11 @@ object SkyToxTrackStore {
                     }
                     XmlPullParser.TEXT -> {
                         val text = parser.text.orEmpty().trim()
-                        if (insideTrackName && text.isNotBlank()) name = text
+                        if (insideTrackName && text.isNotBlank()) name = text.take(MAX_GPX_NAME_CHARS)
                         if (insideEle) currentEle = text.toDoubleOrNull() ?: Double.NaN
-                        if (insideTime) currentTime = runCatching { gpxTime.parse(text)?.time ?: 0L }.getOrDefault(0L)
+                        if (insideTime) currentTime = runCatching {
+                            synchronized(gpxTime) { gpxTime.parse(text)?.time ?: 0L }
+                        }.getOrDefault(0L)
                         if (insideSkyToxKind && text == SkyToxTrackKind.USER_DRAWN.name) kind = SkyToxTrackKind.USER_DRAWN
                     }
                     XmlPullParser.END_TAG -> when (parser.name) {
@@ -1327,7 +1404,10 @@ object SkyToxTrackStore {
                         "ele" -> insideEle = false
                         "time" -> insideTime = false
                         "kind" -> insideSkyToxKind = false
-                        "trkpt" -> if (!currentLat.isNaN() && !currentLon.isNaN()) {
+                        "trkpt" -> if (currentLat.isFinite() && currentLon.isFinite() &&
+                            currentLat in -90.0..90.0 && currentLon in -180.0..180.0
+                        ) {
+                            check(points.size < MAX_GPX_POINTS) { "GPX contains too many points" }
                             points += TrackPoint(currentLat, currentLon, currentTime, 0f, currentEle)
                         }
                     }
@@ -1349,7 +1429,10 @@ object SkyToxTrackStore {
             append("""      <trkpt lat="${point.lat}" lon="${point.lon}">""")
             if (!point.altitude.isNaN()) append("<ele>${point.altitude}</ele>")
             if (track.kind == SkyToxTrackKind.GPS_RECORDED) {
-                append("<time>${gpxTime.format(Date(point.timestamp.takeIf { it > 0L } ?: System.currentTimeMillis()))}</time>")
+                val formatted = synchronized(gpxTime) {
+                    gpxTime.format(Date(point.timestamp.takeIf { it > 0L } ?: System.currentTimeMillis()))
+                }
+                append("<time>$formatted</time>")
             }
             appendLine("</trkpt>")
         }
@@ -1415,6 +1498,13 @@ object SkyToxMarkerStore {
             })
         }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, items.toString()).apply()
+    }
+
+    fun upsert(context: Context, marker: UserMapMarker) {
+        val markers = load(context).toMutableList()
+        val index = markers.indexOfFirst { it.id == marker.id }
+        if (index >= 0) markers[index] = marker else markers += marker
+        save(context, markers)
     }
 
     fun export(context: Context, marker: UserMapMarker): File {
@@ -1575,20 +1665,67 @@ private class SkyToxMapData(val lines: List<MapLine>, val places: List<MapPlace>
 
 private class SkyToxMapView(context: Context) : View(context) {
     private var lastFollowCameraUpdateMs = 0L
+    private val ownInterpolator = VisualLocationInterpolator()
+    private val peerInterpolator = VisualLocationInterpolator()
+    private var framePosted = false
+    private var lastFrameMs = 0L
+    private var lastCameraCallbackMs = 0L
+    var visualOwnLocation: SkyToxSharedLocation? = null
+        private set
+    private var visualPeerLocation: SkyToxSharedLocation? = null
+    private val locationFrame = object : Choreographer.FrameCallback {
+        override fun doFrame(frameTimeNanos: Long) {
+            framePosted = false
+            val now = frameTimeNanos / 1_000_000L
+            visualOwnLocation = ownInterpolator.valueAt(now) ?: ownLocation
+            visualPeerLocation = peerInterpolator.valueAt(now) ?: peerLocation
+            val dt = (now - lastFrameMs).coerceIn(0L, 100L)
+            lastFrameMs = now
+            ownMovementBearing = smoothBearing(
+                ownMovementBearing.toFloat(),
+                ownMovementBearingTarget.toFloat(),
+                (dt / 220f).coerceIn(0.08f, 0.42f),
+            ).toDouble()
+            if (followOwnLocation) {
+                visualOwnLocation?.let {
+                    centerLat = it.latitude.coerceIn(-84.0, 84.0)
+                    centerLon = it.longitude.coerceIn(-180.0, 180.0)
+                    dragX = 0f
+                    dragY = 0f
+                    if (now - lastCameraCallbackMs >= 250L) {
+                        lastCameraCallbackMs = now
+                        onCameraChanged?.invoke()
+                        onOsmAvailabilityChanged?.invoke()
+                    }
+                }
+            }
+            postInvalidateOnAnimation()
+            if (ownInterpolator.isAnimating(now) || peerInterpolator.isAnimating(now) ||
+                abs(ownMovementBearingTarget - ownMovementBearing) > 0.1
+            ) requestLocationFrame()
+        }
+    }
     var contactPublicKey: String = ""
     var ownLocation: SkyToxSharedLocation? = null
         set(value) {
             updateOwnMovementHeading(value)
             val shouldCenterFirstFix = field == null && value != null
             field = value
+            ownInterpolator.setTarget(value)
+            visualOwnLocation = ownInterpolator.valueAt()
             if (shouldCenterFirstFix) {
                 followOwnLocation = true
                 centerOn(value!!.latitude, value.longitude, defaultZoom = true)
-            } else if (followOwnLocation && value != null) {
-                updateFollowCamera(value)
             }
+            requestLocationFrame()
         }
     var peerLocation: SkyToxSharedLocation? = null
+        set(value) {
+            field = value
+            peerInterpolator.setTarget(value)
+            visualPeerLocation = peerInterpolator.valueAt()
+            requestLocationFrame()
+        }
     var followOwnLocation = false
     var onCameraChanged: (() -> Unit)? = null
     var onMarkerLongPress: ((Double, Double) -> Unit)? = null
@@ -1633,6 +1770,7 @@ private class SkyToxMapView(context: Context) : View(context) {
     private var offlineMapLoadGeneration = 0
     private var offlineMapLoading = false
     private var ownMovementBearing = 0.0
+    private var ownMovementBearingTarget = 0.0
     private var centerLon = 37.6
     private var centerLat = 55.75
     private var zoom = 2.0
@@ -1703,7 +1841,7 @@ private class SkyToxMapView(context: Context) : View(context) {
     private val railPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(214, 126, 42); style = Paint.Style.STROKE; strokeWidth = 2.2f; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(65, 75, 72); textSize = 44f }
     private val mePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(35, 118, 235); style = Paint.Style.FILL }
-    private val peerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(255, 143, 0); style = Paint.Style.FILL }
+    private val peerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(229, 57, 53); style = Paint.Style.FILL }
     private val markerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(223, 54, 92); style = Paint.Style.FILL }
     private val markerTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; textSize = 44f; setShadowLayer(4f, 0f, 1f, Color.BLACK) }
     private val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(223, 54, 92); style = Paint.Style.STROKE; strokeWidth = 5f; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND }
@@ -1983,6 +2121,10 @@ private class SkyToxMapView(context: Context) : View(context) {
     fun canUseOsmLayer(): Boolean = true
 
     fun release() {
+        Choreographer.getInstance().removeFrameCallback(locationFrame)
+        framePosted = false
+        ownInterpolator.clear()
+        peerInterpolator.clear()
         invalidateStaticCache()
         osmTileLoader.clear()
         data = SkyToxMapData(emptyList(), emptyList())
@@ -1991,11 +2133,12 @@ private class SkyToxMapView(context: Context) : View(context) {
         setOfflineMapLoading(false)
     }
 
-    fun centerOn(lat: Double, lon: Double, defaultZoom: Boolean) {
+    fun centerOn(lat: Double, lon: Double, defaultZoom: Boolean, requestedZoom: Double? = null) {
         centerLat = lat.coerceIn(-84.0, 84.0)
         centerLon = lon.coerceIn(-180.0, 180.0)
-        val zoomChanged = defaultZoom && kotlin.math.abs(zoom - MAP_DEFAULT_ZOOM) > 0.001
-        if (defaultZoom) zoom = MAP_DEFAULT_ZOOM
+        val targetZoom = requestedZoom ?: MAP_DEFAULT_ZOOM.takeIf { defaultZoom }
+        val zoomChanged = targetZoom != null && kotlin.math.abs(zoom - targetZoom) > 0.001
+        if (targetZoom != null) zoom = targetZoom.coerceIn(MAP_MIN_ZOOM, MAP_MAX_ZOOM)
         dragX = 0f
         dragY = 0f
         if (zoomChanged) invalidateStaticCache()
@@ -2047,8 +2190,8 @@ private class SkyToxMapView(context: Context) : View(context) {
         }
         drawTrack(canvas)
         drawUserMarkers(canvas)
-        peerLocation?.let { drawMarker(canvas, it.latitude, it.longitude, peerPaint) }
-        ownLocation?.let { drawOwnMarker(canvas, it.latitude, it.longitude) }
+        visualPeerLocation?.let { drawMarker(canvas, it.latitude, it.longitude, peerPaint) }
+        (visualOwnLocation ?: ownLocation)?.let { drawOwnMarker(canvas, it.latitude, it.longitude) }
         if (rotation != 0f) canvas.restore()
     }
 
@@ -2397,8 +2540,8 @@ private class SkyToxMapView(context: Context) : View(context) {
         val xy = projectToScreen(lon, lat)
         val x = xy.first + dragX
         val y = xy.second + dragY
-        canvas.drawCircle(x, y, 17f, whitePaint)
-        canvas.drawCircle(x, y, 12f, paint)
+        canvas.drawCircle(x, y, 32f, whitePaint)
+        canvas.drawCircle(x, y, 24f, paint)
     }
 
     private fun drawOwnMarker(canvas: Canvas, lat: Double, lon: Double) {
@@ -2449,8 +2592,15 @@ private class SkyToxMapView(context: Context) : View(context) {
         val dt = ((now - base.timestamp) / 1000.0).coerceAtLeast(1.0)
         val distance = distanceMeters(base.lat, base.lon, location.latitude, location.longitude)
         if (distance / dt >= MOVEMENT_HEADING_MIN_SPEED_MPS) {
-            ownMovementBearing = bearingDegrees(base.lat, base.lon, location.latitude, location.longitude)
+            ownMovementBearingTarget = bearingDegrees(base.lat, base.lon, location.latitude, location.longitude)
+            requestLocationFrame()
         }
+    }
+
+    private fun requestLocationFrame() {
+        if (framePosted || !isAttachedToWindow) return
+        framePosted = true
+        Choreographer.getInstance().postFrameCallback(locationFrame)
     }
 
     private fun panBy(dx: Float, dy: Float) {

@@ -42,6 +42,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import ltd.evilcorp.core.repository.ContactRepository
 import ltd.evilcorp.core.repository.FileTransferRepository
 import ltd.evilcorp.core.repository.MessageRepository
@@ -123,6 +125,7 @@ class FileTransferManager @Inject constructor(
     private val fileTransferRepository: FileTransferRepository,
     private val tox: Tox,
 ) {
+    private val outgoingCreateMutex = Mutex()
     private val fileTransfers: MutableList<FileTransfer> = CopyOnWriteArrayList()
     private val outgoingFiles = ConcurrentHashMap<Pair<String, Int>, OutgoingFile>()
     private val incomingFiles = ConcurrentHashMap<Pair<String, Int>, IncomingFile>()
@@ -206,42 +209,52 @@ class FileTransferManager @Inject constructor(
         pendingQueueLimitBytes: Long = DEFAULT_PENDING_QUEUE_LIMIT_BYTES,
     ) = scope.launch {
         cleanupQueued(pendingRetentionMs, pendingQueueLimitBytes)
-        fileTransferRepository.getQueuedOutgoing(pk).kForEach { ft ->
-            SkyToxCrashLogger.fileTransfer(
-                "resume_queued requested ft=${ft.id} contact=${pk.fingerprint()} size=${ft.fileSize}",
-            )
-            startQueuedOutgoing(ft)
+        if (hasActiveOutgoingData(pk)) return@launch
+        val interrupted = fileTransferRepository.getInterruptedOutgoing(pk).firstOrNull()
+        if (interrupted != null) {
+            resumeInterruptedOutgoing(interrupted)
+        } else {
+            startNextQueuedOutgoing(pk)
         }
+    }
 
-        fileTransferRepository.getInterruptedOutgoing(pk).kForEach { ft ->
+    private fun resumeInterruptedOutgoing(ft: FileTransfer) {
+        val pk = ft.publicKey
+        SkyToxCrashLogger.fileTransfer(
+            "resume_outgoing requested ft=${ft.id} contact=${pk.fingerprint()} progress=${ft.transferredBytes()}/${ft.fileSize}",
+        )
+        if (hasActiveOutgoingData(pk)) return
+        val uri = ft.destination.toUri()
+        if (!canRead(uri)) {
+            fileTransferRepository.updateProgress(ft.id, FT_REJECTED)
+            releaseFilePermission(uri)
+            startNextQueuedOutgoing(pk)
+            return
+        }
+        val fileId = ft.fileId.ifEmpty { Random.nextBytes(TOX_FILE_ID_BYTES).bytesToHex() }
+        val resumed = ft.copy(
+            fileNumber = tox.sendFile(PublicKey(pk), FileKind.Data, ft.fileSize, ft.fileName, fileId.hexToBytes()),
+            progress = FT_NOT_STARTED,
+            fileId = fileId,
+        ).apply { id = ft.id }
+        fileTransferRepository.add(resumed)
+        fileTransfers.add(resumed)
+        outgoingFiles[Pair(pk, resumed.fileNumber)] = newOutgoingFile(uri)
+        SkyToxCrashLogger.fileTransfer("resume_outgoing started ft=${resumed.id} fileNo=${resumed.fileNumber}")
+    }
+
+    private fun hasActiveOutgoingData(pk: String): Boolean = fileTransfers.any {
+        it.publicKey == pk && it.outgoing && it.fileKind == FileKind.Data.ordinal &&
+            !it.isComplete() && !it.isRejected() && !it.isQueued()
+    }
+
+    private fun startNextQueuedOutgoing(pk: String) {
+        if (hasActiveOutgoingData(pk)) return
+        fileTransferRepository.getQueuedOutgoing(pk).firstOrNull()?.let { next ->
             SkyToxCrashLogger.fileTransfer(
-                "resume_outgoing requested ft=${ft.id} contact=${pk.fingerprint()} progress=${ft.transferredBytes()}/${ft.fileSize}",
+                "queue advance ft=${next.id} contact=${pk.fingerprint()} size=${next.fileSize}",
             )
-            if (fileTransfers.any { it.id == ft.id }) {
-                SkyToxCrashLogger.fileTransfer("resume_outgoing skipped_already_active ft=${ft.id}")
-                return@kForEach
-            }
-
-            val uri = ft.destination.toUri()
-            if (!canRead(uri)) {
-                Log.e(TAG, "Unable to resume outgoing ft ${ft.id}: source is no longer readable")
-                SkyToxCrashLogger.fileTransfer("resume_outgoing failed_missing_source ft=${ft.id} uri=$uri")
-                fileTransferRepository.updateProgress(ft.id, FT_REJECTED)
-                releaseFilePermission(uri)
-                return@kForEach
-            }
-
-            val fileId = ft.fileId.ifEmpty { Random.nextBytes(TOX_FILE_ID_BYTES).bytesToHex() }
-            val resumed = ft.copy(
-                fileNumber = tox.sendFile(PublicKey(pk), FileKind.Data, ft.fileSize, ft.fileName, fileId.hexToBytes()),
-                progress = FT_NOT_STARTED,
-                fileId = fileId,
-            ).apply { id = ft.id }
-
-            fileTransferRepository.add(resumed)
-            fileTransfers.add(resumed)
-            outgoingFiles[Pair(pk, resumed.fileNumber)] = newOutgoingFile(uri)
-            SkyToxCrashLogger.fileTransfer("resume_outgoing started ft=${resumed.id} fileNo=${resumed.fileNumber}")
+            startQueuedOutgoing(next)
         }
     }
 
@@ -257,6 +270,7 @@ class FileTransferManager @Inject constructor(
             fileTransferRepository.updateProgress(ft.id, FT_REJECTED)
             deleteOutgoingCacheFile(uri)
             releaseFilePermission(uri)
+            startNextQueuedOutgoing(ft.publicKey)
             return
         }
 
@@ -265,6 +279,8 @@ class FileTransferManager @Inject constructor(
             tox.sendFile(PublicKey(ft.publicKey), FileKind.Data, ft.fileSize, ft.fileName, fileId.hexToBytes())
         }.getOrElse {
             SkyToxCrashLogger.fileTransfer("resume_queued send_failed ft=${ft.id} error=${it.message}")
+            fileTransferRepository.updateProgress(ft.id, FT_REJECTED)
+            startNextQueuedOutgoing(ft.publicKey)
             return
         }
         val started = ft.copy(
@@ -426,6 +442,7 @@ class FileTransferManager @Inject constructor(
             deleteStoredFile(ft.destination.toUri())
             deleteStoredFile(ft.thumbnail.toUri())
             releaseFilePermission(ft.destination.toUri())
+            if (ft.outgoing) startNextQueuedOutgoing(ft.publicKey)
         } ?: Log.e(TAG, "Unable to find & reject ft $id")
     }
 
@@ -443,6 +460,7 @@ class FileTransferManager @Inject constructor(
             stalledRecoveryCycles.remove(ft.id)
             deleteOutgoingCacheFile(uri)
             releaseFilePermission(uri)
+            startNextQueuedOutgoing(ft.publicKey)
         } else {
             incomingFiles.remove(Pair(ft.publicKey, ft.fileNumber))?.workerJob?.cancel()
             File(uri.path!!).delete()
@@ -583,6 +601,15 @@ class FileTransferManager @Inject constructor(
         file: Uri,
         pendingRetentionMs: Long = DEFAULT_PENDING_RETENTION_MS,
         pendingQueueLimitBytes: Long = DEFAULT_PENDING_QUEUE_LIMIT_BYTES,
+    ): Boolean = outgoingCreateMutex.withLock {
+        createLocked(pk, file, pendingRetentionMs, pendingQueueLimitBytes)
+    }
+
+    private suspend fun createLocked(
+        pk: PublicKey,
+        file: Uri,
+        pendingRetentionMs: Long,
+        pendingQueueLimitBytes: Long,
     ): Boolean {
         cleanupQueued(pendingRetentionMs, pendingQueueLimitBytes)
         val (name, size) = queryNameAndSize(file) ?: return false
@@ -599,7 +626,7 @@ class FileTransferManager @Inject constructor(
 
         val fileId = Random.nextBytes(TOX_FILE_ID_BYTES).bytesToHex()
         val contactOnline = contactRepository.get(pk.string()).firstOrNull()?.connectionStatus != ConnectionStatus.None
-        if (!contactOnline) {
+        if (!contactOnline || hasActiveOutgoingData(pk.string())) {
             if (!hasQueueSpace(size, pendingQueueLimitBytes)) {
                 SkyToxCrashLogger.fileTransfer("outgoing queue_full contact=${pk.string().fingerprint()} size=$size")
                 deleteOutgoingCacheFile(source)
@@ -628,7 +655,9 @@ class FileTransferManager @Inject constructor(
                 ft.thumbnail = thumbnail.toString()
                 fileTransferRepository.setThumbnail(id, ft.thumbnail)
             }
-            SkyToxCrashLogger.fileTransfer("outgoing queued ft=$id contact=${pk.string().fingerprint()} size=$size")
+            SkyToxCrashLogger.fileTransfer(
+                "outgoing queued ft=$id contact=${pk.string().fingerprint()} size=$size reason=${if (contactOnline) "serial" else "offline"}",
+            )
             return true
         }
 
@@ -842,6 +871,7 @@ class FileTransferManager @Inject constructor(
         synchronized(file.lock) { file.requests.clear() }
         deleteOutgoingCacheFile(ft.destination.toUri())
         releaseFilePermission(ft.destination.toUri())
+        startNextQueuedOutgoing(ft.publicKey)
     }
 
     private fun stallAndRecover(ft: FileTransfer, key: Pair<String, Int>, file: OutgoingFile, attempts: Int) {
@@ -913,6 +943,7 @@ class FileTransferManager @Inject constructor(
             stalledRecoveryCycles.remove(ft.id)
             deleteOutgoingCacheFile(uri)
             releaseFilePermission(uri)
+            startNextQueuedOutgoing(ft.publicKey)
         } else {
             incomingFiles.remove(Pair(ft.publicKey, ft.fileNumber))?.workerJob?.cancel()
             deleteStoredFile(uri)

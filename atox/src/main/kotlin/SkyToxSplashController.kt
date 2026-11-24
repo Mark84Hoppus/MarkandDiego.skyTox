@@ -2,12 +2,10 @@
 
 package ltd.evilcorp.atox
 
-import android.content.Intent
 import android.graphics.Color
 import android.graphics.SurfaceTexture
 import android.media.MediaPlayer
 import android.net.Uri
-import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
@@ -16,6 +14,7 @@ import android.view.TextureView
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.core.view.doOnLayout
+import java.util.concurrent.atomic.AtomicBoolean
 
 class SkyToxSplashController(private val activity: MainActivity) {
     private val handler = Handler(Looper.getMainLooper())
@@ -26,15 +25,20 @@ class SkyToxSplashController(private val activity: MainActivity) {
     private var oldNavigationBarColor = Color.BLACK
     val isShowing: Boolean get() = overlay != null
 
-    fun showIfEligible(intent: Intent, savedInstanceState: Bundle?, appLocked: Boolean, onComplete: () -> Unit): Boolean {
-        val ordinaryLauncher = intent.action == Intent.ACTION_MAIN && intent.categories?.contains(Intent.CATEGORY_LAUNCHER) == true
-        if (!ordinaryLauncher || savedInstanceState != null || appLocked) return false
-        val prefs = activity.getSharedPreferences(PREFS, 0)
-        if (prefs.getInt(KEY_LAST_VERSION, -1) == BuildConfig.VERSION_CODE) return false
-        prefs.edit().putInt(KEY_LAST_VERSION, BuildConfig.VERSION_CODE).apply()
+    fun showIfEligible(
+        enabled: Boolean,
+        onComplete: () -> Unit,
+    ): Boolean {
+        // This process-local gate is the lifecycle rule: show once after Android
+        // creates a new process, but never when the existing process is resumed.
+        if (!enabled) return false
+        if (!shownInThisProcess.compareAndSet(false, true)) return false
         completed = onComplete
 
-        val parent = activity.findViewById<ViewGroup>(android.R.id.content) ?: return false
+        val parent = activity.findViewById<ViewGroup>(android.R.id.content) ?: run {
+            shownInThisProcess.set(false)
+            return false
+        }
         val container = FrameLayout(activity).apply {
             setBackgroundColor(Color.BLACK)
             isClickable = true
@@ -63,6 +67,9 @@ class SkyToxSplashController(private val activity: MainActivity) {
                 dismiss(immediate = true, runCompletion = false)
                 return true
             }
+        }
+        if (video.isAvailable) {
+            video.surfaceTexture?.let(::preparePlayer)
         }
         handler.postDelayed({ dismiss(immediate = false) }, MAX_VISIBLE_MS)
         return true
@@ -118,8 +125,7 @@ class SkyToxSplashController(private val activity: MainActivity) {
     }
 
     companion object {
-        private const val PREFS = "skytox_splash"
-        private const val KEY_LAST_VERSION = "last_shown_version"
         private const val MAX_VISIBLE_MS = 3_700L
+        private val shownInThisProcess = AtomicBoolean(false)
     }
 }

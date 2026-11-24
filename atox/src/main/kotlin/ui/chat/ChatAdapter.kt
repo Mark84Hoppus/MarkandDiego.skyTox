@@ -20,7 +20,6 @@ import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.ListView
-import android.widget.ProgressBar
 import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
@@ -99,6 +98,7 @@ private class MessageViewHolder(row: View) {
 }
 
 private class FileTransferViewHolder(row: View) {
+    var boundTransferId: Int = Int.MIN_VALUE
     val container: RelativeLayout = row.findViewById(R.id.fileTransfer)
     val bubble: View = row.findViewById(R.id.container)
     val fileName: TextView = row.findViewById(R.id.fileName)
@@ -106,7 +106,7 @@ private class FileTransferViewHolder(row: View) {
     val fileKindRow: View = row.findViewById(R.id.fileKindRow)
     val fileIcon: ImageView = row.findViewById(R.id.fileIcon)
     val fileType: TextView = row.findViewById(R.id.fileType)
-    val progress: ProgressBar = row.findViewById(R.id.progress)
+    val progress: TransferLottieProgressView = row.findViewById(R.id.progress)
     val state: TextView = row.findViewById(R.id.state)
     val timestamp: TextView = row.findViewById(R.id.timestamp)
     val acceptLayout: View = row.findViewById(R.id.acceptLayout)
@@ -129,6 +129,8 @@ class ChatAdapter(
     animatedEmojiEnabled: Boolean = false,
     onAnimatedEmojiAssetsReady: () -> Unit = {},
 ) : BaseAdapter() {
+    private val thumbnailGeometry = ThumbnailGeometryCache()
+    private var transferSnapshots = emptyMap<Int, TransferSnapshot>()
     private val animatedEmoji = emojiCoordinator?.let { coordinator ->
         AnimatedEmojiRenderer(inflater.context, coordinator, animatedEmojiEnabled, onAnimatedEmojiAssetsReady)
     }
@@ -144,6 +146,49 @@ class ChatAdapter(
     var onLocationClick: ((Message, SkyToxLocationPayload) -> Unit)? = null
     var onVisibleMessageClick: ((Message) -> Boolean)? = null
     var onVisibleMessageLongClick: ((View, Message) -> Boolean)? = null
+
+    fun submitFileTransfers(newTransfers: List<FileTransfer>, listView: ListView) {
+        val snapshots = newTransfers.associate { it.id to TransferSnapshot.of(it) }
+        val structuralChange = snapshots.keys != transferSnapshots.keys || snapshots.any { (id, value) ->
+            transferSnapshots[id]?.structure != value.structure
+        }
+        val progressChanged = snapshots.filter { (id, value) -> transferSnapshots[id]?.progress != value.progress }.keys
+        fileTransfers = newTransfers
+        transferSnapshots = snapshots
+        if (structuralChange) {
+            notifyDataSetChanged()
+        } else if (progressChanged.isNotEmpty()) {
+            for (index in 0 until listView.childCount) {
+                val holder = listView.getChildAt(index).tag as? FileTransferViewHolder ?: continue
+                if (holder.boundTransferId in progressChanged) {
+                    newTransfers.find { it.id == holder.boundTransferId }?.let {
+                        holder.progress.setProgress(transferFraction(it))
+                    }
+                }
+            }
+        }
+    }
+
+    fun prefetchThumbnailGeometry(firstVisible: Int, visibleCount: Int) {
+        val start = (firstVisible - 8).coerceAtLeast(0)
+        val end = (firstVisible + visibleCount + 12).coerceAtMost(messages.size)
+        for (position in start until end) {
+            val message = messages[position]
+            if (message.type != MessageType.FileTransfer) continue
+            fileTransfers.find { it.id == message.correlationId }
+                ?.thumbnail
+                ?.takeIf(String::isNotEmpty)
+                ?.let(thumbnailGeometry::prefetch)
+        }
+    }
+
+    fun close() = thumbnailGeometry.close()
+
+    fun setProgressAnimationsEnabled(enabled: Boolean, listView: ListView) {
+        for (index in 0 until listView.childCount) {
+            (listView.getChildAt(index).tag as? FileTransferViewHolder)?.progress?.setUiActive(enabled)
+        }
+    }
 
     override fun getCount(): Int = messages.size
     override fun getItem(position: Int): Any = messages[position]
@@ -193,7 +238,6 @@ class ChatAdapter(
                         Color.TRANSPARENT
                     },
                 )
-
                 vh.message.setOnClickListener {
                     onVisibleMessageClick?.invoke(message)
                 }
@@ -216,7 +260,20 @@ class ChatAdapter(
                     animatedEmoji?.clear(vh.message)
                     vh.message.typeface = Typeface.DEFAULT_BOLD
                     vh.message.setPadding(dp(10), dp(8), dp(10), dp(8))
-                    vh.message.text = resources.getString(R.string.location_message_open_map)
+                    vh.message.text = if (locationPayload.source == SkyToxLocationPayload.Source.Sos) {
+                        resources.getString(
+                            R.string.sos_location_chat_message,
+                            locationPayload.label.ifBlank { resources.getString(R.string.contact_default_name) },
+                            locationPayload.latitude,
+                            locationPayload.longitude,
+                        )
+                    } else {
+                        resources.getString(
+                            R.string.location_message_coordinates,
+                            locationPayload.latitude,
+                            locationPayload.longitude,
+                        )
+                    }
                     vh.message.setOnClickListener {
                         if (onVisibleMessageClick?.invoke(message) == true) return@setOnClickListener
                         onLocationClick?.invoke(message, locationPayload)
@@ -286,6 +343,7 @@ class ChatAdapter(
                     vh = FileTransferViewHolder(view)
                     view.tag = vh
                 }
+                vh.progress.reset()
                 view.setBackgroundColor(
                     if (message.id in selectedMessageIds) {
                         ContextCompat.getColor(inflater.context, R.color.ocean_selected)
@@ -293,6 +351,7 @@ class ChatAdapter(
                         Color.TRANSPARENT
                     },
                 )
+                vh.boundTransferId = fileTransfer.id
 
                 // TODO(robinlinden)
                 // Updating the file transfer progress refreshes this so often that onClick-listeners never trigger
@@ -365,12 +424,18 @@ class ChatAdapter(
                     }
                     vh.imagePreview.layoutParams = vh.imagePreview.layoutParams.apply {
                         width = targetWidth
-                        height = ViewGroup.LayoutParams.WRAP_CONTENT
+                        val geometry = thumbnailGeometry.get(fileTransfer.thumbnail)
+                        height = geometry?.let {
+                            (targetWidth.toLong() * it.height / it.width.coerceAtLeast(1)).toInt()
+                        } ?: (targetWidth * 3 / 4)
                     }
                     if (fileTransfer.thumbnailFileExists()) {
+                        thumbnailGeometry.prefetch(fileTransfer.thumbnail)
+                        Picasso.get().cancelRequest(vh.imagePreview)
                         Picasso.get()
                             .load(fileTransfer.thumbnail)
-                            .resize(targetWidth, 0)
+                            .resize(targetWidth, vh.imagePreview.layoutParams.height)
+                            .centerInside()
                             .into(vh.imagePreview)
                     } else {
                         vh.imagePreview.setImageResource(R.drawable.ic_missing_thumb)
@@ -397,7 +462,7 @@ class ChatAdapter(
                 if (fileTransfer.isQueued()) {
                     vh.acceptLayout.visibility = View.GONE
                     vh.cancelLayout.visibility = View.VISIBLE
-                    vh.progress.visibility = View.GONE
+                    vh.progress.visibility = View.VISIBLE
                     vh.state.visibility = View.VISIBLE
                 } else if (fileTransfer.isRejected() || fileTransfer.isComplete() || fileTransfer.isInterrupted()) {
                     vh.acceptLayout.visibility = View.GONE
@@ -427,8 +492,7 @@ class ChatAdapter(
                     .take(5)
                     .ifBlank { "FILE" }
                     .uppercase(Locale.getDefault())
-                vh.progress.max = fileTransfer.fileSize.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-                vh.progress.progress = fileTransfer.transferredBytes().coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
+                bindTransferProgress(vh, fileTransfer)
                 val stateId = when {
                     fileTransfer.isQueued() -> R.string.queued
                     fileTransfer.isExpired() -> R.string.expired
@@ -474,6 +538,48 @@ class ChatAdapter(
 
         val seconds = (durationMs / 1000).coerceAtLeast(0)
         return "%02d:%02d".format(seconds / 60, seconds % 60)
+    }
+
+    private fun bindTransferProgress(holder: FileTransferViewHolder, transfer: FileTransfer) {
+        val state = when {
+            transfer.isRejected() || transfer.isExpired() -> TransferVisualState.FAILED
+            transfer.isComplete() -> TransferVisualState.COMPLETE
+            transfer.isInterrupted() -> TransferVisualState.PAUSED
+            transfer.isQueued() || !transfer.isStarted() -> TransferVisualState.WAITING
+            else -> TransferVisualState.ACTIVE
+        }
+        holder.progress.bind(state, transferFraction(transfer), transfer.outgoing)
+    }
+
+    private fun transferFraction(transfer: FileTransfer): Float =
+        if (transfer.fileSize <= 0L) 0f else {
+            transfer.transferredBytes().coerceIn(0L, transfer.fileSize).toFloat() / transfer.fileSize.toFloat()
+        }
+
+    private data class TransferSnapshot(val structure: String, val progress: Long) {
+        companion object {
+            fun of(value: FileTransfer): TransferSnapshot {
+                val state = when {
+                    value.isQueued() -> "queued"
+                    value.isRejected() -> "rejected"
+                    value.isInterrupted() -> "interrupted"
+                    value.isComplete() -> "complete"
+                    value.isStarted() -> "started"
+                    else -> "pending"
+                }
+                return TransferSnapshot(
+                    listOf(
+                        value.fileName,
+                        value.fileSize,
+                        value.outgoing,
+                        value.destination,
+                        value.thumbnail,
+                        state,
+                    ).joinToString("|"),
+                    value.transferredBytes(),
+                )
+            }
+        }
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).roundToInt()

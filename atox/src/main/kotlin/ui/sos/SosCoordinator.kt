@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.push.SkyToxPushManager
+import ltd.evilcorp.atox.ui.location.SkyToxLocationPayload
+import ltd.evilcorp.atox.ui.location.SkyToxLocationProtocol
 import ltd.evilcorp.core.repository.ContactRepository
 import ltd.evilcorp.core.repository.UserRepository
 import ltd.evilcorp.core.vo.PublicKey
@@ -47,6 +49,9 @@ class SosCoordinator @Inject constructor(
     val active: StateFlow<Boolean> = _active.asStateFlow()
     private var latestLocation: Location? = null
     private var senderJob: Job? = null
+    private var initialAnnouncementSent = false
+    private var lastBroadcastHadFreshLocation = false
+    private var freshFollowUpJob: Job? = null
 
     init {
         if (_active.value) resume()
@@ -63,6 +68,8 @@ class SosCoordinator @Inject constructor(
     fun activate() {
         if (_active.value || !hasLocationPermission()) return
         _active.value = true
+        initialAnnouncementSent = false
+        lastBroadcastHadFreshLocation = false
         prefs.edit().putBoolean(KEY_ACTIVE, true).putLong(KEY_LAST_SEND, 0L).apply()
         startLocation()
         startLoop(immediate = true)
@@ -75,6 +82,8 @@ class SosCoordinator @Inject constructor(
         prefs.edit().putBoolean(KEY_ACTIVE, false).remove(KEY_LAST_SEND).apply()
         senderJob?.cancel()
         senderJob = null
+        freshFollowUpJob?.cancel()
+        freshFollowUpJob = null
         stopLocation()
         scope.launch { broadcast(stopped = true) }
         SkyToxCrashLogger.diagnostic("sos.deactivated")
@@ -96,8 +105,6 @@ class SosCoordinator @Inject constructor(
                 if (!_active.value) break
                 if (broadcast(stopped = false)) {
                     prefs.edit().putLong(KEY_LAST_SEND, System.currentTimeMillis()).apply()
-                } else {
-                    delay(NO_FIX_RETRY_MS)
                 }
             }
         }
@@ -108,25 +115,35 @@ class SosCoordinator @Inject constructor(
         if (recipients.isEmpty()) return false
         val ownName = runCatching { users.get(tox.publicKey.string()).first().name }
             .getOrDefault("skyTox user")
-        val location = latestLocation ?: bestLastLocation()
-        if (!stopped && location == null) {
-            SkyToxCrashLogger.diagnostic("sos.broadcast delayed no_location_fix=true")
-            return false
-        }
-        val coordinates = location?.let {
-            String.format(Locale.US, "https://maps.google.com/?q=%.6f,%.6f", it.latitude, it.longitude)
-        } ?: "location pending"
+        val location = freshLocation()
         val text = if (stopped) {
             context.getString(R.string.sos_stopped_message, ownName)
+        } else if (location != null) {
+            SkyToxLocationProtocol.encode(
+                SkyToxLocationPayload(
+                    kind = SkyToxLocationPayload.Kind.OneShot,
+                    latitude = location.latitude,
+                    longitude = location.longitude,
+                    accuracy = if (location.hasAccuracy()) location.accuracy else 0f,
+                    timestamp = location.time.takeIf { it > 0L } ?: System.currentTimeMillis(),
+                    altitude = if (location.hasAltitude()) location.altitude else Double.NaN,
+                    source = SkyToxLocationPayload.Source.Sos,
+                    label = ownName,
+                ),
+            )
         } else {
-            context.getString(R.string.sos_started_message, ownName, coordinates)
+            context.getString(R.string.sos_started_message, ownName, context.getString(R.string.sos_location_unavailable))
         }
         recipients.forEach { contact ->
             val key = PublicKey(contact.publicKey)
             pushManager.sendWakeSignal(key, if (stopped) "sos_stopped" else "sos_emergency")
             chatManager.sendMessage(key, text)
         }
-        SkyToxCrashLogger.diagnostic("sos.broadcast stopped=$stopped recipients=${recipients.size} hasFix=${location != null}")
+        if (!stopped) {
+            initialAnnouncementSent = true
+            lastBroadcastHadFreshLocation = location != null
+        }
+        SkyToxCrashLogger.diagnostic("sos.broadcast stopped=$stopped recipients=${recipients.size} freshFix=${location != null}")
         return true
     }
 
@@ -147,10 +164,27 @@ class SosCoordinator @Inject constructor(
             .maxByOrNull { it.time }
     }
 
+    private fun freshLocation(): Location? = (latestLocation ?: bestLastLocation())?.takeIf {
+        val age = System.currentTimeMillis() - it.time
+        age in 0..MAX_LAST_FIX_AGE_MS &&
+            it.latitude.isFinite() && it.longitude.isFinite() &&
+            it.latitude in -90.0..90.0 && it.longitude in -180.0..180.0 &&
+            (!it.hasAccuracy() || it.accuracy <= MAX_FIX_ACCURACY_M)
+    }
+
     private fun stopLocation() = runCatching { locationManager.removeUpdates(this) }.let { Unit }
 
     override fun onLocationChanged(location: Location) {
         if (latestLocation == null || location.time >= latestLocation!!.time) latestLocation = location
+        if (_active.value && initialAnnouncementSent && !lastBroadcastHadFreshLocation && freshLocation() != null &&
+            freshFollowUpJob?.isActive != true
+        ) {
+            freshFollowUpJob = scope.launch {
+                if (broadcast(stopped = false)) {
+                    prefs.edit().putLong(KEY_LAST_SEND, System.currentTimeMillis()).apply()
+                }
+            }
+        }
     }
     @Deprecated("Deprecated in Android")
     override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) = Unit
@@ -162,7 +196,7 @@ class SosCoordinator @Inject constructor(
         private const val KEY_LAST_SEND = "sos_last_send"
         private const val SEND_INTERVAL_MS = 5 * 60 * 1000L
         private const val FIRST_FIX_WAIT_MS = 3_000L
-        private const val NO_FIX_RETRY_MS = 15_000L
         private const val MAX_LAST_FIX_AGE_MS = 10 * 60 * 1000L
+        private const val MAX_FIX_ACCURACY_M = 500f
     }
 }

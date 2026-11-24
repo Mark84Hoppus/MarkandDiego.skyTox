@@ -30,12 +30,15 @@ import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewConfiguration
+import android.view.HapticFeedbackConstants
 import android.widget.AdapterView
 import android.widget.AbsListView
 import android.widget.EditText
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import android.webkit.MimeTypeMap
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -72,9 +75,15 @@ import ltd.evilcorp.atox.truncated
 import ltd.evilcorp.atox.ui.BaseFragment
 import ltd.evilcorp.atox.ui.call.REQUEST_VIDEO_CALL
 import ltd.evilcorp.atox.ui.location.SkyToxLocationMapActivity
+import ltd.evilcorp.atox.ui.location.SkyToxGeoOpenActivity
+import ltd.evilcorp.atox.ui.location.SkyToxLocationPayload
 import ltd.evilcorp.atox.ui.location.SkyToxLocationProtocol
 import ltd.evilcorp.atox.ui.location.SkyToxTrackImportStatus
 import ltd.evilcorp.atox.ui.location.SkyToxTrackStore
+import ltd.evilcorp.atox.ui.media.MediaOpenTarget
+import ltd.evilcorp.atox.ui.media.MediaViewerLauncher
+import ltd.evilcorp.atox.ui.media.MediaViewerMode
+import ltd.evilcorp.atox.ui.media.MediaViewerPolicy
 import ltd.evilcorp.atox.ui.motion.CHAT_WINDOW_MOTION
 import ltd.evilcorp.atox.ui.motion.ChatWindowMotion
 import ltd.evilcorp.atox.ui.motion.NoChatWindowMotion
@@ -105,7 +114,6 @@ private const val PERMISSION_RECORD_AUDIO = Manifest.permission.RECORD_AUDIO
 private const val WAKE_CONTACT_COOLDOWN_MS = 30_000L
 private const val AUTO_WAKE_INTERVAL_MS = 3 * 60 * 1000L
 private const val AUTO_WAKE_OPEN_ATTEMPTS = 3
-private const val MAX_FILES_PER_SEND_BATCH = 10
 private const val CHAT_TRANSITION_TIMEOUT_MS = 600L
 
 private fun FileTransfer.isAudio() = try {
@@ -139,7 +147,11 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private val audioProgressTimer = Handler(Looper.getMainLooper())
     private val wakeTimer = Handler(Looper.getMainLooper())
     private val transitionTimer = Handler(Looper.getMainLooper())
-    private var startAfterMicPermission = false
+    private enum class VoiceGestureState { IDLE, HELD, LOCKED }
+    private var voiceGestureState = VoiceGestureState.IDLE
+    private var voiceDownX = 0f
+    private var voiceDownY = 0f
+    private var voicePointerId = MotionEvent.INVALID_POINTER_ID
     private var pendingEncryptedMessage: String? = null
     private val expandedTextMessageIds = mutableSetOf<Long>()
     private var lastWakeSignalAtMs = 0L
@@ -166,9 +178,6 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     ) { granted ->
         if (!granted) {
             Toast.makeText(requireContext(), getString(R.string.call_mic_permission_needed), Toast.LENGTH_LONG).show()
-        } else if (startAfterMicPermission) {
-            startAfterMicPermission = false
-            startVoiceRecording()
         }
     }
 
@@ -222,15 +231,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private val attachFilesLauncher =
         registerForActivityResult(OpenMultiplePersistableDocuments()) { files ->
             viewModel.setActiveChat(PublicKey(contactPubKey))
-            val filesToSend = files.take(MAX_FILES_PER_SEND_BATCH)
-            if (files.size > MAX_FILES_PER_SEND_BATCH) {
-                Toast.makeText(
-                    requireContext(),
-                    getString(R.string.file_send_batch_limited, MAX_FILES_PER_SEND_BATCH),
-                    Toast.LENGTH_LONG,
-                ).show()
-            }
-            for (file in filesToSend) {
+            for (file in files) {
                 activity?.contentResolver?.takePersistableUriPermission(file, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 viewModel.createFt(file)
             }
@@ -606,8 +607,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
 
         viewModel.fileTransfers.observe(viewLifecycleOwner) {
             fts = it
-            adapter.fileTransfers = it
-            adapter.notifyDataSetChanged()
+            adapter.submitFileTransfers(it, messages)
         }
         viewModel.contacts.observe(viewLifecycleOwner) {
             contacts = it
@@ -660,6 +660,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                     totalItemCount: Int,
                 ) {
                     updateScrollToBottomButton()
+                    adapter.prefetchThumbnailGeometry(firstVisibleItem, visibleItemCount)
                     if (messageScrollState == AbsListView.OnScrollListener.SCROLL_STATE_IDLE || totalItemCount == 0) return
                     if (
                         firstVisibleItem <= 4 && viewModel.hasOlderMessages() &&
@@ -707,19 +708,9 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             attachFilesLauncher.launch(arrayOf("*/*"))
         }
 
-        voiceMessage.setOnClickListener {
-            WindowInsetsControllerCompat(requireActivity().window, view).hide(WindowInsetsCompat.Type.ime())
-            if (viewModel.isSelfChat()) return@setOnClickListener
-            if (voiceRecorder == null) {
-                startVoiceRecording()
-            } else {
-                confirmVoiceRecording()
-            }
-        }
-        voiceMessage.setOnLongClickListener {
-            stopVoiceRecording(send = false)
-            true
-        }
+        voiceMessage.setOnTouchListener { button, event -> handleVoiceGesture(button, event) }
+        voiceLockedCancel.setOnClickListener { finishVoiceGesture(send = false) }
+        voiceLockedSend.setOnClickListener { finishVoiceGesture(send = true) }
 
         outgoingMessage.doAfterTextChanged {
             viewModel.setTyping(outgoingMessage.text.isNotEmpty())
@@ -734,14 +725,16 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     }
 
     override fun onDestroyView() {
+        (binding.messages.adapter as? ChatAdapter)?.close()
         emojiAnimationCoordinator?.clear()
         emojiAnimationCoordinator = null
         super.onDestroyView()
     }
 
     override fun onPause() {
+        (binding.messages.adapter as? ChatAdapter)?.setProgressAnimationsEnabled(false, binding.messages)
         emojiAnimationCoordinator?.setActive(false)
-        stopVoiceRecording(send = false)
+        finishVoiceGesture(send = false)
         stopAudioPlayback()
         wakeTimer.removeCallbacksAndMessages(null)
         releaseChatTransition()
@@ -771,6 +764,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     }
 
     override fun onResume() = binding.run {
+        (messages.adapter as? ChatAdapter)?.setProgressAnimationsEnabled(true, messages)
         emojiAnimationCoordinator?.setActive(true)
         viewModel.setActiveChat(PublicKey(contactPubKey), pendingTargetMessageId)
         viewModel.setTyping(outgoingMessage.text.isNotEmpty())
@@ -792,10 +786,16 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         }
     }
 
-    private fun openLocationChooser(payload: ltd.evilcorp.atox.ui.location.SkyToxLocationPayload) {
+    private fun openLocationChooser(payload: SkyToxLocationPayload) {
         val label = Uri.encode(contactName.ifBlank { getString(R.string.location_message_open_map) })
         val uri = "geo:${payload.latitude},${payload.longitude}?q=${payload.latitude},${payload.longitude}($label)".toUri()
-        val intent = Intent(Intent.ACTION_VIEW, uri)
+        val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+            putExtra(SkyToxGeoOpenActivity.EXTRA_GEO_LATITUDE, payload.latitude)
+            putExtra(SkyToxGeoOpenActivity.EXTRA_GEO_LONGITUDE, payload.longitude)
+            putExtra(SkyToxGeoOpenActivity.EXTRA_GEO_PUBLIC_KEY, contactPubKey)
+            putExtra(SkyToxGeoOpenActivity.EXTRA_GEO_CONTACT_NAME, contactName)
+            putExtra(SkyToxGeoOpenActivity.EXTRA_GEO_IS_SOS, payload.source == SkyToxLocationPayload.Source.Sos)
+        }
         runCatching {
             startActivity(Intent.createChooser(intent, getString(R.string.location_open_with)))
         }.onFailure {
@@ -1328,7 +1328,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             }
         }
 
-        val contentType = URLConnection.guessContentTypeFromName(ft.fileName) ?: "*/*"
+        val contentType = resolveContentType(uri, ft.fileName)
         if (ft.fileName.substringAfterLast('.', "").equals("gpx", ignoreCase = true)) {
             showLoadTrackDialog(uri)
             return
@@ -1348,27 +1348,28 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             return
         }
 
-        val openIntent = Intent(Intent.ACTION_VIEW).apply {
-            putExtra(Intent.EXTRA_TITLE, ft.fileName)
-            setDataAndType(uri, contentType)
-            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+        when (MediaViewerPolicy.classify(ft.fileName, contentType)) {
+            MediaOpenTarget.INTERNAL_IMAGE -> {
+                MediaViewerLauncher.openInternal(requireContext(), uri, ft.fileName, contentType, MediaViewerMode.IMAGE)
+                return
+            }
+            MediaOpenTarget.INTERNAL_VIDEO -> {
+                MediaViewerLauncher.openInternal(requireContext(), uri, ft.fileName, contentType, MediaViewerMode.VIDEO)
+                return
+            }
+            MediaOpenTarget.EXTERNAL -> Unit
         }
-        try {
-            view?.let { WindowInsetsControllerCompat(requireActivity().window, it).hide(WindowInsetsCompat.Type.ime()) }
-            startActivity(Intent.createChooser(openIntent, getString(R.string.open_with)))
-        } catch (_: ActivityNotFoundException) {
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.mimetype_handler_not_found, contentType),
-                Toast.LENGTH_LONG,
-            ).show()
-        } catch (e: IllegalArgumentException) {
-            Log.e(TAG, "Unable to open file transfer ${ft.id}\n$e")
-            Toast.makeText(requireContext(), R.string.file_not_found, Toast.LENGTH_SHORT).show()
-        } catch (e: SecurityException) {
-            Log.e(TAG, "Unable to open file transfer ${ft.id}: permission lost\n$e")
-            Toast.makeText(requireContext(), R.string.file_not_found, Toast.LENGTH_SHORT).show()
+        view?.let { WindowInsetsControllerCompat(requireActivity().window, it).hide(WindowInsetsCompat.Type.ime()) }
+        MediaViewerLauncher.openExternal(requireContext(), uri, ft.fileName, contentType)
+    }
+
+    private fun resolveContentType(uri: Uri, fileName: String): String {
+        requireContext().contentResolver.getType(uri)?.takeIf { it.isNotBlank() }?.let { return it }
+        val extension = fileName.substringAfterLast('.', "").lowercase(Locale.US)
+        if (extension.isNotEmpty()) {
+            MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)?.let { return it }
         }
+        return URLConnection.guessContentTypeFromName(fileName) ?: "*/*"
     }
 
     private fun showLoadTrackDialog(uri: Uri) {
@@ -1434,12 +1435,11 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         )
     }
 
-    private fun startVoiceRecording() {
-        if (voiceRecorder != null) return
+    private fun startVoiceRecording(): Boolean {
+        if (voiceRecorder != null) return true
         if (!requireContext().hasPermission(PERMISSION_RECORD_AUDIO)) {
-            startAfterMicPermission = true
             requestRecordAudioLauncher.launch(PERMISSION_RECORD_AUDIO)
-            return
+            return false
         }
 
         val file = viewModel.voiceMessageFile()
@@ -1450,6 +1450,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             voiceRecordingStartedAt = System.currentTimeMillis()
             startVoiceTimer()
             updateActions()
+            return true
         } catch (e: Exception) {
             Log.e(TAG, "Unable to start voice recording\n$e")
             voiceRecorder?.release()
@@ -1458,6 +1459,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             file.delete()
             Toast.makeText(requireContext(), R.string.voice_record_failed, Toast.LENGTH_LONG).show()
             updateActions()
+            return false
         }
     }
 
@@ -1514,12 +1516,74 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         updateActions()
     }
 
-    private fun confirmVoiceRecording() {
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.voice_send_confirm_title)
-            .setPositiveButton(android.R.string.yes) { _, _ -> stopVoiceRecording(send = true) }
-            .setNegativeButton(android.R.string.no) { _, _ -> stopVoiceRecording(send = false) }
-            .show()
+    private fun handleVoiceGesture(button: View, event: MotionEvent): Boolean {
+        if (viewModel.isSelfChat()) return false
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                WindowInsetsControllerCompat(requireActivity().window, button).hide(WindowInsetsCompat.Type.ime())
+                voicePointerId = event.getPointerId(0)
+                voiceDownX = event.x
+                voiceDownY = event.y
+                if (startVoiceRecording()) {
+                    voiceGestureState = VoiceGestureState.HELD
+                    updateVoiceGestureUi()
+                }
+                return true
+            }
+            MotionEvent.ACTION_MOVE -> if (voiceGestureState == VoiceGestureState.HELD) {
+                val index = event.findPointerIndex(voicePointerId)
+                if (index < 0) return true
+                val dx = event.getX(index) - voiceDownX
+                val dy = event.getY(index) - voiceDownY
+                val density = resources.displayMetrics.density
+                val cancelThreshold = minOf(binding.bottomBar.width * 0.35f, 140f * density)
+                val lockThreshold = maxOf(72f * density, ViewConfiguration.get(requireContext()).scaledTouchSlop * 4f)
+                if (dx <= -cancelThreshold && kotlin.math.abs(dx) > kotlin.math.abs(dy)) {
+                    button.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    finishVoiceGesture(send = false)
+                } else if (dy <= -lockThreshold && kotlin.math.abs(dy) > kotlin.math.abs(dx) * 0.7f) {
+                    voiceGestureState = VoiceGestureState.LOCKED
+                    button.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    updateVoiceGestureUi()
+                }
+                return true
+            }
+            MotionEvent.ACTION_UP -> {
+                if (voiceGestureState == VoiceGestureState.HELD) finishVoiceGesture(send = true)
+                voicePointerId = MotionEvent.INVALID_POINTER_ID
+                return true
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                if (voiceGestureState == VoiceGestureState.HELD) finishVoiceGesture(send = false)
+                voicePointerId = MotionEvent.INVALID_POINTER_ID
+                return true
+            }
+            MotionEvent.ACTION_POINTER_UP -> if (
+                event.getPointerId(event.actionIndex) == voicePointerId && voiceGestureState == VoiceGestureState.HELD
+            ) {
+                finishVoiceGesture(send = true)
+                return true
+            }
+        }
+        return voiceGestureState != VoiceGestureState.IDLE
+    }
+
+    private fun finishVoiceGesture(send: Boolean) {
+        voiceGestureState = VoiceGestureState.IDLE
+        voicePointerId = MotionEvent.INVALID_POINTER_ID
+        stopVoiceRecording(send)
+        updateVoiceGestureUi()
+    }
+
+    private fun updateVoiceGestureUi() = binding.run {
+        val recording = voiceGestureState != VoiceGestureState.IDLE
+        val locked = voiceGestureState == VoiceGestureState.LOCKED
+        outgoingMessage.visibility = if (recording) View.GONE else View.VISIBLE
+        attach.visibility = if (recording) View.GONE else attach.visibility
+        voiceGestureHint.visibility = if (voiceGestureState == VoiceGestureState.HELD) View.VISIBLE else View.GONE
+        voiceLockedCancel.visibility = if (locked) View.VISIBLE else View.GONE
+        voiceLockedSend.visibility = if (locked) View.VISIBLE else View.GONE
+        voiceMessage.visibility = if (locked) View.GONE else voiceMessage.visibility
     }
 
     private fun toggleAudioPlayback(id: Int) {
@@ -1603,15 +1667,17 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     }
 
     private fun updateActions() = binding.run {
+        val recording = voiceGestureState != VoiceGestureState.IDLE
+        outgoingMessage.visibility = if (recording) View.GONE else View.VISIBLE
         send.visibility = if (outgoingMessage.text.isEmpty()) View.GONE else View.VISIBLE
-        attach.visibility = if (viewModel.isSelfChat() || send.isVisible) View.GONE else View.VISIBLE
-        voiceMessage.visibility = if (viewModel.isSelfChat() || send.isVisible) View.GONE else View.VISIBLE
+        attach.visibility = if (recording || viewModel.isSelfChat() || send.isVisible) View.GONE else View.VISIBLE
+        voiceMessage.visibility = if (voiceGestureState == VoiceGestureState.LOCKED || viewModel.isSelfChat() || send.isVisible) View.GONE else View.VISIBLE
         attach.isEnabled = !viewModel.isSelfChat()
         voiceMessage.isEnabled = !viewModel.isSelfChat()
         attach.setColorFilter(
             ContextCompat.getColor(
                 requireContext(),
-                if (attach.isEnabled) android.R.color.white else android.R.color.darker_gray,
+                if (attach.isEnabled) R.color.ocean_input_text else R.color.ocean_text_hint,
             ),
         )
         voiceMessage.setColorFilter(
@@ -1619,11 +1685,12 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                 requireContext(),
                 when {
                     voiceRecorder != null -> android.R.color.holo_green_light
-                    voiceMessage.isEnabled -> android.R.color.white
-                    else -> android.R.color.darker_gray
+                    voiceMessage.isEnabled -> R.color.ocean_input_text
+                    else -> R.color.ocean_text_hint
                 },
             ),
         )
+        updateVoiceGestureUi()
     }
 
     private fun wakeContactReady(): Boolean =
