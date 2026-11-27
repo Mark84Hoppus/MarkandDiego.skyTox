@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/black"
+        android:keepScreenOn="true">
+
+    <androidx.camera.view.PreviewView
+            android:id="@+id/cameraPreview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:implementationMode="performance"
+            app:scaleType="fillCenter" />
+
+    <ImageButton
+            android:id="@+id/cameraClose"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_gravity="top|start"
+            android:layout_margin="18dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/camera_close"
+            android:padding="13dp"
+            android:src="@drawable/ic_close"
+            app:tint="@android:color/white" />
+
+    <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingBottom="32dp">
+
+        <TextView
+                android:id="@+id/cameraTimer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:background="#66000000"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="6dp"
+                android:textColor="@android:color/white"
+                android:textSize="16sp"
+                android:visibility="gone" />
+
+        <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="96dp"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+            <ImageButton
+                    android:id="@+id/cameraFlash"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:layout_marginEnd="52dp"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="@string/camera_flash_on"
+                    android:padding="13dp"
+                    android:src="@drawable/ic_camera_flash_off" />
+
+            <ImageButton
+                    android:id="@+id/cameraShutter"
+                    android:layout_width="88dp"
+                    android:layout_height="88dp"
+                    android:background="@drawable/camera_shutter_idle"
+                    android:contentDescription="@string/camera_shutter" />
+
+            <ImageButton
+                    android:id="@+id/cameraSwitch"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:layout_marginStart="52dp"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="@string/camera_switch"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_camera_switch" />
+        </LinearLayout>
+
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/camera_shutter"
+                android:textColor="@android:color/white"
+                android:textSize="15sp" />
+    </LinearLayout>
+</FrameLayout>

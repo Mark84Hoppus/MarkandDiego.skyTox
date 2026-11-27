@@ -115,6 +115,17 @@
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_switch_camera"/>
 
+        <ImageButton android:id="@+id/video_toggle"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_alignTop="@id/back_to_chat"
+                android:layout_marginEnd="24dp"
+                android:layout_toStartOf="@id/video_control"
+                android:background="@null"
+                android:contentDescription="@string/video_toggle"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_videocam_off"/>
+
         <ImageButton android:id="@+id/back_to_chat"
                 android:layout_width="32dp"
                 android:layout_height="32dp"

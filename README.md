@@ -20,6 +20,13 @@ It is an independent Android fork of [aTox](https://github.com/evilcorpltd/aTox)
 
 ## Возможности
 
+### Новое в skyTox 0.8.39
+
+- Камера теперь открывается прямо из меню скрепки в чате: короткое нажатие делает фотографию, удержание записывает видео, а готовый материал сразу прикрепляется к сообщению.
+- Рация, Музыка, AI и Игры перенесены в «Мой skyTox», чтобы верхняя панель списка чатов оставалась спокойной и не перегруженной.
+- В «Мой skyTox» появился упрощённый файловый менеджер для личного порядка: рабочий стол, папки, Загрузки, Корзина, текстовые документы, копирование, перемещение, переименование, сортировка и просмотр поддерживаемых медиафайлов.
+- Файлы можно сохранять в личное пространство skyTox и организовывать независимо от переписки с контактами.
+
 ### Личное общение
 
 - Личные P2P-чаты без обязательной регистрации по номеру телефона или электронной почте.
@@ -162,6 +169,13 @@ skyTox has no central server through which its author routes every conversation.
 There is no central “turn it off” button. The author may stop publishing updates or discontinue an optional supporting service, but does not own the Tox network and cannot shut it down by a single decision. If I ever stop developing skyTox, anyone can take the source code, build the app, continue its development, or create a new fork.
 
 ## Features
+
+### New in skyTox 0.8.39
+
+- The camera is now available directly from the chat attachment menu: tap to take a photo, hold to record a video, and attach the result to the conversation immediately.
+- Radio, Music, AI, and Games have moved to “My skyTox”, keeping the main chat-list toolbar focused and uncluttered.
+- “My skyTox” now includes a lightweight file manager for personal organization: a desktop, folders, Downloads, Recycle Bin, text documents, copy, move, rename, sorting, and supported media previews.
+- Files can be stored and organized in a private skyTox workspace independently of contact conversations.
 
 ### Personal communication
 

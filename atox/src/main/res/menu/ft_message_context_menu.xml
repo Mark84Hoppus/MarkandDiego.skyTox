@@ -2,5 +2,6 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@+id/select_message" android:title="@string/select_message"/>
     <item android:id="@+id/export" android:title="@string/save_as"/>
+    <item android:id="@+id/share_system" android:title="@string/share_via_system"/>
     <item android:id="@+id/delete" android:title="@string/delete"/>
 </menu>

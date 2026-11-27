@@ -11,6 +11,38 @@
             android:icon="@drawable/ic_videocam"
             android:title="@string/video_call"
             app:showAsAction="always"/>
+    <item
+            android:id="@+id/open_radio"
+            android:contentDescription="@string/radio_title"
+            android:icon="@drawable/ic_radio"
+            android:orderInCategory="1"
+            android:title="@string/radio_title"
+            app:showAsAction="always"/>
+    <item
+            android:id="@+id/open_music"
+            android:contentDescription="@string/music"
+            android:icon="@drawable/ic_music_note"
+            android:orderInCategory="2"
+            android:title="@string/music"
+            app:showAsAction="always"/>
+    <item
+            android:id="@+id/open_ai_assistant"
+            android:orderInCategory="3"
+            android:title="AI"
+            app:showAsAction="always|withText"/>
+    <item
+            android:id="@+id/open_games"
+            android:contentDescription="@string/skytox_games"
+            android:icon="@drawable/ic_game"
+            android:orderInCategory="4"
+            android:title="@string/skytox_games"
+            app:showAsAction="always"/>
+    <item
+            android:id="@+id/open_my_skytox_file_manager"
+            android:icon="@drawable/ic_my_skytox_folder"
+            android:orderInCategory="5"
+            android:title="@string/my_skytox_file_manager"
+            app:showAsAction="always"/>
     <item android:id="@+id/wake_contact" android:title="@string/wake_contact"/>
     <item android:id="@+id/send_encrypted_message" android:title="@string/send_encrypted_message"/>
     <item android:id="@+id/send_code_message" android:title="@string/send_code_message"/>

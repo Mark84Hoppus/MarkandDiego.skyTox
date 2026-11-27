@@ -8,6 +8,8 @@ import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.Typeface
 import android.media.MediaMetadataRetriever
+import android.os.Handler
+import android.os.Looper
 import android.text.format.Formatter
 import android.util.Log
 import android.view.Gravity
@@ -29,6 +31,8 @@ import java.io.File
 import java.net.URLConnection
 import java.text.DateFormat
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 import kotlin.math.roundToInt
 import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.ui.markdown.SkyToxMarkdown
@@ -134,6 +138,12 @@ class ChatAdapter(
     private val animatedEmoji = emojiCoordinator?.let { coordinator ->
         AnimatedEmojiRenderer(inflater.context, coordinator, animatedEmojiEnabled, onAnimatedEmojiAssetsReady)
     }
+    private val audioDurationCache = ConcurrentHashMap<String, String>()
+    private val audioDurationLoading = ConcurrentHashMap.newKeySet<String>()
+    private val metadataExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "skyTox-media-metadata").apply { isDaemon = true }
+    }
+    private val mainHandler = Handler(Looper.getMainLooper())
     var messages: List<Message> = listOf()
     var fileTransfers: List<FileTransfer> = listOf()
     var playingAudioId: Int = Int.MIN_VALUE
@@ -526,18 +536,29 @@ class ChatAdapter(
 
     private fun audioDurationText(fileTransfer: FileTransfer): String {
         if (!fileTransfer.isAudio() || !fileTransfer.isComplete()) return ""
-        val durationMs = runCatching {
-            val retriever = MediaMetadataRetriever()
-            try {
-                retriever.setDataSource(inflater.context, fileTransfer.destination.toUri())
-                retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
-            } finally {
-                retriever.release()
+        val key = "${fileTransfer.destination}:${fileTransfer.fileSize}"
+        audioDurationCache[key]?.let { return it }
+        if (audioDurationLoading.add(key)) {
+            metadataExecutor.execute {
+                val text = runCatching {
+                    val retriever = MediaMetadataRetriever()
+                    try {
+                        retriever.setDataSource(inflater.context, fileTransfer.destination.toUri())
+                        val durationMs = retriever
+                            .extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                            ?.toLongOrNull() ?: return@runCatching ""
+                        val seconds = (durationMs / 1000).coerceAtLeast(0)
+                        "%02d:%02d".format(seconds / 60, seconds % 60)
+                    } finally {
+                        retriever.release()
+                    }
+                }.getOrDefault("")
+                audioDurationCache[key] = text
+                audioDurationLoading.remove(key)
+                mainHandler.post { notifyDataSetChanged() }
             }
-        }.getOrNull() ?: return ""
-
-        val seconds = (durationMs / 1000).coerceAtLeast(0)
-        return "%02d:%02d".format(seconds / 60, seconds % 60)
+        }
+        return ""
     }
 
     private fun bindTransferProgress(holder: FileTransferViewHolder, transfer: FileTransfer) {

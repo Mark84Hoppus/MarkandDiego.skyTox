@@ -40,6 +40,7 @@ import android.widget.TextView
 import android.widget.Toast
 import android.webkit.MimeTypeMap
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.content.getSystemService
@@ -67,6 +68,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import ltd.evilcorp.atox.BuildConfig
+import ltd.evilcorp.atox.MainActivity
 import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.databinding.FragmentChatBinding
 import ltd.evilcorp.atox.hasPermission
@@ -74,6 +76,9 @@ import ltd.evilcorp.atox.requireStringArg
 import ltd.evilcorp.atox.truncated
 import ltd.evilcorp.atox.ui.BaseFragment
 import ltd.evilcorp.atox.ui.call.REQUEST_VIDEO_CALL
+import ltd.evilcorp.atox.ui.camera.CameraCaptureResult
+import ltd.evilcorp.atox.ui.camera.CameraCaptureStore
+import ltd.evilcorp.atox.ui.chat.attachment.AttachmentPanelController
 import ltd.evilcorp.atox.ui.location.SkyToxLocationMapActivity
 import ltd.evilcorp.atox.ui.location.SkyToxGeoOpenActivity
 import ltd.evilcorp.atox.ui.location.SkyToxLocationPayload
@@ -88,7 +93,9 @@ import ltd.evilcorp.atox.ui.motion.CHAT_WINDOW_MOTION
 import ltd.evilcorp.atox.ui.motion.ChatWindowMotion
 import ltd.evilcorp.atox.ui.motion.NoChatWindowMotion
 import ltd.evilcorp.atox.ui.motion.chatWindowMotion
+import ltd.evilcorp.atox.ui.motion.openTopToolbarWindow
 import ltd.evilcorp.atox.ui.texteditor.SkyToxTextEditorActivity
+import ltd.evilcorp.atox.ui.myskytox.files.MySkyToxFileManagerActivity
 import ltd.evilcorp.atox.vmFactory
 import ltd.evilcorp.core.vo.ConnectionStatus
 import ltd.evilcorp.core.vo.Contact
@@ -108,6 +115,9 @@ const val CONTACT_PUBLIC_KEY = "publicKey"
 const val FOCUS_ON_MESSAGE_BOX = "focusOnMessageBox"
 const val TARGET_MESSAGE_ID = "targetMessageId"
 private const val MAX_CONFIRM_DELETE_STRING_LENGTH = 20
+private fun localAiSupportedInChat(): Boolean =
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.N &&
+        Build.SUPPORTED_64_BIT_ABIS.any { it.equals("arm64-v8a", ignoreCase = true) }
 private const val VOICE_MESSAGE_BIT_RATE = 64_000
 private const val MIN_VOICE_MESSAGE_DURATION_MS = 500
 private const val PERMISSION_RECORD_AUDIO = Manifest.permission.RECORD_AUDIO
@@ -167,6 +177,9 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     private var pendingHistoryAnchor: ChatScrollAnchor? = null
     private var emojiAnimationCoordinator: EmojiAnimationCoordinator? = null
     private var pendingEmojiVisibleRefresh = false
+    private var attachmentPanelController: AttachmentPanelController? = null
+    private var pendingAttachmentPanel = false
+    private var cameraLaunching = false
 
     companion object {
         private val autoWakeOpenAttemptsByContact = mutableMapOf<String, Int>()
@@ -235,6 +248,28 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                 activity?.contentResolver?.takePersistableUriPermission(file, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 viewModel.createFt(file)
             }
+        }
+
+    private val cameraLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            cameraLaunching = false
+            val context = context ?: return@registerForActivityResult
+            if (result.resultCode != Activity.RESULT_OK) {
+                result.data?.getStringExtra(CameraCaptureResult.EXTRA_ERROR)?.let { error ->
+                    Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                }
+                return@registerForActivityResult
+            }
+            val file = CameraCaptureStore.resolve(
+                context,
+                result.data?.getStringExtra(CameraCaptureResult.EXTRA_TOKEN),
+            )
+            if (file == null) {
+                Toast.makeText(context, R.string.camera_capture_failed, Toast.LENGTH_LONG).show()
+                return@registerForActivityResult
+            }
+            viewModel.setActiveChat(PublicKey(contactPubKey))
+            viewModel.createCameraFt(file)
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -320,9 +355,43 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         toolbar.menu.findItem(R.id.send_code_message)?.isVisible = !viewModel.isSelfChat()
         toolbar.menu.findItem(R.id.share_live_location)?.isVisible = !viewModel.isSelfChat()
         toolbar.menu.findItem(R.id.send_location)?.isVisible = !viewModel.isSelfChat()
+        toolbar.menu.findItem(R.id.open_my_skytox_file_manager)?.isVisible = viewModel.isSelfChat()
+        toolbar.menu.findItem(R.id.open_radio)?.isVisible = viewModel.isSelfChat()
+        toolbar.menu.findItem(R.id.open_music)?.isVisible = viewModel.isSelfChat()
+        toolbar.menu.findItem(R.id.open_ai_assistant)?.isVisible = viewModel.isSelfChat() && localAiSupportedInChat()
+        toolbar.menu.findItem(R.id.open_games)?.isVisible = viewModel.isSelfChat()
         toolbar.menu.findItem(R.id.delete_selected)?.isVisible = false
+        if (viewModel.isSelfChat()) {
+            (requireActivity() as? MainActivity)?.setMusicAvailabilityListener { enabled ->
+                toolbar.menu.findItem(R.id.open_music)?.let { menuItem ->
+                    menuItem.isEnabled = enabled
+                    menuItem.icon?.alpha = if (enabled) 255 else 90
+                }
+            }
+        }
         toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
+                R.id.open_radio -> {
+                    openTopToolbarWindow(findNavController(), R.id.radioFragment, item.itemId, toolbar, viewModel.windowAnimationsEnabled())
+                    true
+                }
+                R.id.open_music -> {
+                    (requireActivity() as? MainActivity)?.showMusicWidget()
+                    true
+                }
+                R.id.open_ai_assistant -> {
+                    openTopToolbarWindow(findNavController(), R.id.aiAssistantFragment, item.itemId, toolbar, viewModel.windowAnimationsEnabled())
+                    true
+                }
+                R.id.open_games -> {
+                    openTopToolbarWindow(findNavController(), R.id.gamesFragment, item.itemId, toolbar, viewModel.windowAnimationsEnabled())
+                    true
+                }
+                R.id.open_my_skytox_file_manager -> {
+                    startActivity(Intent(requireContext(), MySkyToxFileManagerActivity::class.java))
+                    requireActivity().overridePendingTransition(0, 0)
+                    true
+                }
                 R.id.delete_selected -> {
                     val currentAdapter = messages.adapter as? ChatAdapter ?: return@setOnMenuItemClickListener true
                     confirmDeleteSelected(currentAdapter)
@@ -442,8 +511,11 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                 else -> DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(it.lastMessage)
                 }.lowercase(Locale.getDefault())
             }
+            title.visibility = if (viewModel.isSelfChat()) View.GONE else View.VISIBLE
+            subtitle.visibility = if (viewModel.isSelfChat()) View.GONE else View.VISIBLE
 
-            avatarImageView.setFrom(it)
+            avatarImageView.visibility = if (viewModel.isSelfChat()) View.GONE else View.VISIBLE
+            if (!viewModel.isSelfChat()) avatarImageView.setFrom(it)
 
             if (it.draftMessage.isNotEmpty() && outgoingMessage.text.isEmpty()) {
                 outgoingMessage.setText(it.draftMessage)
@@ -695,6 +767,29 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         if (!viewModel.isSelfChat()) {
             registerForContextMenu(send)
         }
+
+        attachmentPanelController = AttachmentPanelController(
+            panel = attachmentPanel,
+            dismissLayer = attachmentDismissLayer,
+            fileAction = attachmentFileAction,
+            cameraAction = attachmentCameraAction,
+            onFile = { attachFilesLauncher.launch(arrayOf("*/*")) },
+            onCamera = { launchAttachmentCamera() },
+        )
+        requireActivity().onBackPressedDispatcher.addCallback(
+            viewLifecycleOwner,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (attachmentPanelController?.isVisible == true) {
+                        attachmentPanelController?.hide()
+                    } else {
+                        isEnabled = false
+                        requireActivity().onBackPressedDispatcher.onBackPressed()
+                        isEnabled = true
+                    }
+                }
+            },
+        )
         send.setOnClickListener {
             if (viewModel.isSelfChat()) {
                 showSelfChatSendChoice()
@@ -704,11 +799,33 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         }
 
         attach.setOnClickListener {
-            WindowInsetsControllerCompat(requireActivity().window, view).hide(WindowInsetsCompat.Type.ime())
-            attachFilesLauncher.launch(arrayOf("*/*"))
+            val controller = attachmentPanelController ?: return@setOnClickListener
+            if (controller.isVisible) {
+                controller.hide()
+                pendingAttachmentPanel = false
+                return@setOnClickListener
+            }
+            val imeVisible = ViewCompat.getRootWindowInsets(view)
+                ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+            if (imeVisible) {
+                pendingAttachmentPanel = true
+                WindowInsetsControllerCompat(requireActivity().window, view)
+                    .hide(WindowInsetsCompat.Type.ime())
+                view.postDelayed({
+                    if (pendingAttachmentPanel && isAdded) {
+                        pendingAttachmentPanel = false
+                        attachmentPanelController?.show()
+                    }
+                }, 140L)
+            } else {
+                controller.show()
+            }
         }
 
-        voiceMessage.setOnTouchListener { button, event -> handleVoiceGesture(button, event) }
+        voiceMessage.setOnTouchListener { button, event ->
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) attachmentPanelController?.hide()
+            handleVoiceGesture(button, event)
+        }
         voiceLockedCancel.setOnClickListener { finishVoiceGesture(send = false) }
         voiceLockedSend.setOnClickListener { finishVoiceGesture(send = true) }
 
@@ -725,6 +842,9 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     }
 
     override fun onDestroyView() {
+        if (viewModel.isSelfChat()) (activity as? MainActivity)?.setMusicAvailabilityListener(null)
+        attachmentPanelController?.destroy()
+        attachmentPanelController = null
         (binding.messages.adapter as? ChatAdapter)?.close()
         emojiAnimationCoordinator?.clear()
         emojiAnimationCoordinator = null
@@ -732,6 +852,8 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
     }
 
     override fun onPause() {
+        pendingAttachmentPanel = false
+        attachmentPanelController?.hide()
         (binding.messages.adapter as? ChatAdapter)?.setProgressAnimationsEnabled(false, binding.messages)
         emojiAnimationCoordinator?.setActive(false)
         finishVoiceGesture(send = false)
@@ -868,6 +990,18 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
                 true
             }
         }
+        R.id.share_system -> {
+            val messages = if (selectedMessageIds.isEmpty()) {
+                listOf(message)
+            } else {
+                adapter.messages.filter { it.id in selectedMessageIds }
+            }
+            if (!SkyToxSystemShare.launch(requireContext(), messages, fts)) {
+                Toast.makeText(requireContext(), R.string.nothing_to_share, Toast.LENGTH_SHORT).show()
+            }
+            if (selectedMessageIds.isNotEmpty()) clearSelection(adapter)
+            true
+        }
         R.id.decrypt_message -> {
             decryptEncryptedMessage(message.message)
             true
@@ -919,6 +1053,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
 
     private fun updateSelectionUi(adapter: ChatAdapter) = binding.run {
         val selecting = selectedMessageIds.isNotEmpty()
+        if (selecting) attachmentPanelController?.hide()
         toolbar.setNavigationIcon(if (selecting) R.drawable.ic_close else R.drawable.ic_back)
         toolbar.navigationIcon?.mutate()?.setTint(
             ContextCompat.getColor(requireContext(), R.color.toolbarIconColor),
@@ -1673,6 +1808,7 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
         attach.visibility = if (recording || viewModel.isSelfChat() || send.isVisible) View.GONE else View.VISIBLE
         voiceMessage.visibility = if (voiceGestureState == VoiceGestureState.LOCKED || viewModel.isSelfChat() || send.isVisible) View.GONE else View.VISIBLE
         attach.isEnabled = !viewModel.isSelfChat()
+        if (!attach.isVisible) attachmentPanelController?.hide()
         voiceMessage.isEnabled = !viewModel.isSelfChat()
         attach.setColorFilter(
             ContextCompat.getColor(
@@ -1691,6 +1827,16 @@ class ChatFragment : BaseFragment<FragmentChatBinding>(FragmentChatBinding::infl
             ),
         )
         updateVoiceGestureUi()
+    }
+
+    private fun launchAttachmentCamera() {
+        if (cameraLaunching) return
+        if (viewModel.hasActiveCall()) {
+            Toast.makeText(requireContext(), R.string.camera_active_call, Toast.LENGTH_LONG).show()
+            return
+        }
+        cameraLaunching = true
+        cameraLauncher.launch(CameraCaptureResult.intent(requireContext()))
     }
 
     private fun wakeContactReady(): Boolean =

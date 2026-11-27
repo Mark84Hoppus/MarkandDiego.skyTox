@@ -234,6 +234,7 @@ class ChatViewModel @Inject constructor(
             chatManager.clearHistory(publicKey)
             fileTransferManager.deleteAll(publicKey)
         }
+        historyCache.remove(publicKey.string())
     }
 
     fun setActiveChat(pk: PublicKey, targetMessageId: Long? = null) {
@@ -253,7 +254,6 @@ class ChatViewModel @Inject constructor(
         initialTargetMessageId = targetMessageId
         notificationHelper.dismissNotifications(publicKey)
         chatManager.activeChat = publicKey.string()
-        historyCache.remove(publicKey.string())
         if (!sameWindow) startHistory(publicKey, targetMessageId)
         if (isSelfChat()) {
             localContact.value = Contact(
@@ -510,7 +510,19 @@ class ChatViewModel @Inject constructor(
     }
 
     fun createFt(file: Uri) = scope.launch(Dispatchers.IO) {
-        if (isSelfChat()) return@launch
+        createFtInternal(file)
+    }
+
+    fun createCameraFt(file: File) = scope.launch(Dispatchers.IO) {
+        try {
+            createFtInternal(Uri.fromFile(file))
+        } finally {
+            runCatching { file.delete() }
+        }
+    }
+
+    private suspend fun createFtInternal(file: Uri) {
+        if (isSelfChat()) return
         // Make sure there's no stale cached image in Picasso.
         // This happens if the user sends 2 different files with the same path (e.g. by overwriting one with the other.)
         Picasso.get().invalidate(file)
@@ -524,7 +536,7 @@ class ChatViewModel @Inject constructor(
             withContext(Dispatchers.Main) {
                 Toast.makeText(context, R.string.pending_queue_full, Toast.LENGTH_LONG).show()
             }
-            return@launch
+            return
         }
         if (!contactOnline) {
             startMessageWakeLoop(publicKey.string())
@@ -533,6 +545,8 @@ class ChatViewModel @Inject constructor(
             }
         }
     }
+
+    fun hasActiveCall(): Boolean = callManager.inCall.value is CallState.InCall
 
     fun voiceMessageFile(): File = fileTransferManager.voiceMessageFile()
 
@@ -740,6 +754,7 @@ class ChatViewModel @Inject constructor(
     }
 
     fun isSelfChat(): Boolean = isSkyToxSelfChat(publicKey.string())
+    fun windowAnimationsEnabled(): Boolean = settings.windowAnimationsEnabled
 
     private fun timestamp(): String =
         SimpleDateFormat("""yyyy-MM-dd'T'HH-mm-ss""", Locale.getDefault()).format(Date())

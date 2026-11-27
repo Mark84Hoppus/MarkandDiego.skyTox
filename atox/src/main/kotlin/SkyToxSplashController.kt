@@ -23,6 +23,7 @@ class SkyToxSplashController(private val activity: MainActivity) {
     private var completed: (() -> Unit)? = null
     private var oldStatusBarColor = Color.TRANSPARENT
     private var oldNavigationBarColor = Color.BLACK
+    private var renderingStarted = false
     val isShowing: Boolean get() = overlay != null
 
     fun showIfEligible(
@@ -32,11 +33,11 @@ class SkyToxSplashController(private val activity: MainActivity) {
         // This process-local gate is the lifecycle rule: show once after Android
         // creates a new process, but never when the existing process is resumed.
         if (!enabled) return false
-        if (!shownInThisProcess.compareAndSet(false, true)) return false
+        if (shownInThisProcess.get() || !attemptInThisProcess.compareAndSet(false, true)) return false
         completed = onComplete
 
         val parent = activity.findViewById<ViewGroup>(android.R.id.content) ?: run {
-            shownInThisProcess.set(false)
+            attemptInThisProcess.set(false)
             return false
         }
         val container = FrameLayout(activity).apply {
@@ -84,8 +85,15 @@ class SkyToxSplashController(private val activity: MainActivity) {
         surface.release()
         mediaPlayer.setOnPreparedListener {
             if (overlay == null) return@setOnPreparedListener
-            it.setVolume(1f, 1f)
+            it.setVolume(0f, 0f)
             it.start()
+        }
+        mediaPlayer.setOnInfoListener { _, what, _ ->
+            if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
+                renderingStarted = true
+                shownInThisProcess.set(true)
+            }
+            false
         }
         mediaPlayer.setOnCompletionListener { dismiss(immediate = false) }
         mediaPlayer.setOnErrorListener { _, _, _ ->
@@ -109,6 +117,7 @@ class SkyToxSplashController(private val activity: MainActivity) {
             activity.window.navigationBarColor = oldNavigationBarColor
             if (runCompletion) completed?.invoke()
             completed = null
+            if (!renderingStarted) attemptInThisProcess.set(false)
         }
         if (immediate) finish() else current.animate().alpha(0f).setDuration(160L).withEndAction(finish).start()
     }
@@ -116,6 +125,10 @@ class SkyToxSplashController(private val activity: MainActivity) {
     fun release() {
         dismiss(immediate = true, runCompletion = false)
         releasePlayer()
+    }
+
+    fun onHostStopped(changingConfigurations: Boolean) {
+        if (!changingConfigurations) dismiss(immediate = true, runCompletion = false)
     }
 
     private fun releasePlayer() {
@@ -127,5 +140,6 @@ class SkyToxSplashController(private val activity: MainActivity) {
     companion object {
         private const val MAX_VISIBLE_MS = 3_700L
         private val shownInThisProcess = AtomicBoolean(false)
+        private val attemptInThisProcess = AtomicBoolean(false)
     }
 }

@@ -12,6 +12,7 @@ import android.media.audiofx.AcousticEchoCanceler
 import android.media.audiofx.AutomaticGainControl
 import android.media.audiofx.NoiseSuppressor
 import android.util.Log
+import ltd.evilcorp.domain.feature.SkyToxCrashLogger
 import kotlin.math.max
 
 private const val TAG = "AudioCapture"
@@ -36,8 +37,8 @@ private fun findAudioRecord(sampleRate: Int, channels: Int): AudioRecord? {
     }
     val bufferSize = max(minBufferSize, sampleRate * channels * 2 / 5)
 
-    // TRIfA prefers the low-latency voice recognition preset and falls back to voice communication.
-    // Some Xiaomi phones still reject one of these sources, so keep MIC/DEFAULT as safety nets.
+    // VOICE_RECOGNITION is the known-good baseline for the devices used to test skyTox.
+    // Keep the communication path as a fallback; vendor implementations differ widely.
     val audioSources = arrayOf(
         MediaRecorder.AudioSource.VOICE_RECOGNITION,
         MediaRecorder.AudioSource.VOICE_COMMUNICATION,
@@ -52,6 +53,10 @@ private fun findAudioRecord(sampleRate: Int, channels: Int): AudioRecord? {
             continue
         }
         Log.i(TAG, "Using audio source $audioSource session=${recorder.audioSessionId} bufferSize=$bufferSize")
+        SkyToxCrashLogger.av(
+            "audio.capture source=$audioSource session=${recorder.audioSessionId} " +
+                "sampleRate=$sampleRate channels=$channels minBuffer=$minBufferSize buffer=$bufferSize",
+        )
         return recorder
     }
 
@@ -72,18 +77,20 @@ class AudioCapture private constructor(
         audioEffects.release()
         audioRecord.release()
     }
-    fun read(): ShortArray? {
-        val samples = ShortArray((sampleRate * channels * frameLengthMs / 1000.0).toInt())
+    val frameSamples: Int = sampleRate * channels * frameLengthMs / 1000
+
+    fun readInto(samples: ShortArray): Boolean {
+        require(samples.size == frameSamples)
         var totalRead = 0
         while (totalRead < samples.size) {
             val read = audioRecord.read(samples, totalRead, samples.size - totalRead)
             if (read <= 0) {
                 Log.w(TAG, "AudioRecord read failed: $read")
-                return null
+                return false
             }
             totalRead += read
         }
-        return samples
+        return true
     }
 
     companion object {
@@ -123,7 +130,8 @@ private class AudioEffects private constructor(
             }.getOrNull()
             val gainControl = runCatching {
                 if (AutomaticGainControl.isAvailable()) {
-                    AutomaticGainControl.create(audioSessionId)?.apply { enabled = true }
+                    // Software/firmware AGC is often destructive for already encoded speech.
+                    AutomaticGainControl.create(audioSessionId)?.apply { enabled = false }
                 } else {
                     null
                 }
@@ -131,6 +139,11 @@ private class AudioEffects private constructor(
             Log.i(
                 TAG,
                 "Audio effects: aec=${echoCanceler != null} ns=${noiseSuppressor != null} agc=${gainControl != null}",
+            )
+            SkyToxCrashLogger.av(
+                "audio.effects session=$audioSessionId " +
+                    "aec=${echoCanceler?.enabled == true} ns=${noiseSuppressor?.enabled == true} " +
+                    "agc=${gainControl?.enabled == true}",
             )
             return AudioEffects(echoCanceler, noiseSuppressor, gainControl)
         }

@@ -71,6 +71,9 @@ class RemoteVideoView @JvmOverloads constructor(
         private var pendingV = ByteArray(0)
         private var pendingDirty = false
         private var pendingVisible = false
+        private var renderY = ByteArray(0)
+        private var renderU = ByteArray(0)
+        private var renderV = ByteArray(0)
 
         private var frameWidth = 0
         private var frameHeight = 0
@@ -78,6 +81,8 @@ class RemoteVideoView @JvmOverloads constructor(
         private var uBuffer: ByteBuffer? = null
         private var vBuffer: ByteBuffer? = null
         private var frameVisible = false
+        private val textureWidths = IntArray(3)
+        private val textureHeights = IntArray(3)
 
         fun setFrame(frame: IncomingVideoFrame) {
             synchronized(lock) {
@@ -154,9 +159,6 @@ class RemoteVideoView @JvmOverloads constructor(
             var width = 0
             var height = 0
             var visible = false
-            var y: ByteArray? = null
-            var u: ByteArray? = null
-            var v: ByteArray? = null
             synchronized(lock) {
                 if (!pendingDirty) {
                     return
@@ -166,21 +168,22 @@ class RemoteVideoView @JvmOverloads constructor(
                 if (visible) {
                     width = pendingWidth
                     height = pendingHeight
-                    y = pendingY.copyOf(width * height)
-                    u = pendingU.copyOf(((width + 1) / 2) * ((height + 1) / 2))
-                    v = pendingV.copyOf(((width + 1) / 2) * ((height + 1) / 2))
+                    ensureRenderCapacity(width, height)
+                    System.arraycopy(pendingY, 0, renderY, 0, renderY.size)
+                    System.arraycopy(pendingU, 0, renderU, 0, renderU.size)
+                    System.arraycopy(pendingV, 0, renderV, 0, renderV.size)
                 }
             }
 
             frameVisible = visible
-            if (!visible || y == null || u == null || v == null) {
+            if (!visible) {
                 return
             }
 
             ensureFrameBuffers(width, height)
-            yBuffer?.put(y)?.position(0)
-            uBuffer?.put(u)?.position(0)
-            vBuffer?.put(v)?.position(0)
+            yBuffer?.put(renderY)?.position(0)
+            uBuffer?.put(renderU)?.position(0)
+            vBuffer?.put(renderV)?.position(0)
             frameWidth = width
             frameHeight = height
             updateTextureCoordinates()
@@ -199,17 +202,19 @@ class RemoteVideoView @JvmOverloads constructor(
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + unit)
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture)
             GLES20.glUniform1i(samplerHandle, unit)
-            GLES20.glTexImage2D(
-                GLES20.GL_TEXTURE_2D,
-                0,
-                GLES20.GL_LUMINANCE,
-                width,
-                height,
-                0,
-                GLES20.GL_LUMINANCE,
-                GLES20.GL_UNSIGNED_BYTE,
-                source,
-            )
+            if (textureWidths[unit] != width || textureHeights[unit] != height) {
+                GLES20.glTexImage2D(
+                    GLES20.GL_TEXTURE_2D, 0, GLES20.GL_LUMINANCE, width, height, 0,
+                    GLES20.GL_LUMINANCE, GLES20.GL_UNSIGNED_BYTE, source,
+                )
+                textureWidths[unit] = width
+                textureHeights[unit] = height
+            } else {
+                GLES20.glTexSubImage2D(
+                    GLES20.GL_TEXTURE_2D, 0, 0, 0, width, height,
+                    GLES20.GL_LUMINANCE, GLES20.GL_UNSIGNED_BYTE, source,
+                )
+            }
         }
 
         private fun ensurePendingCapacity(width: Int, height: Int) {
@@ -224,6 +229,14 @@ class RemoteVideoView @JvmOverloads constructor(
             if (pendingV.size != uvSize) {
                 pendingV = ByteArray(uvSize)
             }
+        }
+
+        private fun ensureRenderCapacity(width: Int, height: Int) {
+            val ySize = width * height
+            val uvSize = ((width + 1) / 2) * ((height + 1) / 2)
+            if (renderY.size != ySize) renderY = ByteArray(ySize)
+            if (renderU.size != uvSize) renderU = ByteArray(uvSize)
+            if (renderV.size != uvSize) renderV = ByteArray(uvSize)
         }
 
         private fun ensureFrameBuffers(width: Int, height: Int) {

@@ -133,8 +133,10 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
                 return@observe
             }
             if (enabled) {
+                videoToggle.setImageResource(R.drawable.ic_videocam)
                 startLocalVideoIfPossible()
             } else {
+                videoToggle.setImageResource(R.drawable.ic_videocam_off)
                 stopLocalVideo()
             }
         }
@@ -199,6 +201,21 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
 
         videoControl.setOnClickListener {
             switchCamera()
+        }
+
+        videoToggle.setOnClickListener {
+            if (vm.localVideoEnabled.value) {
+                localVideoRequested = false
+                setLocalVideoEnabled(false)
+            } else {
+                localVideoRequested = true
+                if (requireContext().hasPermission(CAMERA_PERMISSION)) {
+                    setLocalVideoEnabled(true)
+                } else if (!cameraPermissionRequested) {
+                    cameraPermissionRequested = true
+                    requestCameraPermissionLauncher.launch(CAMERA_PERMISSION)
+                }
+            }
         }
 
         backToChat.setOnClickListener {
@@ -327,6 +344,7 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
         microphoneControl.visibility = View.GONE
         speakerphone.visibility = View.GONE
         videoControl.visibility = View.GONE
+        videoToggle.visibility = View.GONE
         backToChat.visibility = View.GONE
         callDuration.visibility = View.GONE
         callDuration.stop()
@@ -337,6 +355,7 @@ class CallFragment : BaseFragment<FragmentCallBinding>(FragmentCallBinding::infl
         microphoneControl.visibility = View.VISIBLE
         speakerphone.visibility = View.VISIBLE
         videoControl.visibility = if (vm.localVideoEnabled.value) View.VISIBLE else View.GONE
+        videoToggle.visibility = View.VISIBLE
         backToChat.visibility = View.VISIBLE
         callDuration.visibility = View.VISIBLE
         callDuration.base = SystemClock.elapsedRealtime()
@@ -499,10 +518,7 @@ private class SkyToxVideoCapture(
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
         SkyToxCrashLogger.event("camera.surface.changed ${width}x$height")
-        if (holderReady) {
-            closeCamera()
-            openCamera()
-        }
+        if (holderReady && camera == null) openCamera()
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {

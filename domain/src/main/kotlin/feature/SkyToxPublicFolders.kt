@@ -35,6 +35,10 @@ private const val SKYTOX_AI_CHATS = "ai chats"
 private const val SKYTOX_AI_CONTEXT = "ai context"
 private const val SKYTOX_AI_CACHE = "cache"
 private const val SKYTOX_MUSIC = "skyTox music"
+private const val SKYTOX_MY = "My skyTox"
+private const val SKYTOX_MY_DOWNLOADS = "Downloads"
+private const val SKYTOX_MY_RECYCLE = "Recycle Bin"
+private const val SKYTOX_MY_META = ".skytox"
 
 object SkyToxPublicFolders {
     @Suppress("DEPRECATION")
@@ -66,6 +70,10 @@ object SkyToxPublicFolders {
     val aiContextDir: File get() = File(aiDir, SKYTOX_AI_CONTEXT)
     val aiCacheDir: File get() = File(aiDir, SKYTOX_AI_CACHE)
     val musicDir: File get() = File(root, SKYTOX_MUSIC)
+    val mySkyToxDir: File get() = File(root, SKYTOX_MY)
+    val mySkyToxDownloadsDir: File get() = File(mySkyToxDir, SKYTOX_MY_DOWNLOADS)
+    val mySkyToxRecycleDir: File get() = File(mySkyToxDir, SKYTOX_MY_RECYCLE)
+    val mySkyToxMetaDir: File get() = File(mySkyToxDir, SKYTOX_MY_META)
 
     fun ensureDirectories() {
         listOf(
@@ -97,6 +105,10 @@ object SkyToxPublicFolders {
             aiContextDir,
             aiCacheDir,
             musicDir,
+            mySkyToxDir,
+            mySkyToxDownloadsDir,
+            mySkyToxRecycleDir,
+            mySkyToxMetaDir,
         )
             .forEach { it.mkdirs() }
     }

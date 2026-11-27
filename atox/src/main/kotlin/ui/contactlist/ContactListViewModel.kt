@@ -37,9 +37,13 @@ import ltd.evilcorp.atox.R
 import ltd.evilcorp.atox.settings.Settings
 import ltd.evilcorp.atox.tox.ToxStarter
 import ltd.evilcorp.atox.ui.NotificationHelper
+import ltd.evilcorp.atox.ui.myskytox.files.filesystem.MySkyToxFileRepository
 import ltd.evilcorp.core.db.Database
 import ltd.evilcorp.core.repository.MessageRepository
 import ltd.evilcorp.core.vo.Contact
+import ltd.evilcorp.core.vo.Message
+import ltd.evilcorp.core.vo.MessageType
+import ltd.evilcorp.core.vo.Sender
 import ltd.evilcorp.core.vo.ConnectionStatus
 import ltd.evilcorp.core.vo.FriendRequest
 import ltd.evilcorp.core.vo.PublicKey
@@ -94,6 +98,7 @@ class ContactListViewModel @Inject constructor(
     private val settings: Settings,
     private val database: Database,
     private val saveManager: SaveManager,
+    private val mySkyToxFileRepository: MySkyToxFileRepository,
     userManager: UserManager,
 ) : ViewModel() {
     val emergencyWipeResult = MutableLiveData<EmergencyWipeResult>()
@@ -281,6 +286,34 @@ class ContactListViewModel @Inject constructor(
     }
 
     fun onShareText(what: String, to: Contact) = chatManager.sendMessage(PublicKey(to.publicKey), what)
+
+    fun onShareTextToSelf(what: String) = scope.launch(Dispatchers.IO) {
+        if (what.isBlank()) return@launch
+        messageRepository.addLocal(
+            Message(
+                publicKey = SKYTOX_SELF_CHAT_PUBLIC_KEY,
+                message = what,
+                sender = Sender.Sent,
+                type = MessageType.Normal,
+                correlationId = 0,
+                timestamp = System.currentTimeMillis(),
+            ),
+        )
+    }
+
+    fun importFilesToMySkyTox(files: List<Uri>) = scope.launch(Dispatchers.IO) {
+        val result = runCatching {
+            mySkyToxFileRepository.importUris(files)
+        }
+        withContext(Dispatchers.Main) {
+            Toast.makeText(
+                context,
+                if (result.isSuccess) context.getString(R.string.filemanager_imported_count, result.getOrThrow().size)
+                else context.getString(R.string.filemanager_operation_failed, result.exceptionOrNull()?.message.orEmpty()),
+                Toast.LENGTH_LONG,
+            ).show()
+        }
+    }
 
     fun onShareFiles(files: List<Uri>, to: Contact) = scope.launch(Dispatchers.IO) {
         files.take(MAX_FILES_PER_SHARE_BATCH).forEach {

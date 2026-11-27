@@ -284,6 +284,7 @@ class EventListenerCallbacks @Inject constructor(
         videoBitRateHandler = { pk, bitRate ->
             Log.e(TAG, "videoBitRate ${pk.fingerprint()} $bitRate")
             SkyToxCrashLogger.av("toxav.videoBitRate pk=${pk.fingerprint()} bitRate=$bitRate")
+            callManager.applySuggestedVideoBitRate(PublicKey(pk), bitRate)
         }
 
         videoReceiveFrameHandler = {

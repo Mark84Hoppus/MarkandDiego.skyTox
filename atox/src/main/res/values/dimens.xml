@@ -11,4 +11,9 @@
 
     <dimen name="default_avatar_size">50dp</dimen>
     <dimen name="skytox_start_menu_list_bottom_padding">96dp</dimen>
+    <dimen name="attachment_panel_width">190dp</dimen>
+    <dimen name="attachment_panel_height">96dp</dimen>
+    <dimen name="attachment_panel_bottom_offset">252dp</dimen>
+    <dimen name="attachment_panel_corner">20dp</dimen>
+    <dimen name="attachment_action_size">68dp</dimen>
 </resources>

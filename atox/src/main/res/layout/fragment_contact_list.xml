@@ -26,6 +26,16 @@
                         android:contentDescription="@string/app_name"
                         android:padding="7dp"
                         android:src="@drawable/atox_logo_white"/>
+                <ImageButton
+                        android:id="@+id/open_sos"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginStart="24dp"
+                        android:background="@android:color/transparent"
+                        android:contentDescription="@string/sos_title"
+                        android:padding="6dp"
+                        android:src="@drawable/ic_sos"/>
             </androidx.appcompat.widget.Toolbar>
         </com.google.android.material.appbar.AppBarLayout>
 

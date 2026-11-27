@@ -101,10 +101,20 @@
                 android:theme="@style/AppTheme.MediaViewer" />
 
         <activity
+                android:name=".ui.camera.SkyToxCameraActivity"
+                android:configChanges="orientation|screenSize|keyboardHidden"
+                android:exported="false"
+                android:theme="@style/AppTheme.Camera" />
+
+        <activity
                 android:name=".ui.location.SkyToxLocationMapActivity"
                 android:exported="false"
                 android:screenOrientation="portrait"
                 android:theme="@style/AppTheme" />
+        <activity
+                android:name=".ui.myskytox.files.MySkyToxFileManagerActivity"
+                android:exported="false"
+                android:theme="@style/AppTheme.MySkyToxFileManager" />
 
         <activity
                 android:name=".ui.location.SkyToxGeoOpenActivity"

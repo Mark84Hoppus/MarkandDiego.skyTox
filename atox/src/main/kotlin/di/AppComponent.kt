@@ -17,8 +17,10 @@ import ltd.evilcorp.atox.ToxKeepAliveWorker
 import ltd.evilcorp.atox.SkyToxSelfChatScheduledMessageWorker
 import ltd.evilcorp.atox.ui.ai.SkyToxAiAssistantFragment
 import ltd.evilcorp.atox.ui.call.IncomingCallActivity
+import ltd.evilcorp.atox.ui.camera.SkyToxCameraActivity
 import ltd.evilcorp.atox.ui.location.SkyToxLocationMapActivity
 import ltd.evilcorp.atox.ui.texteditor.SkyToxTextEditorActivity
+import ltd.evilcorp.atox.ui.myskytox.files.MySkyToxFileManagerActivity
 import ltd.evilcorp.atox.ui.sos.SosFragment
 
 @Singleton
@@ -39,8 +41,10 @@ interface AppComponent {
 
     fun inject(activity: MainActivity)
     fun inject(activity: IncomingCallActivity)
+    fun inject(activity: SkyToxCameraActivity)
     fun inject(activity: SkyToxLocationMapActivity)
     fun inject(activity: SkyToxTextEditorActivity)
+    fun inject(activity: MySkyToxFileManagerActivity)
     fun inject(fragment: SkyToxAiAssistantFragment)
     fun inject(fragment: SosFragment)
     fun inject(service: ToxService)

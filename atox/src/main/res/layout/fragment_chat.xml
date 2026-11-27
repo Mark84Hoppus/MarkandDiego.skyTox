@@ -229,4 +229,66 @@
                 android:src="@drawable/ic_mic"
                 app:tint="@color/ocean_input_text"/>
     </LinearLayout>
+
+    <View
+            android:id="@+id/attachmentDismissLayer"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@android:color/transparent"
+            android:clickable="true"
+            android:elevation="18dp"
+            android:focusable="true"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/appBarLayout" />
+
+    <LinearLayout
+            android:id="@+id/attachmentPanel"
+            android:layout_width="@dimen/attachment_panel_width"
+            android:layout_height="@dimen/attachment_panel_height"
+            android:layout_marginBottom="@dimen/attachment_panel_bottom_offset"
+            android:background="@drawable/chat_attachment_panel_background"
+            android:elevation="22dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingHorizontal="18dp"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+        <FrameLayout
+                android:id="@+id/attachmentFileAction"
+                android:layout_width="@dimen/attachment_action_size"
+                android:layout_height="@dimen/attachment_action_size"
+                android:layout_marginEnd="18dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="@string/attachment_panel_file"
+                android:focusable="true">
+
+            <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_attachment_file_folder" />
+        </FrameLayout>
+
+        <TextView
+                android:id="@+id/attachmentCameraAction"
+                android:layout_width="@dimen/attachment_action_size"
+                android:layout_height="@dimen/attachment_action_size"
+                android:background="@drawable/attachment_cam_circle"
+                android:clickable="true"
+                android:contentDescription="@string/attachment_panel_camera"
+                android:focusable="true"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:text="CAM"
+                android:textColor="@color/ocean_text_primary"
+                android:textSize="15sp" />
+    </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

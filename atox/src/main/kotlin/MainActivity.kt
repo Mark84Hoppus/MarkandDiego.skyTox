@@ -151,7 +151,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
-        splashController?.dismiss(immediate = true, runCompletion = false)
+        splashController?.onHostStopped(isChangingConfigurations)
         super.onStop()
     }
 

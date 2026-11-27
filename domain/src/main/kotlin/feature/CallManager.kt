@@ -7,6 +7,7 @@ package ltd.evilcorp.domain.feature
 import android.content.Context
 import android.media.AudioManager
 import android.os.SystemClock
+import android.os.Process
 import android.util.Log
 import androidx.core.content.ContextCompat
 import im.tox.tox4j.av.enums.ToxavFriendCallState
@@ -14,8 +15,8 @@ import im.tox.tox4j.av.exceptions.ToxavCallException
 import im.tox.tox4j.av.exceptions.ToxavCallControlException
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -40,7 +41,7 @@ private const val VIDEO_QUALITY_CHANGE_INTERVAL_MS = 20_000L
 private const val VIDEO_UPGRADE_SUCCESS_FRAMES = 180
 private const val VIDEO_DOWNGRADE_FAILURES = 3
 private val VIDEO_HEIGHT_LADDER = listOf(144, 240, 360, 480)
-private const val DEFAULT_VIDEO_HEIGHT_INDEX = 3
+private const val DEFAULT_VIDEO_HEIGHT_INDEX = 2
 private const val INCOMING_VIDEO_YUV_BUFFER_COUNT = 4
 
 data class IncomingVideoFrame(
@@ -101,6 +102,9 @@ class CallManager @Inject constructor(private val tox: Tox, private val scope: C
     private var incomingVideoYuvBufferIndex = 0
     private var incomingVideoYuvBuffers: Array<IncomingVideoBuffer>? = null
     @Volatile private var videoStopping = false
+    @Volatile private var activeAudioCapture: AudioCapture? = null
+    @Volatile private var audioCaptureThread: Thread? = null
+    private val audioSenderGeneration = AtomicInteger(0)
 
     fun addPendingCall(from: Contact, videoEnabled: Boolean = false) {
         val calls = mutableSetOf<Contact>().apply { addAll(_pendingCalls.value) }
@@ -215,6 +219,7 @@ class CallManager @Inject constructor(private val tox: Tox, private val scope: C
 
     private fun finishCall(publicKey: PublicKey) {
         SkyToxCrashLogger.event("call.finish pk=${publicKey.fingerprint()} state=${inCall.value}")
+        stopSendingAudio()
         videoStopping = true
         val state = inCall.value
         if (state is CallState.InCall && state.publicKey == publicKey) {
@@ -237,7 +242,10 @@ class CallManager @Inject constructor(private val tox: Tox, private val scope: C
     }
 
     fun stopSendingAudio() {
+        audioSenderGeneration.incrementAndGet()
         _sendingAudio.value = false
+        runCatching { activeAudioCapture?.stop() }
+        audioCaptureThread?.interrupt()
     }
 
     fun receiveVideoFrame(
@@ -270,9 +278,9 @@ class CallManager @Inject constructor(private val tox: Tox, private val scope: C
         val convertStart = SystemClock.elapsedRealtime()
         runCatching {
             val buffer = nextIncomingYuvBuffer(width, height)
-            copyPlane(y, yStride, width, height, buffer.y)
-            copyPlane(u, uStride, buffer.chromaWidth, buffer.chromaHeight, buffer.u)
-            copyPlane(v, vStride, buffer.chromaWidth, buffer.chromaHeight, buffer.v)
+            copyVideoPlane(y, yStride, width, height, buffer.y)
+            copyVideoPlane(u, uStride, buffer.chromaWidth, buffer.chromaHeight, buffer.u)
+            copyVideoPlane(v, vStride, buffer.chromaWidth, buffer.chromaHeight, buffer.v)
             buffer
         }.onSuccess { buffer ->
             incomingVideoFramesForLog++
@@ -325,14 +333,18 @@ class CallManager @Inject constructor(private val tox: Tox, private val scope: C
 
     fun setLocalVideoEnabled(enabled: Boolean): Boolean {
         val to = (inCall.value as? CallState.InCall)?.publicKey ?: return false
+        if (enabled) resetVideoQuality()
         val bitrate = if (enabled) videoBitRateForHeight(_outgoingVideoHeight.value) else 0
         return try {
             SkyToxCrashLogger.event("video.local.set pk=${to.fingerprint()} enabled=$enabled bitrate=$bitrate")
-            tox.setVideoBitRate(to, bitrate)
             if (enabled) {
+                // Request the remote decoder path before sending a non-zero bitrate.
                 runCatching { tox.showVideo(to) }
                     .onFailure { Log.w(TAG, "Could not request video after enabling camera: ${it.message}") }
-                resetVideoQuality()
+                tox.setVideoBitRate(to, bitrate)
+            } else {
+                tox.setVideoBitRate(to, 0)
+                runCatching { tox.hideVideo(to) }
             }
             _localVideoEnabled.value = enabled
             true
@@ -353,27 +365,57 @@ class CallManager @Inject constructor(private val tox: Tox, private val scope: C
         }
 
     private fun startAudioSender(recorder: AudioCapture, to: PublicKey) {
-        scope.launch {
-            recorder.start()
+        stopSendingAudio()
+        val generation = audioSenderGeneration.incrementAndGet()
+        val thread = Thread({
+            runCatching { Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO) }
+            activeAudioCapture = recorder
+            val audioFrame = ShortArray(recorder.frameSamples)
+            try {
+                recorder.start()
+            } catch (e: Exception) {
+                SkyToxCrashLogger.error("audio.capture start failed", e)
+                recorder.release()
+                activeAudioCapture = null
+                return@Thread
+            }
             _sendingAudio.value = true
-            while (inCall.value is CallState.InCall && sendingAudio.value) {
-                val start = System.currentTimeMillis()
-                recorder.read()?.let { audioFrame ->
+            while (
+                audioSenderGeneration.get() == generation &&
+                inCall.value is CallState.InCall &&
+                sendingAudio.value
+            ) {
+                if (recorder.readInto(audioFrame)) {
                     try {
                         tox.sendAudio(to, audioFrame, AUDIO_CHANNELS, AUDIO_SAMPLING_RATE_HZ)
                     } catch (e: Exception) {
                         Log.e(TAG, e.toString())
                     }
                 }
-                val elapsed = System.currentTimeMillis() - start
-                if (elapsed < AUDIO_SEND_INTERVAL_MS) {
-                    delay(AUDIO_SEND_INTERVAL_MS - elapsed)
-                }
             }
-            recorder.stop()
+            runCatching { recorder.stop() }
             recorder.release()
-            _sendingAudio.value = false
+            if (audioSenderGeneration.get() == generation) {
+                activeAudioCapture = null
+                audioCaptureThread = null
+                _sendingAudio.value = false
+            }
+        }, "skyTox-call-audio-capture")
+        audioCaptureThread = thread
+        thread.start()
+    }
+
+    fun applySuggestedVideoBitRate(publicKey: PublicKey, bitRate: Int) {
+        val state = inCall.value as? CallState.InCall ?: return
+        if (state.publicKey != publicKey || bitRate <= 0 || !localVideoEnabled.value) return
+        val suggestedIndex = VIDEO_HEIGHT_LADDER.indexOfLast { videoBitRateForHeight(it) <= bitRate }.coerceAtLeast(0)
+        if (suggestedIndex < videoHeightIndex) {
+            videoHeightIndex = suggestedIndex
+            applyVideoQuality(publicKey, SystemClock.elapsedRealtime())
+        } else {
+            runCatching { tox.setVideoBitRate(publicKey, bitRate) }
         }
+        SkyToxCrashLogger.av("video.bitrate.feedback pk=${publicKey.fingerprint()} requested=$bitRate height=${_outgoingVideoHeight.value}")
     }
 
     private fun resetVideoQuality() {
@@ -525,18 +567,16 @@ class CallManager @Inject constructor(private val tox: Tox, private val scope: C
         return buffers[incomingVideoYuvBufferIndex]
     }
 
-    private fun copyPlane(source: ByteArray, stride: Int, width: Int, height: Int, target: ByteArray) {
-        for (row in 0 until height) {
-            val sourceOffset = row * stride
-            val targetOffset = row * width
-            if (sourceOffset >= source.size || targetOffset >= target.size) {
-                break
-            }
-            val count = minOf(width, source.size - sourceOffset, target.size - targetOffset)
-            if (count > 0) {
-                source.copyInto(target, targetOffset, sourceOffset, sourceOffset + count)
-            }
-        }
-    }
+}
 
+internal fun copyVideoPlane(source: ByteArray, stride: Int, width: Int, height: Int, target: ByteArray) {
+    val rowStride = kotlin.math.abs(stride)
+    for (row in 0 until height) {
+        val sourceRow = if (stride >= 0) row else height - 1 - row
+        val sourceOffset = sourceRow * rowStride
+        val targetOffset = row * width
+        if (sourceOffset >= source.size || targetOffset >= target.size) break
+        val count = minOf(width, source.size - sourceOffset, target.size - targetOffset)
+        if (count > 0) source.copyInto(target, targetOffset, sourceOffset, sourceOffset + count)
+    }
 }

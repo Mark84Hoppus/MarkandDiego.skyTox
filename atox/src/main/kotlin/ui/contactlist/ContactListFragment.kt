@@ -54,7 +54,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import ltd.evilcorp.atox.R
-import ltd.evilcorp.atox.MainActivity
 import ltd.evilcorp.atox.databinding.ContactListViewItemBinding
 import ltd.evilcorp.atox.databinding.FragmentContactListBinding
 import ltd.evilcorp.atox.databinding.FriendRequestItemBinding
@@ -92,11 +91,10 @@ private const val MAX_CONFIRM_DELETE_STRING_LENGTH = 32
 private const val MAX_FILES_PER_SHARE_BATCH = 10
 private const val RETURN_CHAT_PUBLIC_KEY = "returnChatPublicKey"
 
-private fun User.online(): Boolean = connectionStatus != ConnectionStatus.None
-private fun localAiSupported(): Boolean =
-    Build.VERSION.SDK_INT >= Build.VERSION_CODES.N &&
-        Build.SUPPORTED_64_BIT_ABIS.any { it.equals("arm64-v8a", ignoreCase = true) }
+internal fun <T> shareFilesForRecipient(files: List<T>, selfChat: Boolean): List<T> =
+    if (selfChat) files else files.take(MAX_FILES_PER_SHARE_BATCH)
 
+private fun User.online(): Boolean = connectionStatus != ConnectionStatus.None
 class ContactListFragment :
     BaseFragment<FragmentContactListBinding>(FragmentContactListBinding::inflate),
     NavigationView.OnNavigationItemSelectedListener {
@@ -210,59 +208,17 @@ class ContactListFragment :
             }
         }
         toolbar.inflateMenu(R.menu.contact_list_toolbar)
-        toolbar.menu.findItem(R.id.open_ai_assistant)?.isVisible = localAiSupported()
-        (requireActivity() as? MainActivity)?.setMusicAvailabilityListener { enabled ->
-            toolbar.menu.findItem(R.id.open_music)?.let { item ->
-                item.isEnabled = enabled
-                item.icon?.alpha = if (enabled) 255 else 90
-            }
+        openSos.setOnClickListener {
+            openTopToolbarWindow(
+                findNavController(),
+                R.id.action_contactListFragment_to_sosFragment,
+                R.id.open_sos,
+                openSos,
+                viewModel.windowAnimationsEnabled(),
+            )
         }
         toolbar.setOnMenuItemClickListener {
             when (it.itemId) {
-                R.id.open_sos -> {
-                    openTopToolbarWindow(
-                        findNavController(),
-                        R.id.action_contactListFragment_to_sosFragment,
-                        it.itemId,
-                        toolbar,
-                        viewModel.windowAnimationsEnabled(),
-                    )
-                    true
-                }
-                R.id.open_radio -> {
-                    openTopToolbarWindow(
-                        findNavController(),
-                        R.id.action_contactListFragment_to_radioFragment,
-                        it.itemId,
-                        toolbar,
-                        viewModel.windowAnimationsEnabled(),
-                    )
-                    true
-                }
-                R.id.open_music -> {
-                    (requireActivity() as? MainActivity)?.showMusicWidget()
-                    true
-                }
-                R.id.open_ai_assistant -> {
-                    openTopToolbarWindow(
-                        findNavController(),
-                        R.id.action_contactListFragment_to_aiAssistantFragment,
-                        it.itemId,
-                        toolbar,
-                        viewModel.windowAnimationsEnabled(),
-                    )
-                    true
-                }
-                R.id.open_games -> {
-                    openTopToolbarWindow(
-                        findNavController(),
-                        R.id.action_contactListFragment_to_gamesFragment,
-                        it.itemId,
-                        toolbar,
-                        viewModel.windowAnimationsEnabled(),
-                    )
-                    true
-                }
                 R.id.search_chats -> {
                     SkyToxChatSearchDialog(
                         this@ContactListFragment,
@@ -320,13 +276,14 @@ class ContactListFragment :
         viewModel.contacts.observe(viewLifecycleOwner) { contacts ->
             normalContacts = contacts
             updateContactAdapter(contactAdapter)
-            receiveShareDialog?.setContacts(contacts.sortedByDescending(::contactListSorter))
+            receiveShareDialog?.setContacts(shareRecipients())
             prepareReturnTransition(contactAdapter)
         }
 
         viewModel.selfChatContact.observe(viewLifecycleOwner) { contact ->
             selfChatContact = contact
             updateContactAdapter(contactAdapter)
+            receiveShareDialog?.setContacts(shareRecipients())
             prepareReturnTransition(contactAdapter)
         }
 
@@ -388,7 +345,8 @@ class ContactListFragment :
             showReceiveShareDialog(
                 share,
                 onContactSelected = {
-                    viewModel.onShareText(share, it)
+                    if (isSkyToxSelfChat(it.publicKey)) viewModel.onShareTextToSelf(share)
+                    else viewModel.onShareText(share, it)
                     openChat(it)
                 },
                 onDialogDismissed = {
@@ -399,19 +357,19 @@ class ContactListFragment :
 
         arguments?.getParcelableArrayList<Uri>(ARG_SHARE_FILES)?.let { files ->
             if (files.isEmpty()) return@let
-            val filesToShare = ArrayList(files.take(MAX_FILES_PER_SHARE_BATCH))
-            if (files.size > MAX_FILES_PER_SHARE_BATCH) {
-                Toast.makeText(
-                    requireContext(),
-                    getString(R.string.file_send_batch_limited, MAX_FILES_PER_SHARE_BATCH),
-                    Toast.LENGTH_LONG,
-                ).show()
-            }
             showReceiveShareDialog(
-                filesToShare.joinToString(separator = "\n", transform = ::sharedFileName),
-                onContactSelected = {
-                    viewModel.onShareFiles(filesToShare, it)
-                    openChat(it)
+                files.joinToString(separator = "\n", transform = ::sharedFileName),
+                onContactSelected = { contact ->
+                    if (isSkyToxSelfChat(contact.publicKey)) {
+                        viewModel.importFilesToMySkyTox(shareFilesForRecipient(files, true))
+                    } else {
+                        val filesToShare = ArrayList(shareFilesForRecipient(files, false))
+                        if (files.size > MAX_FILES_PER_SHARE_BATCH) {
+                            Toast.makeText(requireContext(), getString(R.string.file_send_batch_limited, MAX_FILES_PER_SHARE_BATCH), Toast.LENGTH_LONG).show()
+                        }
+                        viewModel.onShareFiles(filesToShare, contact)
+                    }
+                    openChat(contact)
                 },
                 onDialogDismissed = {
                     arguments?.remove(ARG_SHARE_FILES)
@@ -421,7 +379,6 @@ class ContactListFragment :
     }
 
     override fun onDestroyView() {
-        (activity as? MainActivity)?.setMusicAvailabilityListener(null)
         emergencyHandler.removeCallbacks(openEmergencyScreen)
         emergencyTimer?.cancel()
         emergencyDialog?.dismiss()
@@ -772,13 +729,16 @@ class ContactListFragment :
         receiveShareDialog?.dismiss()
         val dialog = ReceiveShareDialog(requireContext(), preview, onContactSelected)
         receiveShareDialog = dialog
-        dialog.setContacts(viewModel.contacts.value.orEmpty().sortedByDescending(::contactListSorter))
+        dialog.setContacts(shareRecipients())
         dialog.setOnDismissListener {
             if (receiveShareDialog === dialog) receiveShareDialog = null
             onDialogDismissed()
         }
         dialog.show()
     }
+
+    private fun shareRecipients(): List<Contact> =
+        listOfNotNull(selfChatContact) + normalContacts.sortedByDescending(::contactListSorter)
 
     private fun sharedFileName(uri: Uri): String {
         val displayName = runCatching {
