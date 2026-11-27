@@ -20,13 +20,6 @@ It is an independent Android fork of [aTox](https://github.com/evilcorpltd/aTox)
 
 ## Возможности
 
-### Новое в skyTox 0.8.39
-
-- Камера теперь открывается прямо из меню скрепки в чате: короткое нажатие делает фотографию, удержание записывает видео, а готовый материал сразу прикрепляется к сообщению.
-- Рация, Музыка, AI и Игры перенесены в «Мой skyTox», чтобы верхняя панель списка чатов оставалась спокойной и не перегруженной.
-- В «Мой skyTox» появился упрощённый файловый менеджер для личного порядка: рабочий стол, папки, Загрузки, Корзина, текстовые документы, копирование, перемещение, переименование, сортировка и просмотр поддерживаемых медиафайлов.
-- Файлы можно сохранять в личное пространство skyTox и организовывать независимо от переписки с контактами.
-
 ### Личное общение
 
 - Личные P2P-чаты без обязательной регистрации по номеру телефона или электронной почте.
@@ -132,6 +125,7 @@ It is an independent Android fork of [aTox](https://github.com/evilcorpltd/aTox)
 - **0.8.34:** появились анимации окон, темы Deep Ocean Light/Dark, постраничная загрузка истории и анимированные эмодзи в личных чатах; улучшены поиск по сообщениям, музыкальные уведомления, сохранения игр, плавность карты и стабильность файловых передач.
 - **0.8.35:** добавлены локальная Wi-Fi/LAN-рация, SOS-рассылка координат, рисование и обмен маршрутами и метками на карте, а также однократная видеозаставка после установки или обновления.
 - **0.8.36:** добавлен встроенный просмотр фотографий и видео, новый наглядный прогресс файловых передач и плавная подгрузка истории; улучшены трансляция геопозиции, открытие SOS-координат в skyTox и внешних картах, музыкальное управление и переходы между треками. Заставка теперь корректно показывается после запуска нового процесса, обои оптимизированы без потери разрешения, а на карте восстановлена атрибуция OpenStreetMap.
+- **0.8.39:** в меню скрепки чата добавлена съёмка фото и видео с немедленным прикреплением результата; Рация, Музыка, AI и Игры перенесены в «Мой skyTox»; появилось отдельное личное пространство с упрощённым файловым менеджером, рабочим столом, папками, Загрузками, Корзиной, текстовыми документами и просмотром поддерживаемых медиафайлов.
 
 Эта история остается в README только как краткая карта развития. Подробности конкретной сборки находятся в описании соответствующего [релиза](https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases).
 
@@ -169,13 +163,6 @@ skyTox has no central server through which its author routes every conversation.
 There is no central “turn it off” button. The author may stop publishing updates or discontinue an optional supporting service, but does not own the Tox network and cannot shut it down by a single decision. If I ever stop developing skyTox, anyone can take the source code, build the app, continue its development, or create a new fork.
 
 ## Features
-
-### New in skyTox 0.8.39
-
-- The camera is now available directly from the chat attachment menu: tap to take a photo, hold to record a video, and attach the result to the conversation immediately.
-- Radio, Music, AI, and Games have moved to “My skyTox”, keeping the main chat-list toolbar focused and uncluttered.
-- “My skyTox” now includes a lightweight file manager for personal organization: a desktop, folders, Downloads, Recycle Bin, text documents, copy, move, rename, sorting, and supported media previews.
-- Files can be stored and organized in a private skyTox workspace independently of contact conversations.
 
 ### Personal communication
 
@@ -281,6 +268,7 @@ A small local model can make mistakes, repeat itself, miss text in images, or co
 - **0.8.34:** window animations, Deep Ocean Light/Dark themes, paged chat history, and animated emoji in direct chats; improved message search, music notifications, game saves, map smoothness, and file-transfer stability.
 - **0.8.35:** local Wi-Fi/LAN radio, recurring SOS location alerts, freehand route and marker sharing on maps, and a one-time video intro after installation or update.
 - **0.8.36:** built-in photo and video viewing, a clearer animated file-transfer progress display, and smoother chat-history loading; improved live location, opening SOS coordinates in skyTox or external maps, music controls, and track transitions. The intro now follows the application-process lifecycle, wallpapers are optimized without reducing resolution, and OpenStreetMap attribution is visible again.
+- **0.8.39:** photo and video capture was added to the chat attachment menu with immediate attachment of the result; Radio, Music, AI, and Games moved to “My skyTox”; a dedicated personal workspace now provides a lightweight file manager with a desktop, folders, Downloads, Recycle Bin, text documents, and supported media previews.
 
 This timeline is only a compact map of the project. Build-specific details are available on the corresponding [GitHub Releases](https://github.com/Mark84Hoppus/MarkandDiego.skyTox/releases) pages.
 
